@@ -57,6 +57,15 @@ Planes: piloto, escuadrilla, flota, enterprise (`lib/v2/planLimits.js`). El Gere
 - **Archivos**: capa `lib/storage` (R2). Descarga de privados por streaming desde el servidor, nunca URLs directas.
 - **Datos**: nunca se fabrican datos operacionales; sin columnas derivadas (se calculan al leer). Lo que se radica ante la Aerocivil conserva su formato exacto;
   lo interno es configurable por la organización.
+- **Errores de base de datos**: nunca `{ error: error.message }` (filtra tablas, columnas y políticas). Usa `dbError(error, 'ruta')` (`lib/v2/apiErrors.js`):
+  registra el detalle en el servidor y responde un mensaje claro; solo pasan tal cual los `raise exception` propios (`P0001`, `23001`). Ver `packages/domain/src/apiErrors.js`.
+- **Más de 1.000 filas**: PostgREST corta en silencio a 1.000. Para reportes y sumas usa `fetchAllPages` (`packages/domain/src/paginate.js`) con orden estable (fecha + id); las listas de pantalla paginan (`offset`).
+- **Horas de Colombia**: una fecha-hora sin zona del navegador es hora de Colombia (UTC−5, sin horario de verano). Antes de guardarla pasa por `asBogotaInstant` (`lib/v2/dispatchContext.js`); si no, Postgres la toma como UTC y queda 5 h antes.
+- **Vuelos y despachos son eventos**: no se borran. Un vuelo se **edita** o se **anula** (`PATCH/DELETE /api/flights/[id]`, matriz D6, motivo obligatorio, `audit_log`); `flights_select` oculta los anulados, así que
+  los reportes no los cuentan. Un despacho abierto que el piloto no puede cerrar lo cierra un gestor (`/api/despacho/[id]/close-manager`, F5). Reglas puras en `packages/domain/src/flightEdit.js`.
+- **Migraciones nuevas**: van en `supabase/migrations/` y **las aplica el dueño** pegándolas en el SQL Editor de producción (la conexión de Supabase desde las sesiones en la nube suele fallar). El código que depende de una
+  columna o función nueva debe tolerar que aún no exista (responder «falta aplicar la migración» o no mostrar el dato) y la lista principal no debe leer columnas nuevas.
+- **Importación de logs DJI**: un log por petición (Vercel rechaza más de 4,5 MB), 4 MB por log (`DJI_IMPORT_LIMITS`); la librería lanza texto, no `Error` (usar `errorText`); la llave de DJI solo se pide para logs de versión ≥ 13.
 - **Pagos**: Wompi; el webhook verifica el checksum y es idempotente (`wompi_processed_refs`). Cron de cobro recurrente en `vercel.json`.
 - **Cron** (`vercel.json`): todos exigen `CRON_SECRET`.
 - ESLint 8 con `.eslintrc.json`; componentes `.js` con Tailwind; fuentes `font-lexend` (títulos landing) y `font-sans`.
@@ -71,9 +80,11 @@ Plantilla en `.env.example`. Nunca se comitean valores (`.env*` está ignorado).
 
 ## Pruebas y verificación
 
-- `npm run test:domain` — 548 pruebas de las reglas de negocio (límites de tiempos de servicio, planes, capacitación, etc.).
+- `npm run test:domain` — unas 630 pruebas de las reglas de negocio (límites de tiempos de servicio, planes, capacitación, etc.).
 - `npm run test:integration` — pruebas de API contra un servidor local (`next dev`) y la base de desarrollo.
 - Barrido móvil real: `tools/mobile-sweep/` (Appium + simulador de iPhone). Ver su README.
+- Prueba de pantallas sin base: mover `src/middleware.js` fuera, `next dev -p 3100` con variables falsas de Supabase y Playwright con `/api/**` simulado (**restaurar el middleware siempre**).
+- CI (`.github/workflows/ci.yml`, rama `main`): lint, pruebas, `npm audit` y build; debe estar en verde. Si falla la compilación al descargar fuentes de Google, es pasajero: re-ejecutar los jobs fallidos.
 - `lint` + `build` limpios **no bastan** para lógica regulatoria (regla Q3). Lo que no se pudo probar se declara.
 
 ## Rendimiento (lo que ya se hizo y por qué)
@@ -81,9 +92,13 @@ Plantilla en `.env.example`. Nunca se comitean valores (`.env*` está ignorado).
 El cuello de botella es la latencia, no la base (consultas < 6 ms). Medidas vigentes: JWT verificado en local en el middleware, contexto de sesión
 compartido y cacheado, consultas independientes en paralelo, el Dashboard en una sola petición liviana (`/api/inicio/resumen`), `prefetch={false}` en enlaces del shell, índices en llaves foráneas de uso frecuente,
 ping de mantenimiento cada 5 min (`tools/ci/keepalive.yml`, hay que copiarlo a `.github/workflows/`) contra `/api/health`.
-Instancia de Supabase pequeña: revisar su tamaño antes del 31 de octubre (vence el plan de pago).
+Instancia de Supabase pequeña: la fecha del 31 de octubre ya pasó; confirmar con el dueño el plan y tamaño vigentes. Vercel está en plan Hobby (registros de 1 hora, cuerpo máximo 4,5 MB, cron como mucho diarios); sin monitoreo de errores externo (decisión del dueño: no usar Sentry).
 
 ## Pendientes conocidos
 
-Ver `docs/skylog-v2/70-matriz-de-permisos.md` §4–5 (cambio de roles) y `docs/skylog-v2/51-bitacora.md` (decisiones y estado). Deuda de dependencias: Next 16 y `jspdf` 5 son
-saltos mayores que requieren regresión dedicada.
+Ver `docs/skylog-v2/70-matriz-de-permisos.md` §4–5 (cambio de roles) y `docs/skylog-v2/51-bitacora.md` (decisiones y estado; la última es la 226). Deuda de dependencias: Next 16 y `jspdf` 5 son
+saltos mayores que requieren regresión dedicada (Next está en 15.5.28; `npm audit` en 0 vulnerabilidades).
+
+Abiertos hoy: sincronizar logs desde la nube de DJI para controles RC 2 (`46-sincronizacion-nube-dji.md`, `46a-…`: plan sin código, falta prueba de factibilidad y revisión jurídica); transmisión de video en vivo
+(`42-comando-control.md`; con RC 2 solo video RTMP, sin datos en vivo); simulador 3D de capacitación (`45-…`, fase 0 hecha); recorrido de bienvenida por perfil; segundo factor para todos. Pendientes del dueño:
+activar la inscripción de segundo factor (TOTP) en Supabase, confirmar `BACKUP_ENCRYPTION_KEY`, borrar `ADMIN_SECRET` de Vercel y aplicar las migraciones `20261118120000` (anular vuelos) y `20261118130000` (cierre de despacho por gestor) si no lo ha hecho.

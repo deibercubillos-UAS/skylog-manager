@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { escHtml } from '@/lib/emailHelpers';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(req) {
   try {
@@ -34,6 +35,6 @@ export async function POST(req) {
 
     return NextResponse.json({ message: "Enviado" });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'contact');
   }
 }

@@ -5,6 +5,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { resolveReportFormat, fetchAllPages } from '@skylog/domain';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -27,7 +28,7 @@ export async function GET(request) {
     .order('serial_number');
   if (aircraftId) aircraftQuery = aircraftQuery.eq('id', aircraftId);
   const { data: aircraft, error } = await aircraftQuery;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/uas');
 
   const ids = (aircraft || []).map((a) => a.id);
   const [{ data: flights }, { data: events }, { data: org }] = await Promise.all([

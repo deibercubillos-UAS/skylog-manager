@@ -10,6 +10,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función de Vercel admite ~4,5 MB
@@ -52,7 +53,7 @@ export async function POST(request, { params }) {
   if (putError) return Response.json({ error: 'No se pudo subir el documento' }, { status: 500 });
 
   const { data, error } = await supabase.from('aircraft').update({ ownership_document_path: key }).eq('id', id).select('id, ownership_document_path').single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/aircraft/[id]/ownership-document');
 
   return Response.json({ aircraft: data });
 }

@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const HEALTH_STATUSES = ['buena', 'regular', 'mala'];
 const STATUSES = ['operativo', 'baja'];
@@ -47,7 +48,7 @@ export async function PATCH(request, { params }) {
   let data = null;
   if (Object.keys(patch).length > 0) {
     const { data: updated, error } = await supabase.from('batteries').update(patch).eq('id', id).select().single();
-    if (error) return Response.json({ error: error.message }, { status: 500 });
+    if (error) return dbError(error, 'flota/batteries/[id]');
     data = updated;
   } else {
     const { data: fresh } = await supabase.from('batteries').select().eq('id', id).single();

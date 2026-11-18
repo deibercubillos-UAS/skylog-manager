@@ -170,6 +170,6 @@ export async function GET(request) {
     });
   } catch (err) {
     console.error('[meteorologia/current]', err.message, err.cause ? String(err.cause) : '');
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'No se pudo consultar el clima. Intenta de nuevo en unos minutos.' }, { status: 502 });
   }
 }

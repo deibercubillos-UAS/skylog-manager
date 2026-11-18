@@ -3,6 +3,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function loadManual(supabase, id) {
   return supabase.from('manuales').select('id, organization_id, current_version_id').eq('id', id).maybeSingle();
@@ -16,7 +17,7 @@ export async function POST(request, { params }) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error } = await loadManual(supabase, id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'manuales/[id]/acknowledge');
   if (!manual) return Response.json({ error: 'Manual no encontrado' }, { status: 404 });
   if (!manual.current_version_id) return Response.json({ error: 'Este manual no tiene una versión vigente' }, { status: 400 });
 
@@ -49,7 +50,7 @@ export async function DELETE(request, { params }) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error } = await loadManual(supabase, id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'manuales/[id]/acknowledge');
   if (!manual) return Response.json({ error: 'Manual no encontrado' }, { status: 404 });
 
   const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);

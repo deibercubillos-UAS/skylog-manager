@@ -10,6 +10,7 @@ import { storageRemove } from '@/lib/storage';
 import { POLICY_TYPES } from '@skylog/domain';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -71,7 +72,7 @@ export async function GET(request) {
     .select('*, insurance_policy_aircraft(aircraft_id)')
     .eq('organization_id', organizationId)
     .order('end_date', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'polizas');
   return Response.json({ policies: (data || []).map(withAircraftIds) });
 }
 
@@ -115,7 +116,7 @@ export async function POST(request) {
     .single();
   if (error) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una póliza de esa aseguradora con ese número' }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'polizas');
   }
 
   if (!coversAllFleet) {
@@ -186,7 +187,7 @@ export async function PATCH(request) {
   const { data: policy, error } = await supabase.from('insurance_policies').update(patch).eq('id', id).select().single();
   if (error) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una póliza de esa aseguradora con ese número' }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'polizas');
   }
 
   if (relink) {
@@ -213,7 +214,7 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('insurance_policies').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'polizas');
   // Mejor esfuerzo: el registro ya se borró; un archivo huérfano no debe devolver error.
   if (existing.document_path) await storageRemove({ bucket: 'documents', keys: [existing.document_path] });
   await logAudit({ organizationId: existing.organization_id, action: 'delete', module: 'Pólizas', entityLabel: 'Póliza eliminada' });

@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request, { params }) {
   params = await params;
@@ -13,7 +14,7 @@ export async function GET(request, { params }) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error } = await supabase.from('manuales').select('id, organization_id, current_version_id, title').eq('id', id).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'manuales/[id]/acknowledgments');
   if (!manual) return Response.json({ error: 'Manual no encontrado' }, { status: 404 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);

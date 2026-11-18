@@ -3,6 +3,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -44,7 +45,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/cases/actions');
   await supabase.from('sms_case_events').insert({ case_id: caseId, organization_id: caseRow.organization_id, event_type: 'accion_agregada', payload: { description, due_date: dueDate || null }, created_by: personId });
   return Response.json({ action: data });
 }
@@ -85,7 +86,7 @@ export async function PATCH(request) {
     .eq('id', actionId)
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/cases/actions');
   await supabase.from('sms_case_events').insert({ case_id: actionRow.case_id, organization_id: actionRow.organization_id, event_type: 'accion_completada', payload: { description: actionRow.description }, created_by: personId });
   return Response.json({ action: data });
 }

@@ -10,6 +10,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -74,7 +75,7 @@ export async function PATCH(request, { params }) {
     .eq('id', membershipId)
     .select('id, role, status, started_at, person:person_id(id, full_name, document_type, document_number, phone, email, license_number, medical_cert_expiry)')
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/roster/membership/[membershipId]');
 
   await logAudit({ organizationId: existing.organization_id, action: 'update', module: 'Tripulación', entityLabel: `${data.person?.full_name || 'Integrante'} → ${data.role} (${data.status})` });
   return Response.json({ membership: data });

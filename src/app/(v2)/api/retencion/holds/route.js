@@ -14,6 +14,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { canReleaseHold } from '@skylog/domain';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const HOLD_SELECT = `
   *,
@@ -65,7 +66,7 @@ export async function GET(request) {
   }
 
   const { data, error } = await supabase.from('legal_holds').select(HOLD_SELECT).eq('organization_id', organizationId).order('opened_at', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'retencion/holds');
   return Response.json({ holds: data || [] });
 }
 
@@ -95,7 +96,7 @@ export async function POST(request) {
     .insert({ organization_id: organizationId, reason: reason.trim(), sms_case_id: smsCaseId || null, opened_by: auth.personId })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'retencion/holds');
 
   const { error: linkError } = await supabase.from('legal_hold_flights').insert([...new Set(flightIds)].map((flight_id) => ({ hold_id: hold.id, flight_id })));
   if (linkError) {
@@ -151,7 +152,7 @@ export async function PATCH(request) {
       .is('released_at', null)
       .select()
       .maybeSingle();
-    if (error) return Response.json({ error: error.message }, { status: 500 });
+    if (error) return dbError(error, 'retencion/holds');
     if (!data) return Response.json({ error: 'No se pudo liberar la custodia (sin permiso o ya liberada)' }, { status: 403 });
 
     const warning = await logEvent({ holdId: id, type: 'released', personId: auth.personId, detail: releaseReason.trim() });

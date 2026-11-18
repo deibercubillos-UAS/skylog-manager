@@ -8,6 +8,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function loadEvaluationOrg(supabase, evaluationId) {
   return supabase.from('capacitacion_evaluations').select('organization_id').eq('id', evaluationId).maybeSingle();
@@ -50,7 +51,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/questions');
   return Response.json({ question: data });
 }
 
@@ -66,7 +67,7 @@ export async function GET(request) {
   // RLS ya restringe SELECT a gestores — si un no-gestor llama esto, recibe
   // lista vacía (no error), coherente con el resto del proyecto.
   const { data, error } = await supabase.from('capacitacion_evaluation_questions').select('*').eq('evaluation_id', evaluationId).order('order_index');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/questions');
   return Response.json({ questions: data });
 }
 
@@ -94,6 +95,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('capacitacion_evaluation_questions').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/questions');
   return Response.json({ ok: true });
 }

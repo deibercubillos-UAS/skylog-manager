@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -58,7 +59,7 @@ export async function POST(request) {
     : supabase.from('sms_implementation_tasks').insert(row);
 
   const { data, error } = await query.select('*, responsible:responsible_person_id(full_name)').single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/implementation-plan/tasks');
   return Response.json({ task: data });
 }
 
@@ -92,7 +93,7 @@ export async function PATCH(request) {
   if (notes !== undefined) patch.notes = notes?.trim() || null;
 
   const { data, error } = await supabase.from('sms_implementation_tasks').update(patch).eq('id', id).select('*, responsible:responsible_person_id(full_name)').single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/implementation-plan/tasks');
   return Response.json({ task: data });
 }
 
@@ -116,6 +117,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('sms_implementation_tasks').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/implementation-plan/tasks');
   return Response.json({ ok: true });
 }

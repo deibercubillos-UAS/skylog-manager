@@ -5,6 +5,7 @@ import { isCronAuthorized } from '@/lib/safeEqual';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { sendGrantReminderEmail } from '@/lib/v2/grantsServer';
 import { grantDaysLeft, GRANT_REMINDER_DAYS } from '@skylog/domain';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function GET(request) {
     .is('reminder_sent_at', null)
     .gt('expires_at', now.toISOString())
     .lte('expires_at', limit);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'cron/grant-expiring-reminder');
 
   const results = { reminded: 0, errors: [] };
   for (const g of grants || []) {

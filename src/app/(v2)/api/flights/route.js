@@ -16,6 +16,7 @@ import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { asBogotaInstant } from '@/lib/v2/dispatchContext';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 const PAGE_SIZE = 200;
@@ -210,7 +211,7 @@ export async function POST(request) {
     .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flights');
 
   // ② derivado — nunca read-calculate-write: el total de horas de la
   // aeronave se actualiza vía RPC, mismo patrón ya probado en v1.

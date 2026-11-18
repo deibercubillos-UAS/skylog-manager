@@ -13,6 +13,7 @@ import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { membershipsCanView, readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function session() {
   const supabase = await createClientSSR();
@@ -33,7 +34,7 @@ export async function GET(request) {
     return Response.json({ error: 'Solo un gestor puede ver las invitaciones' }, { status: 403 });
   }
   const { data, error } = await s.supabase.from('invitations').select('id, email, name, role, status, expires_at, created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(50);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'invitaciones');
   const now = Date.now();
   return Response.json({
     invitations: (data || []).map((i) => ({ ...i, state: invitationState(i, now) })),
@@ -99,7 +100,7 @@ export async function POST(request) {
     .insert({ organization_id: organizationId, email: clean.email, name: clean.name, role: clean.role, person_id: existing?.id || null, invited_by: s.personId, token, expires_at: invitationExpiresAt(new Date().toISOString()) })
     .select('id, email, name, role, status, expires_at, created_at')
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'invitaciones');
 
   const { data: inviter } = await admin.from('people').select('full_name').eq('id', s.personId).maybeSingle();
   const email = await sendInvitationEmail({ to: clean.email, name: clean.name, role: clean.role, organizationName: org.company_name, inviterName: inviter?.full_name, token });
@@ -119,6 +120,6 @@ export async function DELETE(request) {
   if (readOnly) return readOnly;
   if (inv.status !== 'pendiente') return Response.json({ error: 'Solo se cancelan las invitaciones pendientes' }, { status: 409 });
   const { error } = await admin.from('invitations').update({ status: 'revocada' }).eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'invitaciones');
   return Response.json({ ok: true });
 }

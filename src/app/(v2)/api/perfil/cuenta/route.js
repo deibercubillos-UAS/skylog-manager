@@ -5,6 +5,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { planAccountDeletion } from '@skylog/domain';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ export async function DELETE(request) {
     if (error.code === '23001' || /retenci|custodia/i.test(error.message)) {
       return Response.json({ error: `No se pudo eliminar: ${error.message} No se borró nada.` }, { status: 409 });
     }
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'perfil/cuenta');
   }
   let authDeleted = true;
   if (data?.auth_user_id) {

@@ -5,6 +5,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateStockItem } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export async function PATCH(request, { params }) {
   const check = validateStockItem(await request.json().catch(() => ({})));
   if (!check.ok) return Response.json({ error: check.errors.join(' ') }, { status: 400 });
   const { data, error } = await supabase.from('equipment_stock').update(check.clean).eq('id', params.id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/equipo/[id]');
   await logAudit({ organizationId: g.row.organization_id, action: 'update', module: 'Equipo', entityLabel: `${data.name} (${data.quantity})` });
   return Response.json({ item: data });
 }
@@ -38,7 +39,7 @@ export async function DELETE(_request, { params }) {
   const g = await guard(supabase, params.id);
   if (g.error) return g.error;
   const { error } = await supabase.from('equipment_stock').delete().eq('id', params.id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/equipo/[id]');
   await logAudit({ organizationId: g.row.organization_id, action: 'delete', module: 'Equipo', entityLabel: 'Existencia de equipo eliminada' });
   return Response.json({ ok: true });
 }

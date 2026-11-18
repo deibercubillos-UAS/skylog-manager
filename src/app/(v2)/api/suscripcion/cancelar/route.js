@@ -6,6 +6,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export async function POST(request) {
     .from('subscriptions')
     .update({ wompi_payment_source_id: null, canceled_at: new Date().toISOString(), updated_by: personId, updated_at: new Date().toISOString() })
     .eq('organization_id', organizationId);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'suscripcion/cancelar');
 
   await createNotifications({
     organizationId,

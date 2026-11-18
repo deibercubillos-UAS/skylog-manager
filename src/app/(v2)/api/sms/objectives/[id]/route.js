@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -35,7 +36,7 @@ export async function PATCH(request, { params }) {
   }
 
   const { data, error } = await supabase.from('sms_objectives').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/objectives/[id]');
 
   if (Array.isArray(indicatorIds)) {
     const { data: validIndicators } = await supabase.from('safety_indicators').select('id').eq('organization_id', objective.organization_id).in('id', indicatorIds);
@@ -66,6 +67,6 @@ export async function DELETE(request, { params }) {
   }
 
   const { error } = await supabase.from('sms_objectives').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/objectives/[id]');
   return Response.json({ ok: true });
 }

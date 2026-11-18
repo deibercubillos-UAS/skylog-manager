@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { SMS_REPORT_COLUMNS } from '@/lib/v2/smsReporterIdentity';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -49,6 +50,6 @@ export async function POST(request) {
     .select(SMS_REPORT_COLUMNS)
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/reports/analyze');
   return Response.json({ report: data });
 }

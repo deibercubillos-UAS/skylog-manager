@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { resolveReportFormat } from '@skylog/domain';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const LOS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -41,7 +42,7 @@ export async function GET(request) {
     }
     if (pilotId) query = query.eq('pilot_person_id', pilotId);
     const { data, error } = await query;
-    if (error) return Response.json({ error: error.message }, { status: 500 });
+    if (error) return dbError(error, 'reportes/bitacora-piloto');
     rows.push(...(data || []));
     if (!data || data.length < 1000) break;
   }

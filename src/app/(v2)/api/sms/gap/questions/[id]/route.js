@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -31,7 +32,7 @@ export async function PATCH(request, { params }) {
   if (questionText != null) patch.question_text = questionText.trim();
 
   const { data, error } = await supabase.from('sms_gap_questions').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/questions/[id]');
   return Response.json({ question: data });
 }
 
@@ -53,6 +54,6 @@ export async function DELETE(request, { params }) {
   }
 
   const { error } = await supabase.from('sms_gap_questions').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/questions/[id]');
   return Response.json({ ok: true });
 }

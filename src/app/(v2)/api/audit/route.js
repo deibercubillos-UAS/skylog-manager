@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,6 @@ export async function GET(request) {
   if (sp.get('module')) q = q.eq('module', sp.get('module'));
   if (sp.get('action')) q = q.eq('action', sp.get('action'));
   const { data, error } = await q;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'audit');
   return Response.json({ entries: data || [] });
 }

@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateStockItem } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export async function POST(request) {
   const check = validateStockItem(body);
   if (!check.ok) return Response.json({ error: check.errors.join(' ') }, { status: 400 });
   const { data, error } = await supabase.from('equipment_stock').insert({ organization_id: organizationId, ...check.clean, created_by: personId }).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/equipo');
   await logAudit({ organizationId, action: 'create', module: 'Equipo', entityLabel: `${data.name} (${data.quantity})` });
   return Response.json({ item: data });
 }

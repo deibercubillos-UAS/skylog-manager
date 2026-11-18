@@ -8,6 +8,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const ALLOWED_ROLES = ['gerente_sms', 'admin', 'superadmin'];
 
@@ -31,7 +32,7 @@ export async function GET(request) {
   if (auth.error) return auth.error;
 
   const { data, error } = await supabase.from('organizations').select('sms_public_token').eq('id', organizationId).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/public-link');
   return Response.json({ token: data?.sms_public_token || null });
 }
 

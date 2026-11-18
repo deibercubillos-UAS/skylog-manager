@@ -51,7 +51,8 @@ export async function POST(request) {
 
     return Response.json({ success: true, logo_url: logoUrl });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error('[socio/logo] POST falló:', err?.message);
+    return Response.json({ error: 'No se pudo guardar el logo. Intenta de nuevo.' }, { status: 500 });
   }
 }
 
@@ -63,6 +64,7 @@ export async function DELETE() {
     await c.admin.from('partners').update({ logo_url: null }).eq('id', c.ownerPartnerId);
     return Response.json({ success: true });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error('[socio/logo] DELETE falló:', err?.message);
+    return Response.json({ error: 'No se pudo quitar el logo. Intenta de nuevo.' }, { status: 500 });
   }
 }

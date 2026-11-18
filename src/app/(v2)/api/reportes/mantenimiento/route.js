@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -46,7 +47,7 @@ export async function GET(request) {
     supabase.from('organizations').select('nit').eq('id', organizationId).maybeSingle(),
   ]);
   const failure = aircraftError || eventsError || unexpectedError;
-  if (failure) return Response.json({ error: failure.message }, { status: 500 });
+  if (failure) return dbError(failure, 'reportes/mantenimiento');
 
   return Response.json({ aircraft: aircraft || [], events: (events || []).map(({ document_path, ...e }) => ({ ...e, has_document: !!document_path })), unexpected: unexpected || [], org: org ? { nit: org.nit } : null });
 }

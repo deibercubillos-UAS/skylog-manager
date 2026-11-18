@@ -10,6 +10,7 @@ import { buildIntegritySignature } from '@/lib/wompi';
 import { findActiveCode } from '@/lib/v2/referrals';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { isPlayAppRequest } from '@/lib/v2/playApp';
+import { dbError } from '@/lib/v2/apiErrors';
 
 function isAdmin(memberships, organizationId) {
   return (memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role));
@@ -55,7 +56,7 @@ export async function POST(request) {
     created_by: personId,
     partner_code: partnerCode,
   });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'suscripcion/wompi/checkout');
 
   const amountInCents = cfg.amount * 100;
   let signature;

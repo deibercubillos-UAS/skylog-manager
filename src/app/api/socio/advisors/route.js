@@ -5,6 +5,7 @@ import { schoolOwnerContext } from '@/lib/v2/socioContext';
 import { generateUniqueCode, newPartnerToken, sendMemberInvitation, sendMemberWelcome } from '@/lib/v2/partnersServer';
 import { likeExact } from '@/lib/v2/invitationsServer';
 import { PARTNER_INVITATION_TTL_DAYS } from '@skylog/domain';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -51,7 +52,7 @@ export async function POST(request) {
     type: 'asesor', name: cleanName, parent_partner_id: school.id, commission_pct: school.commission_pct,
     free_seats_limit: school.free_seats_limit, free_days: school.free_days, status: 'activo', created_by: personId,
   }).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'socio/advisors');
   const code = await generateUniqueCode(admin, advisor.name);
   await admin.from('partner_codes').insert({ partner_id: advisor.id, code });
 

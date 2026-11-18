@@ -9,6 +9,7 @@ import { resolvePartnerMember, sendGrantEmail } from '@/lib/v2/grantsServer';
 import { newPartnerToken } from '@/lib/v2/partnersServer';
 import { likeExact } from '@/lib/v2/invitationsServer';
 import { grantSeatsCheck, grantDates } from '@skylog/domain';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export async function GET() {
   const s = await session();
   if (s.error) return s.error;
   const { data, error } = await s.admin.from('free_grants').select('id, email, status, granted_at, expires_at, redeemed_organization_id').eq('partner_id', s.member.partner_id).order('granted_at', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'socio/grants');
   return Response.json({ grants: data || [] });
 }
 

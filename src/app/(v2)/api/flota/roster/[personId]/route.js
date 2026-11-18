@@ -10,6 +10,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const IDENTITY_FIELDS = ['full_name', 'document_type', 'document_number', 'email'];
 const ALLOWED_FIELDS = ['full_name', 'document_type', 'document_number', 'email', 'phone', 'license_number', 'medical_cert_expiry', 'emergency_contact_name', 'emergency_contact_phone'];
@@ -74,7 +75,7 @@ export async function PATCH(request, { params }) {
   }
 
   const { data, error } = await admin.from('people').update(patch).eq('id', personId).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/roster/[personId]');
 
   return Response.json({ person: data });
 }

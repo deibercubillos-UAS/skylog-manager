@@ -6,6 +6,7 @@ import { sanitizeSpecInput } from '@skylog/domain';
 import { publicModel } from '@/lib/v2/publicModel';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -39,7 +40,7 @@ export async function PATCH(request, { params }) {
   if (Object.keys(patch).length === 0) return Response.json({ error: 'Nada para actualizar' }, { status: 400 });
 
   const { data, error } = await supabase.from('aircraft_models').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/models/[id]');
   return Response.json({ model: publicModel(data) });
 }
 

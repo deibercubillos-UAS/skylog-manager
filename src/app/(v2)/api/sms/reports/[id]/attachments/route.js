@@ -7,6 +7,7 @@ import { adminKeyProblem, storageProblem } from '@/lib/v2/adminKey';
 import { storeReportAttachment } from '@/lib/v2/reportAttachments';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { reporterIdOf } from '@/lib/v2/smsReporterIdentity';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request, { params }) {
   params = await params;
@@ -55,6 +56,6 @@ export async function GET(request, { params }) {
 
   const { id } = await params;
   const { data, error } = await supabase.from('sms_report_attachments').select('id, file_name, content_type, size_bytes, created_at').eq('report_id', id).order('created_at');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/reports/[id]/attachments');
   return Response.json({ attachments: data || [] });
 }

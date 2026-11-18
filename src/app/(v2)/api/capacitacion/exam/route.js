@@ -10,6 +10,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeEvaluationCompliance, gradeAttempt, classifyReportRoute } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 // ⚠️ `organizationIds` NO es opcional: al leer con service role (ver cabecera)
 // RLS no acota nada, así que el filtro por organización es el único límite
@@ -125,7 +126,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/exam');
 
   // SMS-E — "SMS alimentado por la operación" (40-sms.md §5.4/§5.9): un
   // examen reprobado es un hallazgo real de competencia del personal — se

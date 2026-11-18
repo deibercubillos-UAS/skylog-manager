@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -31,7 +32,7 @@ export async function GET(request) {
   if (personId) query = query.eq('person_id', personId);
 
   const { data, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/duty');
 
   // `duty_periods` no tiene llave foránea hacia `people` (el historial se conserva aunque la persona se elimine), así que
   // el embed de PostgREST no existe: los nombres se piden aparte.

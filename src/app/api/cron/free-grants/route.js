@@ -11,6 +11,7 @@
 import { isCronAuthorized } from '@/lib/safeEqual';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { sendGrantExpiredEmail } from '@/lib/v2/grantsServer';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export async function GET(request) {
     .select('id, email, status, partner:partners(name)')
     .in('status', ['activado', 'enviado'])
     .lte('expires_at', now);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'cron/free-grants');
 
   for (const grant of expired || []) {
     try {

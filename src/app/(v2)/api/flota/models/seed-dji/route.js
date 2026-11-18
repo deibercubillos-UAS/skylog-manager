@@ -10,6 +10,7 @@ import { DJI_MODELS_CATALOG } from '@/lib/v2/djiModelsCatalog';
 import { sanitizeSpecInput, SPEC_FIELD_KEYS } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { describeDbError } from '@skylog/domain';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -68,7 +69,10 @@ export async function POST(request) {
       .insert({ brand: m.brand, model: m.model, category: m.category, ...specOf(m), organization_id: organizationId, created_by: personId })
       .select()
       .single();
-    if (error) return Response.json({ error: error.message, created }, { status: 500 });
+    if (error) {
+      console.error('[flota/models/seed-dji]', error.code || '', error.message);
+      return Response.json({ error: describeDbError(error).message, created }, { status: 500 });
+    }
     created.push(data);
   }
 

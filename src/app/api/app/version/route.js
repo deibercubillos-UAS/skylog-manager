@@ -24,6 +24,7 @@ export async function GET() {
 
         return Response.json(data);
     } catch (err) {
-        return Response.json({ error: err.message }, { status: 500 });
+        console.error('[app/version]', err?.message);
+        return Response.json({ error: 'No se pudo consultar la versión' }, { status: 500 });
     }
 }

@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeGapStats } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -25,7 +26,7 @@ export async function GET(request) {
     .select('*, responses:sms_gap_responses(response, question:question_id(component_number))')
     .eq('organization_id', organizationId)
     .order('assessment_date', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/assessments');
 
   const withStats = (assessments || []).map((a) => {
     const responses = (a.responses || []).map((r) => ({ componentNumber: r.question?.component_number, response: r.response }));
@@ -56,6 +57,6 @@ export async function POST(request) {
     .insert({ organization_id: organizationId, title: title?.trim() || null, assessment_date: assessmentDate || new Date().toISOString().slice(0, 10), created_by: personId })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/assessments');
   return Response.json({ assessment: data });
 }

@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const CATEGORIES = ['Prevuelo', 'Reportes', 'Seguridad Operacional', 'Mantenimiento'];
 
@@ -18,7 +19,7 @@ export async function GET(request) {
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
 
   const { data, error } = await supabase.from('checklists').select('*').eq('organization_id', organizationId).order('category').order('name');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'checklists');
   return Response.json({ checklists: data || [] });
 }
 
@@ -53,7 +54,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'checklists');
   return Response.json({ checklist: data });
 }
 
@@ -86,7 +87,7 @@ export async function PATCH(request) {
   if (version != null) patch.version = version.trim() || '1.0';
 
   const { data, error } = await supabase.from('checklists').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'checklists');
   return Response.json({ checklist: data });
 }
 
@@ -110,6 +111,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('checklists').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'checklists');
   return Response.json({ ok: true });
 }

@@ -9,6 +9,7 @@ import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 // Nunca se expone la ruta de la foto: solo si hay una cargada.
 const publicAircraft = ({ image_path, ...a }) => ({ ...a, has_image: !!image_path });
@@ -72,7 +73,7 @@ export async function POST(request) {
 
   if (error) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una aeronave con ese número de serie en esta organización' }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'flota/aircraft');
   }
   await logAudit({ organizationId, action: 'create', module: 'Aeronaves', entityLabel: `Aeronave ${serialNumber}` });
   return Response.json({ aircraft: publicAircraft(data) });

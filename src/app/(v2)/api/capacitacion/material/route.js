@@ -9,6 +9,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -69,7 +70,7 @@ export async function POST(request) {
     .eq('id', evaluationId)
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/material');
   return Response.json({ evaluation: data });
 }
 
@@ -100,7 +101,7 @@ export async function DELETE(request) {
     .eq('id', evaluationId)
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/material');
   return Response.json({ evaluation: data });
 }
 
@@ -119,7 +120,7 @@ export async function GET(request) {
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
 
   const { data: evaluation, error } = await loadEvaluation(supabase, evaluationId);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/material');
   if (!evaluation) return Response.json({ error: 'Evaluación no encontrada' }, { status: 404 });
   if (!evaluation.material_path) return Response.json({ error: 'Esta evaluación no tiene material de apoyo cargado' }, { status: 404 });
 

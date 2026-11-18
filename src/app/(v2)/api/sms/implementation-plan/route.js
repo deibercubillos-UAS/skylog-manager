@@ -10,6 +10,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeOfficialProgress, validatePlanHorizon } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -93,6 +94,6 @@ export async function POST(request) {
     .upsert({ organization_id: organizationId, plan_start_date: planStartDate, horizon_months: horizonMonths, created_by: personId, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/implementation-plan');
   return Response.json({ plan: data });
 }

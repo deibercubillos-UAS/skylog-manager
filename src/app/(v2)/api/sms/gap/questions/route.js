@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -25,8 +26,8 @@ export async function GET(request) {
     supabase.from('sms_gap_questions').select('*').or(`organization_id.is.null,organization_id.eq.${organizationId}`).order('component_number').order('order_index'),
     supabase.from('sms_gap_question_visibility').select('question_id, hidden').eq('organization_id', organizationId),
   ]);
-  if (questionsRes.error) return Response.json({ error: questionsRes.error.message }, { status: 500 });
-  if (visibilityRes.error) return Response.json({ error: visibilityRes.error.message }, { status: 500 });
+  if (questionsRes.error) return dbError(questionsRes.error, 'sms/gap/questions');
+  if (visibilityRes.error) return dbError(visibilityRes.error, 'sms/gap/questions');
 
   const hiddenIds = new Set((visibilityRes.data || []).filter((v) => v.hidden).map((v) => v.question_id));
   const questions = (questionsRes.data || [])
@@ -70,6 +71,6 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/questions');
   return Response.json({ question: data });
 }

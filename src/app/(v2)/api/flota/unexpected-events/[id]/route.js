@@ -9,6 +9,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const RESULTS = ['aeronavegable', 'requiere_mantenimiento', 'fuera_de_servicio'];
 
@@ -51,7 +52,7 @@ export async function PATCH(request, { params }) {
     .eq('id', id)
     .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), reporter:reported_by(full_name), evaluator:evaluated_by(full_name)')
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/unexpected-events/[id]');
 
   // El Gerente SMS evalúa (matriz I12) pero la puerta de rol de `aircraft` solo deja escribir a GG/JP: ya validado el
   // permiso, el estado de la aeronave se cambia con la llave de servicio y su error ya no se ignora (auditoría 2026-10-16).

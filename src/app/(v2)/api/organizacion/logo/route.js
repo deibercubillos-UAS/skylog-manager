@@ -13,6 +13,7 @@ import { storagePut, storagePublicUrl } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { detectImageType, imageExtension } from '@/lib/v2/imageType';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'partner-logos';
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -54,7 +55,7 @@ export async function POST(request) {
 
   const admin = createAdminClient();
   const { data, error } = await admin.from('organizations').update({ logo_url: publicUrl }).eq('id', organizationId).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/logo');
 
   return Response.json({ organization: data });
 }

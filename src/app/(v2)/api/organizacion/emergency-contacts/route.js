@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function session() {
   const supabase = await createClientSSR();
@@ -25,7 +26,7 @@ export async function GET(request) {
     return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
   }
   const { data, error } = await s.supabase.from('organization_emergency_contacts').select('*').eq('organization_id', organizationId).order('created_at');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/emergency-contacts');
   return Response.json({ contacts: data || [], canEdit: membershipsCanEdit(s.memberships, organizationId, 'AD5') });
 }
 
@@ -45,7 +46,7 @@ export async function POST(request) {
     .insert({ organization_id: organizationId, name, role: clean(body.role, 100), phone, email, notes: clean(body.notes, 500) })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/emergency-contacts');
   return Response.json({ contact: data });
 }
 
@@ -55,7 +56,7 @@ export async function DELETE(request) {
   const id = new URL(request.url).searchParams.get('id');
   if (!id) return Response.json({ error: 'id es requerido' }, { status: 400 });
   const { data, error } = await s.supabase.from('organization_emergency_contacts').delete().eq('id', id).select('id');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/emergency-contacts');
   if (!data?.length) return Response.json({ error: 'No se encontró el contacto o no tienes permiso' }, { status: 404 });
   return Response.json({ ok: true });
 }

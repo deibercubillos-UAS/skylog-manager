@@ -10,6 +10,7 @@ import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { computeReportDeadline } from '@skylog/domain';
 import { sendAnalystMail } from '@/lib/v2/smsAlerts';
 import { escHtml } from '@/lib/emailHelpers';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export async function GET(request) {
     .select('id, organization_id, route, occurred_at, created_at, filed_at, event_label, cases:sms_cases(status)')
     .eq('route', 'mor')
     .is('filed_at', null);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'cron/sms-deadlines');
 
   const { data: actions } = await admin
     .from('sms_case_actions')

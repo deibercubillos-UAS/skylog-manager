@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem, adminKeyProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { DOCUMENT_MAX_BYTES } from '@/lib/v2/rowDocument';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -51,7 +52,7 @@ export async function POST(request) {
   const { error } = await createAdminClient().from('people').update({ avatar_path: key }).eq('id', m.personId);
   if (error) {
     await storageRemove({ bucket: BUCKET, keys: [key] });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'perfil/avatar');
   }
   if (prev?.avatar_path) await storageRemove({ bucket: BUCKET, keys: [prev.avatar_path] });
   return Response.json({ ok: true });
@@ -62,7 +63,7 @@ export async function DELETE() {
   if (m.error) return m.error;
   const { data: prev } = await m.supabase.from('people').select('avatar_path').eq('id', m.personId).maybeSingle();
   const { error } = await createAdminClient().from('people').update({ avatar_path: null }).eq('id', m.personId);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'perfil/avatar');
   if (prev?.avatar_path) await storageRemove({ bucket: BUCKET, keys: [prev.avatar_path] });
   return Response.json({ ok: true });
 }

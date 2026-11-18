@@ -1,6 +1,7 @@
 // Skylog V2.0 — comisiones de socios para el superadmin (Etapa E3). GET agrupa por socio y período; POST liquida
 // (marca como pagadas) las comisiones pendientes elegidas. Solo el superadmin.
 import { requireSuperadmin } from '@/lib/v2/platformAdmin';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export async function GET(request) {
   if (status !== 'all') query = query.eq('status', status);
   if (period) query = query.eq('period', period);
   const { data: rows, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'admin/socios/comisiones');
 
   const byPartner = {};
   for (const c of rows || []) {
@@ -53,6 +54,6 @@ export async function POST(request) {
     .in('id', ids)
     .eq('status', 'pendiente') // solo pendientes
     .select('id');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'admin/socios/comisiones');
   return Response.json({ ok: true, liquidated: (data || []).length });
 }

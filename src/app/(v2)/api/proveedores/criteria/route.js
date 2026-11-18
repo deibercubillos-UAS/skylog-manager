@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -23,7 +24,7 @@ export async function GET(request) {
   }
 
   const { data, error } = await supabase.from('supplier_audit_criteria').select('*').eq('organization_id', organizationId).order('order_index');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/criteria');
   return Response.json({ criteria: data || [] });
 }
 
@@ -47,7 +48,7 @@ export async function POST(request) {
     .insert({ organization_id: organizationId, criterion: criterion.trim(), category: category?.trim() || null, order_index: orderIndex ?? 0 })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/criteria');
   return Response.json({ criterion: data });
 }
 
@@ -71,6 +72,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('supplier_audit_criteria').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/criteria');
   return Response.json({ ok: true });
 }

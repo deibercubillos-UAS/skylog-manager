@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { canCloseCase } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -45,7 +46,7 @@ export async function POST(request) {
     .single();
   if (error) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe un caso para este reporte' }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'sms/cases');
   }
 
   await supabase.from('sms_case_events').insert({
@@ -109,7 +110,7 @@ export async function PATCH(request) {
   }
 
   const { data, error } = await supabase.from('sms_cases').update(patch).eq('id', caseId).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/cases');
 
   await supabase.from('sms_case_events').insert({
     case_id: caseId,
@@ -142,6 +143,6 @@ export async function GET(request) {
     .select('*, sms_reports(id, severity, route, description), sms_case_actions(*)')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/cases');
   return Response.json({ cases: data });
 }

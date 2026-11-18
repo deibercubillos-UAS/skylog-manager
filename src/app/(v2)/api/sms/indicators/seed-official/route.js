@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { OFFICIAL_INDICATORS } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -45,6 +46,6 @@ export async function POST(request) {
   }
 
   const { data, error } = await supabase.from('safety_indicators').insert(toInsert).select();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/seed-official');
   return Response.json({ inserted: data.length, indicators: data });
 }

@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -27,7 +28,7 @@ export async function GET(request) {
   query = supplierId ? query.eq('id', supplierId) : query.eq('is_active', true);
 
   const [{ data: suppliers, error }, { data: org }] = await Promise.all([query, supabase.from('organizations').select('nit').eq('id', organizationId).maybeSingle()]);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/proveedores-inscritos');
 
   return Response.json({ suppliers: suppliers || [], org: org ? { nit: org.nit } : null });
 }

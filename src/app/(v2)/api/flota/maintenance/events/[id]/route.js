@@ -6,6 +6,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function PATCH(request, { params }) {
   const { id } = await params;
@@ -43,6 +44,6 @@ export async function PATCH(request, { params }) {
   }
 
   const { data, error } = await createAdminClient().from('maintenance_events').update(patch).eq('id', id).eq('organization_id', existing.organization_id).select('id, supplier_id, document_url, supplier:supplier_id(name)').single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/maintenance/events/[id]');
   return Response.json({ event: data });
 }

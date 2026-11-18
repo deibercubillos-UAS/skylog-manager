@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -57,7 +58,7 @@ export async function POST(request) {
     .single();
   if (error) {
     if (error.code === '23505') return Response.json({ error: 'Esta persona ya tiene asistencia registrada para esa ocurrencia' }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'sms/training/attendance');
   }
   return Response.json({ attendance: data });
 }
@@ -76,6 +77,6 @@ export async function GET(request) {
     .select('*')
     .eq('session_id', sessionId)
     .order('occurrence_date', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/training/attendance');
   return Response.json({ attendance: data });
 }

@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { monthlyRate } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -52,7 +53,7 @@ export async function POST(request) {
     )
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/monthly');
   return Response.json({ monthly: data, cyclesUsed: cyclesRow?.cycles || 0 });
 }
 
@@ -71,6 +72,6 @@ export async function GET(request) {
     .eq('indicator_id', indicatorId)
     .order('year')
     .order('month');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/monthly');
   return Response.json({ monthly: data });
 }

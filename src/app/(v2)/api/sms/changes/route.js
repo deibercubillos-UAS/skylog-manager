@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateChangeInput, evaluateTransition, CHANGE_STATUSES, SAFETY_IMPACTS } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const SELECT = '*, hazard:hazard_id(id, description), responsible:responsible_id(full_name)';
 const EDITABLE = ['title', 'description', 'change_type', 'planned_date', 'safety_impact', 'impact_justification', 'human_factors_notes', 'hazard_id', 'responsible_id', 'decision_notes'];
@@ -31,7 +32,7 @@ export async function GET(request) {
     s.supabase.from('hazards').select('id, description').eq('organization_id', organizationId).order('created_at', { ascending: false }),
     s.supabase.from('memberships').select('person_id, person:person_id(full_name)').eq('organization_id', organizationId).eq('status', 'activa'),
   ]);
-  if (changes.error) return Response.json({ error: changes.error.message }, { status: 500 });
+  if (changes.error) return dbError(changes.error, 'sms/changes');
   return Response.json({
     changes: changes.data || [],
     hazards: hazards.data || [],
@@ -56,7 +57,7 @@ export async function POST(request) {
   if (row.safety_impact && !SAFETY_IMPACTS.includes(row.safety_impact)) return Response.json({ error: 'Impacto inválido' }, { status: 400 });
 
   const { data, error } = await s.supabase.from('sms_changes').insert(row).select(SELECT).single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/changes');
   return Response.json({ change: data });
 }
 
@@ -98,6 +99,6 @@ export async function PATCH(request) {
 
   if (Object.keys(patch).length === 0) return Response.json({ error: 'Nada que actualizar' }, { status: 400 });
   const { data, error } = await s.supabase.from('sms_changes').update(patch).eq('id', body.id).select(SELECT).single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/changes');
   return Response.json({ change: data });
 }

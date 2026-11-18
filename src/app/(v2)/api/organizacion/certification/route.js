@@ -9,6 +9,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -24,7 +25,7 @@ export async function GET(request) {
     .select('*')
     .eq('organization_id', organizationId)
     .maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/certification');
   return Response.json({ certification: data });
 }
 
@@ -63,6 +64,6 @@ export async function POST(request) {
     )
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/certification');
   return Response.json({ certification: data });
 }

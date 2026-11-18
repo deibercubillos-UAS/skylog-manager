@@ -9,6 +9,7 @@ import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función en Vercel se corta en ~4,5 MB
@@ -64,7 +65,7 @@ export async function POST(request, { params }) {
     .single();
   if (error) {
     await storageRemove({ bucket: BUCKET, keys: [key] });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'polizas/[id]/document');
   }
 
   // Reemplazo: el certificado anterior queda huérfano, se limpia (mejor esfuerzo).

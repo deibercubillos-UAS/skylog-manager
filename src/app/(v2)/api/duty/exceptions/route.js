@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { classifyReportRoute } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -50,7 +51,7 @@ export async function POST(request) {
     .select()
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'duty/exceptions');
 
   // F3 §5.4 — "SMS alimentado por la operación": una excepción a un límite de
   // §100.540 es un riesgo de fatiga real que ya ocurrió — se convierte solo en

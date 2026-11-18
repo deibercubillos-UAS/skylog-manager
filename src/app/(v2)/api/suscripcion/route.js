@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { isPlatformSuperadmin, sessionIsAal2 } from '@/lib/v2/platformAdmin';
 import { PLANS, crewCountsForLimit, limitsForSubscription } from '@/lib/v2/planLimits';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 function isAdmin(memberships, organizationId) {
   return (memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role));
@@ -81,7 +82,7 @@ export async function PATCH(request) {
     )
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'suscripcion');
   await logAudit({ organizationId, action: 'update', module: 'Suscripción', entityLabel: `Plan ${plan}${expiresAt ? ` · vence ${expiresAt}` : ''}` });
   return Response.json({ subscription: data });
 }

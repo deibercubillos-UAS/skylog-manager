@@ -9,6 +9,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateGsoProfile, resolveOrganizationSmsProfile } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -65,7 +66,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/governance/gso');
   return Response.json({ designation: data });
 }
 
@@ -85,7 +86,7 @@ export async function GET(request) {
     .eq('role_type', 'gerente_sms')
     .is('ended_at', null)
     .maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/governance/gso');
 
   // SMS-J (30-entidades.md §6, RAC 100 §100.545(a)) — el perfil se deriva en
   // vivo, nunca se declara a mano ni se guarda como columna.

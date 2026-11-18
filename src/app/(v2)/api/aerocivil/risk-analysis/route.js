@@ -9,6 +9,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { evaluateRiskAnalysis } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function loadAuthorizationOrg(supabase, authorizationId) {
   const { data, error } = await supabase
@@ -57,7 +58,7 @@ export async function POST(request) {
     .select()
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'aerocivil/risk-analysis');
   return Response.json({ riskAnalysis: data, evaluation });
 }
 
@@ -103,7 +104,7 @@ export async function PATCH(request) {
     .select()
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'aerocivil/risk-analysis');
   return Response.json({ riskAnalysis: data });
 }
 
@@ -121,6 +122,6 @@ export async function GET(request) {
     .select('*')
     .eq('authorization_id', authorizationId)
     .maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'aerocivil/risk-analysis');
   return Response.json({ riskAnalysis: data });
 }

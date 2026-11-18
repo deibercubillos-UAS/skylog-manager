@@ -2,6 +2,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,6 @@ export async function GET(request) {
     .eq('organization_id', organizationId)
     .order('paid_at', { ascending: false })
     .limit(200);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'suscripcion/historial');
   return Response.json({ payments: data || [] });
 }

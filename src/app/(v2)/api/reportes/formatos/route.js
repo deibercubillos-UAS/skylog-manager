@@ -8,6 +8,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { sanitizeReportFormats } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function requireManager(organizationId, mode = 'view') {
   const supabase = await createClientSSR();
@@ -45,7 +46,7 @@ export async function PUT(request) {
 
   const admin = createAdminClient();
   const { error } = await admin.from('organizations').update({ report_formats: clean.value }).eq('id', organizationId);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/formatos');
 
   await logAudit({ organizationId, action: 'update', module: 'Reportes', entityLabel: 'Códigos de formato de los reportes' });
   return Response.json({ formats: clean.value });

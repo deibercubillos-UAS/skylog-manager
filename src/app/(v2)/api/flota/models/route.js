@@ -8,6 +8,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { publicModel } from '@/lib/v2/publicModel';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -74,6 +75,6 @@ export async function POST(request) {
     .select()
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/models');
   return Response.json({ model: publicModel(data) });
 }

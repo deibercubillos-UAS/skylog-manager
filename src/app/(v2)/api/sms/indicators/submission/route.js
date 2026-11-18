@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export async function GET(request) {
     .select('year, sent_at, notes, sentBy:sent_by(full_name)')
     .eq('organization_id', organizationId)
     .order('year', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/submission');
   return Response.json({ submissions: data || [] });
 }
 
@@ -43,6 +44,6 @@ export async function POST(request) {
     .upsert({ organization_id: organizationId, year: y, sent_by: personId, sent_at: new Date().toISOString(), notes: notes?.trim() || null }, { onConflict: 'organization_id,year' })
     .select('year, sent_at, notes, sentBy:sent_by(full_name)')
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/submission');
   return Response.json({ submission: data });
 }

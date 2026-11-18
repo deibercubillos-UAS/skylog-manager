@@ -2,6 +2,7 @@
 // las de esa organización. Solo toca `read_at` (el permiso de columna de la base no deja cambiar nada más).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -18,6 +19,6 @@ export async function POST(request) {
   else return Response.json({ error: 'id o all son requeridos' }, { status: 400 });
 
   const { error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'notificaciones/leer');
   return Response.json({ ok: true });
 }

@@ -18,7 +18,11 @@ export async function POST(request) {
       redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/update-password`,
     });
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error('[reset-request]', error.status || '', error.message);
+      if (error.status === 429) return NextResponse.json({ error: 'Espera un minuto antes de pedir otro correo de recuperación.' }, { status: 429 });
+      return NextResponse.json({ error: 'No se pudo enviar el correo de recuperación. Intenta de nuevo.' }, { status: 400 });
+    }
 
     return NextResponse.json({ message: "Correo de recuperación enviado" });
   } catch (err) {

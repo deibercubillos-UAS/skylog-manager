@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateIndicatorDefinition, OFFICIAL_INDICATORS } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -37,7 +38,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators');
   return Response.json({ indicator: data });
 }
 
@@ -56,6 +57,6 @@ export async function GET(request) {
     .eq('organization_id', organizationId)
     .order('is_official', { ascending: false })
     .order('created_at');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators');
   return Response.json({ indicators: data, officialCatalog: OFFICIAL_INDICATORS });
 }

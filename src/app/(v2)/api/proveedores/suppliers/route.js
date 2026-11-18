@@ -7,6 +7,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -24,7 +25,7 @@ export async function GET(request) {
   }
 
   const { data, error } = await supabase.from('suppliers').select('*').eq('organization_id', organizationId).order('name');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/suppliers');
   return Response.json({ suppliers: data || [] });
 }
 
@@ -61,7 +62,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/suppliers');
   return Response.json({ supplier: data });
 }
 
@@ -96,7 +97,7 @@ export async function PATCH(request) {
   if (isActive != null) patch.is_active = isActive;
 
   const { data, error } = await supabase.from('suppliers').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/suppliers');
   return Response.json({ supplier: data });
 }
 
@@ -120,6 +121,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('suppliers').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/suppliers');
   return Response.json({ ok: true });
 }

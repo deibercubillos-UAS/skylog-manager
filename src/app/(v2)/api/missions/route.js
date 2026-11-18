@@ -15,6 +15,7 @@ import { bogotaDay, asBogotaInstant } from '@/lib/v2/dispatchContext';
 import { normalizeRequiredAdditions, evaluatePicQualifications, qualificationMessages } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const MISSION_SELECT = '*, pic:pic_person_id(full_name, license_number, person_additions!person_additions_person_id_fkey(addition, valid_until)), observer:observer_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))';
 
@@ -139,7 +140,7 @@ export async function POST(request) {
     .select(MISSION_SELECT)
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'missions');
   await createNotifications({
     organizationId,
     personIds: [picPersonId, observerPersonId].filter(Boolean),

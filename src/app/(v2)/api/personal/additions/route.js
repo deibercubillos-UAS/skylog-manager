@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { PILOT_ADDITIONS } from '@skylog/domain';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function session() {
   const supabase = await createClientSSR();
@@ -30,7 +31,7 @@ export async function GET(request) {
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado' }, { status: 404 });
   if (!(await canAccess(s, personId, 'view'))) return Response.json({ error: 'No tienes acceso a las adiciones de esta persona' }, { status: 403 });
   const { data, error } = await s.supabase.from('person_additions').select('id, addition, valid_until').eq('person_id', personId).order('addition');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'personal/additions');
   return Response.json({ additions: data || [], catalog: PILOT_ADDITIONS });
 }
 
@@ -63,7 +64,7 @@ export async function DELETE(request) {
   if (!row) return Response.json({ error: 'No se encontró la adición o no tienes permiso para quitarla' }, { status: 404 });
   if (!(await canAccess(s, row.person_id, 'edit'))) return Response.json({ error: 'Tu rol no puede quitar adiciones de otra persona' }, { status: 403 });
   const { data, error } = await s.supabase.from('person_additions').delete().eq('id', id).select('id');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'personal/additions');
   if (!data?.length) return Response.json({ error: 'No se encontró la adición o no tienes permiso para quitarla' }, { status: 404 });
   return Response.json({ ok: true });
 }

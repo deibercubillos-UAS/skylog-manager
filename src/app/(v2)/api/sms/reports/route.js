@@ -27,6 +27,7 @@ import {
 } from '@skylog/domain';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { SMS_REPORT_COLUMNS, attachReporterIdentity, ownReportIds } from '@/lib/v2/smsReporterIdentity';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -102,7 +103,7 @@ export async function POST(request) {
     .select(SMS_REPORT_COLUMNS)
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/reports');
 
   // Aviso al Gerente SMS (mejor esfuerzo: un fallo del correo nunca invalida el reporte).
   await notifyNewReport({ organizationId, report: data });
@@ -156,7 +157,7 @@ export async function GET(request) {
   }
 
   const { data: rawData, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/reports');
   let data;
   try {
     data = await attachReporterIdentity(rawData);

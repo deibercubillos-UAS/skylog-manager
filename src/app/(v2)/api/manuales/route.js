@@ -12,6 +12,7 @@ import { createNotifications } from '@/lib/v2/notify';
 import { storagePut } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB, mismo límite que v1
@@ -43,7 +44,7 @@ export async function GET(request) {
     .eq('status', 'active')
     .order('category')
     .order('title');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'manuales');
 
   const versionIds = (manuales || []).map((m) => m.current_version_id).filter(Boolean);
   let acknowledgedIds = new Set();

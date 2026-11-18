@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateActionPlan } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -52,7 +53,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/action-plans');
   return Response.json({ actionPlan: data });
 }
 
@@ -70,6 +71,6 @@ export async function GET(request) {
     .select('*')
     .eq('indicator_id', indicatorId)
     .order('created_at', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/indicators/action-plans');
   return Response.json({ actionPlans: data });
 }

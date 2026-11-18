@@ -5,6 +5,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET() {
   const supabase = await createClientSSR();
@@ -17,7 +18,7 @@ export async function GET() {
   if (!personId) return Response.json({ person: null });
 
   const { data, error } = await supabase.from('people').select('*').eq('id', personId).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'perfil');
 
   // Último acceso: viene en la sesión guardada en la cookie, no hace falta preguntar a Auth.
   const { data: sess } = await supabase.auth.getSession();

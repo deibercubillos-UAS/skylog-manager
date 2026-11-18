@@ -9,6 +9,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 async function syncIndicatorLinks(supabase, objectiveId, indicatorIds) {
   await supabase.from('sms_objective_indicators').delete().eq('objective_id', objectiveId);
@@ -35,7 +36,7 @@ export async function GET(request) {
     .select('*, links:sms_objective_indicators(indicator:indicator_id(id, name, is_official))')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/objectives');
 
   const indicatorIds = [...new Set((objectives || []).flatMap((o) => o.links.map((l) => l.indicator?.id).filter(Boolean)))];
   let latestByIndicator = {};
@@ -88,7 +89,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/objectives');
 
   if (Array.isArray(indicatorIds) && indicatorIds.length) {
     // Verifica que los indicadores pertenezcan a la misma org — nunca se

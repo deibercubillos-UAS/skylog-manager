@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -35,6 +36,6 @@ export async function PATCH(request, { params }) {
     .upsert({ organization_id: organizationId, question_id: id, hidden: !!hidden }, { onConflict: 'organization_id,question_id' })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/questions/[id]/visibility');
   return Response.json({ visibility: data });
 }

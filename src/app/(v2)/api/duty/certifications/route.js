@@ -9,6 +9,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -67,7 +68,7 @@ export async function POST(request) {
     if (error.code === '23505') {
       return Response.json({ error: 'Ya existe una certificación para ese piloto y año' }, { status: 409 });
     }
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'duty/certifications');
   }
   return Response.json({ certification: data });
 }
@@ -90,6 +91,6 @@ export async function GET(request) {
   // solo acota además por organización si el cliente la pidió.
 
   const { data, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'duty/certifications');
   return Response.json({ certifications: data });
 }

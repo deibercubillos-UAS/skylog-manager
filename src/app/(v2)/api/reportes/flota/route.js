@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -29,7 +30,7 @@ export async function GET(request) {
   if (aircraftId) query = query.eq('id', aircraftId);
 
   const [{ data, error }, { data: org }] = await Promise.all([query, supabase.from('organizations').select('nit').eq('id', organizationId).maybeSingle()]);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/flota');
 
   const aircraft = (data || []).map((a) => ({ ...a, model_label: a.model ? `${a.model.brand} ${a.model.model}` : '—' }));
   return Response.json({ aircraft, org: org ? { nit: org.nit } : null });

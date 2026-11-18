@@ -7,6 +7,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -28,7 +29,7 @@ export async function GET(request) {
   if (supplierId) query = query.eq('supplier_id', supplierId);
 
   const { data, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/audits');
   return Response.json({ audits: data || [] });
 }
 
@@ -63,7 +64,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/audits');
   return Response.json({ audit: data });
 }
 
@@ -93,7 +94,7 @@ export async function PATCH(request) {
   if (overallNotes !== undefined) patch.overall_notes = overallNotes?.trim() || null;
 
   const { data, error } = await supabase.from('supplier_audits').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/audits');
   return Response.json({ audit: data });
 }
 
@@ -117,6 +118,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('supplier_audits').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'proveedores/audits');
   return Response.json({ ok: true });
 }

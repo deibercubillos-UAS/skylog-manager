@@ -7,6 +7,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 // Nunca se expone la ruta del adjunto: solo si hay uno cargado.
 const publicEvent = ({ document_path, ...e }) => ({ ...e, has_document: !!document_path });
@@ -105,7 +106,7 @@ export async function POST(request) {
     .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), task:task_id(name), performer:performed_by(full_name), supplier:supplier_id(name)')
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/maintenance/events');
 
   // `operational_status` (Fase 1, hasta ahora solo manual) se sincroniza
   // con el evento real: sin retorno al servicio, la aeronave queda en

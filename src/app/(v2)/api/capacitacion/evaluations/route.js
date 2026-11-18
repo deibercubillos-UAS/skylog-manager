@@ -10,6 +10,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { TRAINING_TYPES } from '@/lib/v2/training';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -28,7 +29,7 @@ export async function GET(request) {
     .eq('organization_id', organizationId)
     .eq('type', type)
     .order('due_date');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/evaluations');
   return Response.json({ evaluations: data || [] });
 }
 
@@ -66,7 +67,7 @@ export async function POST(request) {
     })
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/evaluations');
   return Response.json({ evaluation: data });
 }
 
@@ -96,7 +97,7 @@ export async function PATCH(request) {
   if (dueDate != null) patch.due_date = dueDate;
 
   const { data, error } = await supabase.from('capacitacion_evaluations').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/evaluations');
   return Response.json({ evaluation: data });
 }
 
@@ -120,6 +121,6 @@ export async function DELETE(request) {
   }
 
   const { error } = await supabase.from('capacitacion_evaluations').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'capacitacion/evaluations');
   return Response.json({ ok: true });
 }

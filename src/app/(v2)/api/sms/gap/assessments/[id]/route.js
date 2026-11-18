@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeGapStats, compareGapAssessments } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request, { params }) {
   params = await params;
@@ -15,7 +16,7 @@ export async function GET(request, { params }) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: assessment, error } = await supabase.from('sms_gap_assessments').select('*').eq('id', id).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/assessments/[id]');
   if (!assessment) return Response.json({ error: 'Evaluación no encontrada' }, { status: 404 });
 
   const { error: resolveError, organizationIds } = await resolveCurrentPerson(supabase, user.id);
@@ -71,6 +72,6 @@ export async function DELETE(request, { params }) {
   }
 
   const { error } = await supabase.from('sms_gap_assessments').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/assessments/[id]');
   return Response.json({ ok: true });
 }

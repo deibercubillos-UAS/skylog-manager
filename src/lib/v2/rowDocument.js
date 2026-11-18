@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 export const DOCUMENT_MAX_BYTES = 4 * 1024 * 1024; // el cuerpo de una función de Vercel se corta en ~4,5 MB
@@ -65,7 +66,7 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
     const { data, error } = await writer.from(table).update({ [target.pathColumn]: key }).eq('organization_id', row.organization_id).eq('id', id).select(`id, ${target.pathColumn}`).single();
     if (error) {
       await storageRemove({ bucket: BUCKET, keys: [key] });
-      return Response.json({ error: error.message }, { status: 500 });
+      return dbError(error, 'rowDocument.js');
     }
     if (row[target.pathColumn]) await storageRemove({ bucket: BUCKET, keys: [row[target.pathColumn]] }); // el anterior queda huérfano
     return Response.json({ row: data });
@@ -94,7 +95,7 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
     if (!path) return Response.json({ ok: true });
     const writer = adminWrites ? createAdminClient() : supabase;
     const { error } = await writer.from(table).update({ [loaded.target.pathColumn]: null }).eq('id', id).eq('organization_id', loaded.row.organization_id);
-    if (error) return Response.json({ error: error.message }, { status: 500 });
+    if (error) return dbError(error, 'rowDocument.js');
     await storageRemove({ bucket: BUCKET, keys: [path] });
     return Response.json({ ok: true });
   }

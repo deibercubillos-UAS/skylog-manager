@@ -9,6 +9,7 @@ import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { DOCUMENT_MAX_BYTES } from '@/lib/v2/rowDocument';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const BUCKET = 'documents';
 const TYPES = ['cedula', 'curso_piloto', 'examen_teorico', 'certificado_medico', 'otro'];
@@ -43,7 +44,7 @@ export async function GET(request) {
 
   if (!type) {
     const { data, error } = await s.supabase.from('person_documents').select('doc_type, created_at').eq('person_id', targetId);
-    if (error) return Response.json({ error: error.message }, { status: 500 });
+    if (error) return dbError(error, 'personal/documents');
     return Response.json({ documents: data || [], types: TYPES });
   }
   if (!TYPES.includes(type)) return Response.json({ error: 'Tipo de documento inválido' }, { status: 400 });
@@ -78,7 +79,7 @@ export async function POST(request) {
   const { error } = await s.supabase.from('person_documents').upsert({ person_id: targetId, doc_type: docType, document_path: key, uploaded_by: s.personId }, { onConflict: 'person_id,doc_type' });
   if (error) {
     await storageRemove({ bucket: BUCKET, keys: [key] });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'personal/documents');
   }
   if (previous?.document_path) await storageRemove({ bucket: BUCKET, keys: [previous.document_path] });
   return Response.json({ ok: true });
@@ -95,7 +96,7 @@ export async function DELETE(request) {
   const { data: row } = await s.supabase.from('person_documents').select('id, document_path').eq('person_id', targetId).eq('doc_type', type).maybeSingle();
   if (!row) return Response.json({ ok: true });
   const { error } = await s.supabase.from('person_documents').delete().eq('id', row.id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'personal/documents');
   await storageRemove({ bucket: BUCKET, keys: [row.document_path] });
   return Response.json({ ok: true });
 }

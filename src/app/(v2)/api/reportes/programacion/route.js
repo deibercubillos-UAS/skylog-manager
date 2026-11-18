@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const STATUS_LABELS = { borrador: 'Borrador', radicado: 'Radicado', en_revision: 'En revisión', autorizado: 'Autorizado', negado: 'Negado' };
 
@@ -36,7 +37,7 @@ export async function GET(request) {
   if (to) query = query.lte('scheduled_at', `${to}T23:59:59`);
 
   const { data, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/programacion');
 
   // `missions.authorization_id` no tiene llave foránea: la autorización y su análisis de riesgos se piden aparte.
   const authIds = [...new Set((data || []).map((m) => m.authorization_id).filter(Boolean))];

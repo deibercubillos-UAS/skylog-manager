@@ -11,6 +11,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { classifyReportRoute } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const EVENT_TYPES = ['aterrizaje_fuerte', 'impacto_aves', 'fod', 'perdida_helice'];
 
@@ -112,7 +113,7 @@ export async function POST(request) {
     .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), reporter:reported_by(full_name)')
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/unexpected-events');
 
   // Deja la aeronave en tierra de inmediato hasta que se evalúe — nunca
   // sigue "disponible" con un suceso de este tipo sin resolver. Si ya

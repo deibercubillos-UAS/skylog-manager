@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -23,7 +24,7 @@ export async function GET(request) {
     .select('role, person:person_id(full_name, document_type, document_number, license_number, medical_cert_expiry, email)')
     .eq('organization_id', organizationId)
     .eq('status', 'activa');
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'reportes/tripulacion');
 
   const members = (data || []).map((m) => ({ ...m.person, role: m.role })).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
   return Response.json({ members });

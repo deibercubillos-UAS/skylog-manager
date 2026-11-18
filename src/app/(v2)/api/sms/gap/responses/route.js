@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -43,7 +44,7 @@ export async function POST(request) {
   if (!rows.length) return Response.json({ error: 'Ninguna respuesta válida' }, { status: 400 });
 
   const { data, error } = await supabase.from('sms_gap_responses').upsert(rows, { onConflict: 'assessment_id,question_id' }).select();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/gap/responses');
 
   await supabase.from('sms_gap_assessments').update({ updated_at: new Date().toISOString() }).eq('id', assessmentId);
 

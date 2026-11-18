@@ -3,6 +3,7 @@
 // es para que la campana siga a la organización activa.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,6 @@ export async function GET(request) {
     supabase.from('notifications').select('id, type, title, body, link, read_at, created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(limit),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).is('read_at', null),
   ]);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'notificaciones');
   return Response.json({ notifications: data || [], unreadCount: count || 0 });
 }

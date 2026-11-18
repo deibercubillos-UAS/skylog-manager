@@ -8,6 +8,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -25,7 +26,7 @@ export async function GET(request) {
   }
 
   const { data, error } = await supabase.from('organizations').select('*').eq('id', organizationId).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion');
   if (!data) return Response.json({ error: 'Organización no encontrada' }, { status: 404 });
   // Leer no es una acción del registro (antes cada lectura dejaba una «actualización» falsa — auditoría 2026-10-16).
   return Response.json({ organization: data });
@@ -60,7 +61,7 @@ export async function PATCH(request) {
 
   const admin = createAdminClient();
   const { data, error } = await admin.from('organizations').update(updates).eq('id', organizationId).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion');
   await logAudit({ organizationId, action: 'update', module: 'Organización', entityLabel: `Datos de la organización (${Object.keys(updates).join(', ')})` });
   return Response.json({ organization: data });
 }

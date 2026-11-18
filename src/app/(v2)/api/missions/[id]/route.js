@@ -10,6 +10,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const EDITABLE_FIELDS = {
   name: 'name',
@@ -64,7 +65,7 @@ export async function PATCH(request, { params }) {
     .select('*, pic:pic_person_id(full_name)')
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'missions/[id]');
   await logAudit({ organizationId: mission.organization_id, action: 'update', module: 'Misiones', entityLabel: `Misión ${data.name || ''} · ${data.status}`.trim() });
   return Response.json({ mission: data });
 }

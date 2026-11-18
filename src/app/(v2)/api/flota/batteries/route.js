@@ -9,6 +9,7 @@ import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const HEALTH_STATUSES = ['buena', 'regular', 'mala'];
 
@@ -75,7 +76,7 @@ export async function POST(request) {
 
   if (error) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una batería con ese número de serie en esta organización' }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+    return dbError(error, 'flota/batteries');
   }
   await logAudit({ organizationId, action: 'create', module: 'Baterías', entityLabel: `Batería ${serialNumber}` });
   return Response.json({ battery: data });

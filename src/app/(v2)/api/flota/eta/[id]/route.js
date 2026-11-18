@@ -3,6 +3,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 const ALLOWED_FIELDS = ['brand', 'model', 'reta_number', 'description'];
 const FIELD_MAP = { brand: 'brand', model: 'model', retaNumber: 'reta_number', description: 'description' };
@@ -38,7 +39,7 @@ export async function PATCH(request, { params }) {
   if (Object.keys(patch).length === 0) return Response.json({ error: 'Nada para actualizar' }, { status: 400 });
 
   const { data, error } = await supabase.from('eta_items').update(patch).eq('id', id).select().single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/eta/[id]');
 
   return Response.json({ item: data });
 }
@@ -54,7 +55,7 @@ export async function DELETE(request, { params }) {
   if (authError) return authError;
 
   const { error } = await supabase.from('eta_items').delete().eq('id', id);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'flota/eta/[id]');
 
   return Response.json({ ok: true });
 }

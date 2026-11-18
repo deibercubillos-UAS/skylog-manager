@@ -8,6 +8,7 @@ import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { validateDesignationInput, DESIGNATION_ROLES } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 // AD9 (matriz de permisos): designan cargos el Gerente General y el Gerente SMS (decisión del usuario 2026-10-16).
 
@@ -32,7 +33,7 @@ export async function GET(request) {
     .select('id, role_type, started_at, ended_at, act_reference, act_date, act_document_path, resume_document_path, person:person_id(id, full_name)')
     .eq('organization_id', organizationId)
     .order('started_at', { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/designations');
   const canDesignate = membershipsCanEdit(s.memberships, organizationId, 'AD9');
   // Las rutas de archivo no salen del servidor: solo si el acta y la hoja de vida están cargadas.
   const designations = (data || []).map(({ act_document_path, resume_document_path, ...d }) => ({ ...d, has_act_document: !!act_document_path, has_resume_document: !!resume_document_path }));
@@ -70,6 +71,6 @@ export async function POST(request) {
     .insert({ organization_id: organizationId, person_id: personId, role_type: roleType, act_reference: actReference.trim(), act_date: actDate })
     .select('id, role_type, started_at, act_reference, act_date, person:person_id(id, full_name)')
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'organizacion/designations');
   return Response.json({ designation: data });
 }

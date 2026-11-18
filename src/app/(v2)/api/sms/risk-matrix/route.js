@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateMatrixCompleteness } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -21,7 +22,7 @@ export async function GET(request) {
     .select('*')
     .eq('organization_id', organizationId)
     .maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/risk-matrix');
   return Response.json({ riskMatrix: data });
 }
 
@@ -53,6 +54,6 @@ export async function POST(request) {
     )
     .select()
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/risk-matrix');
   return Response.json({ riskMatrix: data, completeness });
 }

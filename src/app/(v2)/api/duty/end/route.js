@@ -4,6 +4,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST() {
   const supabase = await createClientSSR();
@@ -30,6 +31,6 @@ export async function POST() {
     .select()
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'duty/end');
   return Response.json({ dutyPeriod: data });
 }

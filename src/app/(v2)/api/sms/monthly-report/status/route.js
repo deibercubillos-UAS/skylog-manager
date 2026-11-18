@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { dbError } from '@/lib/v2/apiErrors';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -29,6 +30,6 @@ export async function POST(request) {
     .upsert({ organization_id: organizationId, period, sent_by: personId, sent_at: new Date().toISOString(), notes: notes?.trim() || null }, { onConflict: 'organization_id,period' })
     .select('*, sentBy:sent_by(full_name)')
     .single();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error, 'sms/monthly-report/status');
   return Response.json({ status: data });
 }

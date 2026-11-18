@@ -33,6 +33,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import FlightReplayViewer from '../../_components/FlightReplayViewer';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 import { DJI_IMPORT_LIMITS } from '@skylog/domain';
+import FlightEditDialog from './_FlightEditDialog';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -75,6 +76,10 @@ export default function BitacoraPage() {
   const [viewMode, setViewMode] = useState('bitacora'); // 'bitacora' (por piloto) | 'libro' (por aeronave)
   const [logbookAircraftId, setLogbookAircraftId] = useState('');
   const [replayFlight, setReplayFlight] = useState(null);
+  const [flightAction, setFlightAction] = useState(null); // { flight, mode: 'edit' | 'void' }
+  const [voidedFlights, setVoidedFlights] = useState([]);
+  const [showVoided, setShowVoided] = useState(false);
+  const canManageFlights = context?.organizations?.find((o) => o.id === organizationId)?.permissions?.D6 === 'edit';
   const canManualFlight = context?.organizations?.find((o) => o.id === organizationId)?.permissions?.D5 === 'edit';
   const [form, setForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '', location: '', notes: '' });
 
@@ -97,6 +102,13 @@ export default function BitacoraPage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cargando vuelos');
     setFlights(data.flights || []);
+  }, []);
+
+  // Vuelos anulados: solo quien puede editar/anular los ve (D6); los demás reciben un 403 que se ignora.
+  const loadVoided = useCallback(async (orgId) => {
+    if (!orgId) return;
+    const res = await fetch(`/api/flights?organizationId=${orgId}&voided=1`);
+    setVoidedFlights(res.ok ? (await res.json()).voided || [] : []);
   }, []);
 
   // Aeronave — opcional (Flota & Equipo Fase 1). Cualquier miembro de la
@@ -135,7 +147,9 @@ export default function BitacoraPage() {
   useEffect(() => {
     if (organizationId) loadFlights(organizationId).catch((e) => setError(e.message));
     if (organizationId) loadFleet(organizationId);
-  }, [organizationId, loadFlights, loadFleet]);
+    if (organizationId && canManageFlights) loadVoided(organizationId);
+    else setVoidedFlights([]);
+  }, [organizationId, loadFlights, loadFleet, loadVoided, canManageFlights]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -567,12 +581,13 @@ export default function BitacoraPage() {
                     <th className="px-6 py-2.5">Tipo de misión</th>
                     <th className="px-6 py-2.5">Replay</th>
                     <th className="px-6 py-2.5">Libro de Vuelo</th>
+                    {canManageFlights && <th className="px-6 py-2.5">Corregir</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy-50">
                   {visibleFlights.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
+                      <td colSpan={canManageFlights ? 11 : 10} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                         <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">flight_takeoff</span>
                         <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin vuelos registrados todavía</p>
                       </td>
@@ -632,6 +647,16 @@ export default function BitacoraPage() {
                         </button>
 
                       </td>
+                      {canManageFlights && (
+                        <td className="px-6 py-2.5 whitespace-nowrap">
+                          <button type="button" onClick={() => setFlightAction({ flight: f, mode: 'edit' })} className="size-9 inline-flex items-center justify-center rounded-lg text-navy-400 hover:bg-navy-50 hover:text-primary-700" title="Editar vuelo" aria-label="Editar vuelo">
+                            <span className="material-symbols-outlined text-lg">edit</span>
+                          </button>
+                          <button type="button" onClick={() => setFlightAction({ flight: f, mode: 'void' })} className="size-9 inline-flex items-center justify-center rounded-lg text-navy-400 hover:bg-red-50 hover:text-red-600" title="Anular vuelo" aria-label="Anular vuelo">
+                            <span className="material-symbols-outlined text-lg">block</span>
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -707,6 +732,38 @@ export default function BitacoraPage() {
         </form>
         )}
       </div>
+
+      {canManageFlights && voidedFlights.length > 0 && (
+        <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm overflow-hidden">
+          <button type="button" onClick={() => setShowVoided((v) => !v)} className="w-full px-6 py-3.5 flex items-center justify-between gap-2 bg-navy-50/30 hover:bg-navy-50/60 transition-colors">
+            <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Vuelos anulados ({voidedFlights.length})</h3>
+            <span className="material-symbols-outlined text-navy-300">{showVoided ? 'expand_less' : 'expand_more'}</span>
+          </button>
+          {showVoided && (
+            <ul className="divide-y divide-navy-50">
+              {voidedFlights.map((v) => (
+                <li key={v.id} className="px-6 py-3 text-xs text-navy-500">
+                  <p className="font-bold text-navy">{formatDate(v.takeoff_at)} · {v.pilot?.full_name || '—'} · {Number(v.total_time).toFixed(1)}h</p>
+                  <p>Anulado el {formatDate(v.voided_at)} por {v.voider?.full_name || '—'}: {v.void_reason}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {flightAction && (
+        <FlightEditDialog
+          flight={flightAction.flight}
+          mode={flightAction.mode}
+          fleet={fleet}
+          onClose={() => setFlightAction(null)}
+          onDone={async () => {
+            setFlightAction(null);
+            await Promise.all([loadFlights(organizationId), loadFleet(organizationId), loadVoided(organizationId)]).catch((e) => setError(e.message));
+          }}
+        />
+      )}
 
       {replayFlight && (
         <FlightReplayViewer

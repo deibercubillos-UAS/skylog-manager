@@ -42,6 +42,20 @@ export async function GET(request) {
     return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
   }
 
+  // Vuelos anulados (solo quien puede editar/anular, D6): la RLS los oculta para todos, así que los lee el servidor.
+  if (searchParams.get('voided') === '1') {
+    if (!membershipsCanEdit(memberships, organizationId, 'D6')) return Response.json({ error: 'Tu rol no puede ver los vuelos anulados' }, { status: 403 });
+    const { data: voided, error: voidedError } = await createAdminClient()
+      .from('flights')
+      .select('id, takeoff_at, landing_at, total_time, mission_type, voided_at, void_reason, pilot:pilot_person_id(full_name), voider:voided_by(full_name)')
+      .eq('organization_id', organizationId)
+      .not('voided_at', 'is', null)
+      .order('voided_at', { ascending: false })
+      .limit(100);
+    if (voidedError) return Response.json({ error: 'Error consultando vuelos anulados' }, { status: 500 });
+    return Response.json({ voided: voided || [] });
+  }
+
   // Se piden las columnas una por una, SIN `replay_track`: es la traza completa (hasta 400 puntos por vuelo) y
   // traerla para descartarla multiplicaba el peso de la consulta por 200 filas. Solo se pregunta cuáles la tienen.
   const [{ data: flights, error }, { data: withReplay }] = await Promise.all([

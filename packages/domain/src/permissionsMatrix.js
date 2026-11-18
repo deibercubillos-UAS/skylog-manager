@@ -40,7 +40,7 @@ const ROWS = [
   ["D3", "Operación · Bitácora", "Ver el replay GPS de un vuelo", "SSSSVS"],
   ["D4", "Operación · Bitácora", "Importar vuelos desde los registros DJI", "SSSVSS"],
   ["D5", "Operación · Bitácora", "Registrar un vuelo manualmente", "SSSVNS"],
-  ["D6", "Operación · Bitácora", "Editar o eliminar un vuelo ya registrado", "SSSNNN", "Hoy no existe esta función para nadie."],
+  ["D6", "Operación · Bitácora", "Editar o anular un vuelo ya registrado", "SSSNNN", "Motivo obligatorio; queda en el registro de acciones. Un vuelo anulado no se borra."],
   ["E1", "Operación · Programación", "Ver las misiones programadas (calendario y lista)", "SSSVSS"],
   ["E2", "Operación · Programación", "Programar una misión (PIC, observador, aeronave, zona, fecha)", "SSSVNS"],
   ["E3", "Operación · Programación", "Modificar o cancelar una misión programada", "SSSVNS"],

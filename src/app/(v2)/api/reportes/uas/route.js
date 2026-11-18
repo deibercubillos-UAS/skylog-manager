@@ -4,7 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
-import { resolveReportFormat } from '@skylog/domain';
+import { resolveReportFormat, fetchAllPages } from '@skylog/domain';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -31,7 +31,9 @@ export async function GET(request) {
 
   const ids = (aircraft || []).map((a) => a.id);
   const [{ data: flights }, { data: events }, { data: org }] = await Promise.all([
-    ids.length ? supabase.from('flights').select('aircraft_id, takeoff_at, total_time, visual_condition, pilot:pilot_person_id(full_name)').eq('organization_id', organizationId).in('aircraft_id', ids).order('takeoff_at', { ascending: false }) : Promise.resolve({ data: [] }),
+    ids.length
+      ? fetchAllPages((a, b) => supabase.from('flights').select('aircraft_id, takeoff_at, total_time, visual_condition, pilot:pilot_person_id(full_name)').eq('organization_id', organizationId).in('aircraft_id', ids).order('takeoff_at', { ascending: false }).order('id').range(a, b)).then((r) => ({ data: r.rows }))
+      : Promise.resolve({ data: [] }),
     ids.length
       ? supabase.from('maintenance_events').select('aircraft_id, type, performed_at, performed_at_aircraft_hours, performer:performed_by(full_name, license_number)').eq('organization_id', organizationId).in('aircraft_id', ids).order('performed_at', { ascending: false })
       : Promise.resolve({ data: [] }),

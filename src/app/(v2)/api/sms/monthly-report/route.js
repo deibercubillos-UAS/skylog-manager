@@ -4,7 +4,7 @@
 // ya registrado si existe. Ver 40-sms.md §5.9 sub-frente SMS-G.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
-import { redactReporterIdentity } from '@skylog/domain';
+import { redactReporterIdentity, fetchAllPages } from '@skylog/domain';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { attachReporterIdentity } from '@/lib/v2/smsReporterIdentity';
@@ -33,7 +33,7 @@ export async function GET(request) {
   const to = `${period}-${String(lastDay).padStart(2, '0')}`;
 
   const [flightsRes, spiRes, morRes, statusRes] = await Promise.all([
-    supabase.from('flights').select('id, total_time, mission_type, visual_condition').eq('organization_id', organizationId).gte('takeoff_at', from).lte('takeoff_at', `${to}T23:59:59`),
+    fetchAllPages((a, b) => supabase.from('flights').select('id, total_time, mission_type, visual_condition').eq('organization_id', organizationId).gte('takeoff_at', from).lte('takeoff_at', `${to}T23:59:59`).order('takeoff_at').order('id').range(a, b)).then((r) => ({ data: r.rows, error: r.error })),
     supabase.from('safety_indicator_monthly').select('events, rate, indicator:indicator_id(name)').eq('organization_id', organizationId).eq('year', year).eq('month', month),
     supabase
       .from('sms_reports')

@@ -11,13 +11,14 @@
 // servicio o despachar cuando el piloto ya está en el límite (lib/v2/serviceGates.js).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
-import { evaluateFlightLimits } from '@skylog/domain';
+import { evaluateFlightLimits, fetchAllPages } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { asBogotaInstant } from '@/lib/v2/dispatchContext';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
+const PAGE_SIZE = 200;
 
 // GET — listado real para Bitácora (Operación), por organización (no solo
 // del piloto autenticado): el Gerente General necesita ver el nombre del
@@ -58,21 +59,38 @@ export async function GET(request) {
 
   // Se piden las columnas una por una, SIN `replay_track`: es la traza completa (hasta 400 puntos por vuelo) y
   // traerla para descartarla multiplicaba el peso de la consulta por 200 filas. Solo se pregunta cuáles la tienen.
-  const [{ data: flights, error }, { data: withReplay }] = await Promise.all([
-    supabase
-      .from('flights')
-      .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
-      .eq('organization_id', organizationId)
-      .order('takeoff_at', { ascending: false })
-      .limit(200),
-    supabase.from('flights').select('id').eq('organization_id', organizationId).not('replay_track', 'is', null).limit(200),
-  ]);
+  const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
+  const { data: flights, error } = await supabase
+    .from('flights')
+    .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
+    .eq('organization_id', organizationId)
+    .order('takeoff_at', { ascending: false })
+    .order('id')
+    .range(offset, offset + PAGE_SIZE - 1);
   if (error) return Response.json({ error: 'Error consultando vuelos' }, { status: 500 });
 
-  const replayIds = new Set((withReplay || []).map((r) => r.id));
+  const ids = flights.map((f) => f.id);
+  // Solo se pregunta por los ids de ESTA página qué vuelos tienen replay (la traza completa pesa; no se trae).
+  const { data: replayRows } = ids.length ? await supabase.from('flights').select('id').in('id', ids).not('replay_track', 'is', null) : { data: [] };
+  const replayIds = new Set((replayRows || []).map((r) => r.id));
   const slimFlights = flights.map((f) => ({ ...f, has_replay: replayIds.has(f.id) }));
 
-  return Response.json({ flights: slimFlights, isManager: membershipsCanView(memberships, organizationId, 'D1') });
+  // Totales de TODA la organización (no solo de la página cargada): las tarjetas de la Bitácora los muestran. Solo en la primera página.
+  let totals = null;
+  if (offset === 0) {
+    const all = await fetchAllPages((a, b) => supabase.from('flights').select('takeoff_at, total_time').eq('organization_id', organizationId).order('takeoff_at', { ascending: false }).order('id').range(a, b));
+    if (!all.error) {
+      const monthKey = new Date().toISOString().slice(0, 7);
+      totals = {
+        count: all.rows.length,
+        hours: all.rows.reduce((sum, f) => sum + Number(f.total_time || 0), 0),
+        monthHours: all.rows.filter((f) => String(f.takeoff_at).slice(0, 7) === monthKey).reduce((sum, f) => sum + Number(f.total_time || 0), 0),
+        truncated: all.truncated,
+      };
+    }
+  }
+
+  return Response.json({ flights: slimFlights, hasMore: flights.length === PAGE_SIZE, totals, isManager: membershipsCanView(memberships, organizationId, 'D1') });
 }
 
 export async function POST(request) {

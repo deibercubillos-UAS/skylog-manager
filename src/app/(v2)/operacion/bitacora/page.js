@@ -76,6 +76,9 @@ export default function BitacoraPage() {
   const [viewMode, setViewMode] = useState('bitacora'); // 'bitacora' (por piloto) | 'libro' (por aeronave)
   const [logbookAircraftId, setLogbookAircraftId] = useState('');
   const [replayFlight, setReplayFlight] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [totals, setTotals] = useState(null); // totales de toda la organización (no solo de lo cargado)
+  const [loadingMore, setLoadingMore] = useState(false);
   const [flightAction, setFlightAction] = useState(null); // { flight, mode: 'edit' | 'void' }
   const [voidedFlights, setVoidedFlights] = useState([]);
   const [showVoided, setShowVoided] = useState(false);
@@ -102,7 +105,28 @@ export default function BitacoraPage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cargando vuelos');
     setFlights(data.flights || []);
+    setHasMore(Boolean(data.hasMore));
+    setTotals(data.totals || null);
   }, []);
+
+  // Los vuelos llegan de 200 en 200: «Cargar más» pide la siguiente tanda y la agrega.
+  async function loadMoreFlights() {
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/flights?organizationId=${organizationId}&offset=${flights.length}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error cargando más vuelos');
+      setFlights((prev) => {
+        const seen = new Set(prev.map((f) => f.id));
+        return [...prev, ...(data.flights || []).filter((f) => !seen.has(f.id))];
+      });
+      setHasMore(Boolean(data.hasMore));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   // Vuelos anulados: solo quien puede editar/anular los ve (D6); los demás reciben un 403 que se ignora.
   const loadVoided = useCallback(async (orgId) => {
@@ -278,9 +302,11 @@ export default function BitacoraPage() {
   ).map(([id, name]) => ({ id, name }));
   const visibleFlights = pilotFilter ? flights.filter((f) => f.pilot_person_id === pilotFilter) : flights;
 
-  const totalHours = visibleFlights.reduce((sum, f) => sum + Number(f.total_time || 0), 0);
+  // Con filtro de piloto se suma lo cargado de ese piloto; sin filtro se usan los totales reales de la organización.
+  const useServerTotals = totals && !pilotFilter;
+  const totalHours = useServerTotals ? totals.hours : visibleFlights.reduce((sum, f) => sum + Number(f.total_time || 0), 0);
   const thisMonthKey = new Date().toISOString().slice(0, 7);
-  const thisMonthHours = visibleFlights
+  const thisMonthHours = useServerTotals ? totals.monthHours : visibleFlights
     .filter((f) => (f.takeoff_at || '').slice(0, 7) === thisMonthKey)
     .reduce((sum, f) => sum + Number(f.total_time || 0), 0);
 
@@ -314,7 +340,7 @@ export default function BitacoraPage() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard icon="menu_book" color="primary" label="Vuelos registrados" value={flights.length} />
+        <StatCard icon="menu_book" color="primary" label="Vuelos registrados" value={useServerTotals ? totals.count : visibleFlights.length} />
         <StatCard icon="schedule" color="blue" label="Horas totales" value={`${totalHours.toFixed(1)}h`} />
         <StatCard icon="calendar_month" color="emerald" label="Horas este mes" value={`${thisMonthHours.toFixed(1)}h`} />
       </div>
@@ -662,6 +688,13 @@ export default function BitacoraPage() {
                 </tbody>
               </table>
             </div>
+            {hasMore && (
+              <div className="px-6 py-3 border-t border-navy-50 text-center">
+                <button type="button" onClick={loadMoreFlights} disabled={loadingMore} className="min-h-[44px] px-5 rounded-xl border border-navy-200 text-xs font-bold uppercase tracking-wide text-navy-600 hover:bg-navy-50 disabled:opacity-50">
+                  {loadingMore ? 'Cargando…' : `Cargar más vuelos (mostrando ${flights.length}${totals ? ` de ${totals.count}` : ''})`}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <LibroDeVueloPanel

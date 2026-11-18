@@ -2,7 +2,8 @@
 
 // Paneles del replay: instrumentos, GPS y enlace, palancas, batería, clima y alertas. Cada uno recibe la muestra del instante
 // actual (`s`) y solo se muestra si el log trajo ese dato (`has`).
-import { describeFlightMode, describeGoHomeStatus, describeEvent, weatherCodeText, sampleAt } from '@skylog/domain';
+import { useState } from 'react';
+import { describeFlightMode, describeGoHomeStatus, describeEvent, weatherCodeText, sampleAt, formatCoordinates } from '@skylog/domain';
 
 export const fmtClock = (s) => {
   if (s == null || Number.isNaN(s)) return '0:00';
@@ -104,6 +105,47 @@ export function InstrumentsPanel({ s, has, modes, ghs }) {
         {has.rec && s.rec ? <span className="px-2 py-0.5 rounded-full bg-red-500/25 text-red-200 flex items-center gap-1"><span className="size-1.5 rounded-full bg-red-400 animate-pulse" />Grabando</span> : null}
         {has.gp && <span className="px-2 py-0.5 rounded-full bg-white/10 text-navy-200">Cámara {f1(s.gp, 0)}°</span>}
       </div>
+    </Card>
+  );
+}
+
+function CopyButton({ text, label }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button type="button" aria-label={label} title={label} onClick={() => { navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1500); }).catch(() => {}); }} className="shrink-0 size-7 rounded-md bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+      <span className="material-symbols-outlined text-sm">{done ? 'check' : 'content_copy'}</span>
+    </button>
+  );
+}
+
+function CoordRow({ title, lat, lng, live }) {
+  const c = formatCoordinates(lat, lng);
+  return (
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-[9px] font-bold uppercase tracking-wide text-navy-300">{title}</p>
+        <p className={`text-sm font-black tabular-nums text-white ${live ? 'text-primary-200' : ''}`}>{c.decimal}</p>
+        <p className="text-[11px] tabular-nums text-navy-200">{c.dms}</p>
+      </div>
+      <div className="flex gap-1 shrink-0">
+        <CopyButton text={c.signed} label="Copiar coordenadas" />
+        <a href={`https://www.google.com/maps?q=${c.signed.replace(' ', '')}`} target="_blank" rel="noopener noreferrer" className="size-7 rounded-md bg-white/10 hover:bg-white/20 text-white flex items-center justify-center" aria-label="Abrir en un mapa" title="Abrir en un mapa"><span className="material-symbols-outlined text-sm">open_in_new</span></a>
+      </div>
+    </div>
+  );
+}
+
+/** Ubicación en grados: la del dron en este instante (se mueve con el replay), el despegue y el punto de origen (casa). */
+export function LocationPanel({ s, points, home }) {
+  const first = points[0];
+  return (
+    <Card title="Ubicación (grados)" icon="location_on">
+      <div className="space-y-2.5">
+        <CoordRow title="Posición del dron ahora" lat={s.lat} lng={s.lng} live />
+        <CoordRow title="Despegue" lat={first.lat} lng={first.lng} />
+        {home && (Math.abs(home.lat - first.lat) > 1e-6 || Math.abs(home.lng - first.lng) > 1e-6) && <CoordRow title="Punto de origen (casa)" lat={home.lat} lng={home.lng} />}
+      </div>
+      <p className="text-[10px] text-navy-300 mt-2">Grados decimales y grados-minutos-segundos (sistema WGS84). El botón copia «latitud, longitud» para pegarla en cualquier mapa.</p>
     </Card>
   );
 }

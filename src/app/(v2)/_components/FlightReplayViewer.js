@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import { normalizeReplay, summarizeReplay, sampleAt, describeEvent } from '@skylog/domain';
 import { useFlightWeather } from './replay/useFlightWeather';
 import ReplayCharts from './replay/ReplayCharts';
-import { InstrumentsPanel, GpsLinkPanel, SticksPanel, SticksOverlay, hasSticks, BatteryPanel, WeatherPanel, EventsPanel, SummaryChips, fmtClock } from './replay/ReplayPanels';
+import { InstrumentsPanel, LocationPanel, GpsLinkPanel, SticksPanel, SticksOverlay, hasSticks, BatteryPanel, WeatherPanel, EventsPanel, SummaryChips, fmtClock } from './replay/ReplayPanels';
 
 const ReplayMap = dynamic(() => import('./replay/ReplayMap'), { ssr: false });
 const SPEEDS = [0.5, 1, 2, 5, 10, 20];
@@ -26,6 +26,7 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
   const [layer, setLayer] = useState('satelite');
   const [follow, setFollow] = useState(false);
   const [zoom, setZoom] = useState(null);
+  const [coverage, setCoverage] = useState(null); // nivel hasta el que hay imagen satelital real en esta zona (si es menor que 19)
   const [eventFilter, setEventFilter] = useState('todos');
   const [tab, setTab] = useState('datos'); // solo en pantallas angostas
   const [sticksOnMap, setSticksOnMap] = useState(true);
@@ -130,6 +131,7 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
   const panels = replay && s && (
     <>
       <InstrumentsPanel s={s} has={replay.has} modes={replay.modes} ghs={replay.ghs} />
+      <LocationPanel s={s} points={points} home={replay.home} />
       <GpsLinkPanel s={s} has={replay.has} />
       <SticksPanel s={s} has={replay.has} points={points} t={t} legacy={replay.legacy} />
       <BatteryPanel s={s} has={replay.has} />
@@ -167,7 +169,7 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
           <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
             <div className="flex flex-col min-h-0 lg:flex-1 h-[46%] lg:h-auto">
               <div className="relative flex-1 min-h-0">
-                <ReplayMap points={points} events={replay.events} home={replay.home} layer={layer} follow={follow} onReady={onMapReady} onZoom={setZoom} />
+                <ReplayMap points={points} events={replay.events} home={replay.home} layer={layer} follow={follow} onReady={onMapReady} onZoom={setZoom} onCoverage={setCoverage} />
                 {banner && (
                   <div className={`absolute top-3 left-3 right-16 z-[500] rounded-xl px-3 py-2 text-white text-sm font-bold shadow-lg ${SEV_BANNER[banner.s] || SEV_BANNER[0]}`}>
                     <span className="material-symbols-outlined text-base align-middle mr-1">{banner.s >= 1 ? 'warning' : 'info'}</span>
@@ -175,7 +177,7 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
                   </div>
                 )}
                 {sticksOnMap && hasSticks(replay.has) && <SticksOverlay s={s} points={points} t={t} />}
-                {zoom != null && <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[500] text-[10px] font-bold text-white/80 bg-navy/70 rounded px-1.5 py-0.5 tabular-nums" aria-label={`Nivel de zoom ${zoom}`}>Zoom {zoom}</span>}
+                {zoom != null && <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[500] text-[10px] font-bold text-white/80 bg-navy/70 rounded px-1.5 py-0.5 tabular-nums" aria-label={`Nivel de zoom ${zoom}`}>Zoom {zoom}{layer === 'satelite' && coverage != null && zoom > coverage ? ` · imagen real hasta ${coverage}` : ''}</span>}
                 <div className="absolute top-3 right-3 z-[500] flex flex-col gap-1.5">
                   <button type="button" onClick={() => mapApiRef.current?.zoomIn()} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Acercar" aria-label="Acercar"><span className="material-symbols-outlined text-lg">add</span></button>
                   <button type="button" onClick={() => mapApiRef.current?.zoomOut()} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Alejar" aria-label="Alejar"><span className="material-symbols-outlined text-lg">remove</span></button>

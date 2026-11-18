@@ -325,3 +325,22 @@ export function validateReplayPayload(raw) {
   if (JSON.stringify(value).length > REPLAY_LIMITS.maxBytes) return { ok: false, error: 'El replay pesa demasiado' };
   return { ok: true, value };
 }
+
+/**
+ * Coordenadas en grados: decimales con signo (para copiar a un mapa), decimales con hemisferio y grados-minutos-segundos.
+ * @returns {{ signed: string, decimal: string, dms: string }}
+ */
+export function formatCoordinates(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return { signed: '—', decimal: '—', dms: '—' };
+  const dms = (v, pos, neg) => {
+    const a = Math.abs(v);
+    let d = Math.floor(a);
+    let m = Math.floor((a - d) * 60);
+    let sec = Math.round(((a - d) * 60 - m) * 60 * 10) / 10;
+    if (sec >= 60) { sec = 0; m += 1; }
+    if (m >= 60) { m = 0; d += 1; }
+    return `${d}°${String(m).padStart(2, '0')}'${sec.toFixed(1).padStart(4, '0')}" ${v >= 0 ? pos : neg}`;
+  };
+  const dec = (v, pos, neg) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`;
+  return { signed: `${lat.toFixed(6)}, ${lng.toFixed(6)}`, decimal: `${dec(lat, 'N', 'S')}, ${dec(lng, 'E', 'O')}`, dms: `${dms(lat, 'N', 'S')}, ${dms(lng, 'E', 'O')}` };
+}

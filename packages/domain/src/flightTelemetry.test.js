@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTelemetryTrack, normalizeReplay, validateReplayPayload, sampleAt, summarizeReplay, normalizeStick, haversineM, describeEvent, describeFlightMode, weatherCodeText, REPLAY_LIMITS } from './flightTelemetry.js';
+import { formatCoordinates, buildTelemetryTrack, normalizeReplay, validateReplayPayload, sampleAt, summarizeReplay, normalizeStick, haversineM, describeEvent, describeFlightMode, weatherCodeText, REPLAY_LIMITS } from './flightTelemetry.js';
 
 // Vuelo sintético: 120 s a 10 cuadros/s, sale hacia el norte y vuelve; batería de 90 a 18 %, satélites que bajan a 4, un aviso de la app.
 function frames({ withRc = true, seconds = 120 } = {}) {
@@ -163,5 +163,23 @@ describe('utilidades', () => {
     expect(describeEvent({ k: 'bateria', m: '20' })).toBe('Batería al 20%');
     expect(weatherCodeText(63)).toBe('Lluvia');
     expect(weatherCodeText(999)).toBe('—');
+  });
+});
+
+describe('formatCoordinates', () => {
+  it('Bogotá: decimales con signo, con hemisferio y en grados-minutos-segundos', () => {
+    const c = formatCoordinates(4.711, -74.0721);
+    expect(c.signed).toBe('4.711000, -74.072100');
+    expect(c.decimal).toBe('4.711000° N, 74.072100° O');
+    expect(c.dms).toBe("4°42'39.6\" N, 74°04'19.6\" O");
+  });
+  it('hemisferio sur y este; el redondeo de segundos no deja 60', () => {
+    const c = formatCoordinates(-33.5, 151.2);
+    expect(c.decimal).toBe('33.500000° S, 151.200000° E');
+    expect(formatCoordinates(10.999999, 0).dms).toMatch(/^11°00'00\.0" N/);
+  });
+  it('valores inválidos', () => {
+    expect(formatCoordinates(null, 1).dms).toBe('—');
+    expect(formatCoordinates(NaN, 1).signed).toBe('—');
   });
 });

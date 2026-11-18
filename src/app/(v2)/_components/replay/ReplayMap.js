@@ -14,6 +14,79 @@ const dot = (color, size, glyph = '') => L.divIcon({ className: '', iconSize: [s
 
 const MAX_ZOOM = 25; // más allá de la cobertura real de las imágenes (≈19) se amplía el último mosaico: se ve borroso pero permite acercarse al detalle
 
+// Cuando Esri no tiene imagen a un nivel de zoom en esa zona, no da error: devuelve un mosaico gris plano con el texto «Map data not yet
+// available». Se detecta ese mosaico (gris casi uniforme y claro) y se baja el nivel nativo de la capa un paso; desde ahí hacia arriba se
+// amplía el mosaico real más cercano. Si el navegador no deja leer los píxeles (CORS), se limita a 18 como medida segura.
+const ESRI_IMAGERY = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const ESRI_LABELS = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+
+function looksLikeNoData(img) {
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 32;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, 32, 32);
+  const d = ctx.getImageData(0, 0, 32, 32).data;
+  let sum = 0;
+  let sum2 = 0;
+  let n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (Math.abs(d[i] - d[i + 1]) > 8 || Math.abs(d[i + 1] - d[i + 2]) > 8) return false; // con color: es imagen real
+    const l = (d[i] + d[i + 1] + d[i + 2]) / 3;
+    sum += l;
+    sum2 += l * l;
+    n += 1;
+  }
+  const mean = sum / n;
+  return mean > 180 && mean < 252 && sum2 / n - mean * mean < 60;
+}
+
+function SatelliteLayers({ onCoverage }) {
+  const map = useMap();
+  useEffect(() => {
+    let cap = 19;
+    let loaded = 0;
+    let errors = 0;
+    let imagery;
+    let labels;
+    const flat = {};
+    const make = (cors) => {
+      const o = { maxZoom: MAX_ZOOM, maxNativeZoom: cap, ...(cors ? { crossOrigin: true } : {}) };
+      imagery = L.tileLayer(ESRI_IMAGERY, { ...o, attribution: 'Tiles © Esri' }).addTo(map);
+      labels = L.tileLayer(ESRI_LABELS, { ...o, opacity: 0.6 }).addTo(map);
+      return imagery;
+    };
+    const lower = (z) => {
+      if (z <= 15 || z - 1 >= cap) return;
+      cap = z - 1;
+      imagery.options.maxNativeZoom = cap;
+      labels.options.maxNativeZoom = cap;
+      imagery.redraw();
+      labels.redraw();
+      onCoverage?.(cap);
+    };
+    const attach = (cors) => {
+      const layer = make(cors);
+      layer.on('tileload', (e) => {
+        loaded += 1;
+        if (!cors || e.coords.z < cap) return;
+        let flatTile = false;
+        try { flatTile = looksLikeNoData(e.tile); } catch { if (e.coords.z >= 19) lower(e.coords.z); return; }
+        if (flatTile) { flat[e.coords.z] = (flat[e.coords.z] || 0) + 1; if (flat[e.coords.z] >= 2) lower(e.coords.z); }
+      });
+      layer.on('tileerror', () => {
+        errors += 1;
+        // Si el servidor no permite CORS ninguna imagen carga: se rehace la capa sin esa opción y con el tope seguro de 18.
+        if (cors && loaded === 0 && errors >= 3) { imagery.remove(); labels.remove(); cap = 18; onCoverage?.(18); attach(false); }
+      });
+    };
+    attach(true);
+    return () => { imagery.remove(); labels.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
+  return null;
+}
+
 function Controller({ points, events, home, onReady, follow, onZoom }) {
   const map = useMap();
   const followRef = useRef(follow);
@@ -77,17 +150,14 @@ function Controller({ points, events, home, onReady, follow, onZoom }) {
   return null;
 }
 
-export default function ReplayMap({ points, events, home, layer, follow, onReady, onZoom }) {
+export default function ReplayMap({ points, events, home, layer, follow, onReady, onZoom, onCoverage }) {
   const c = points[Math.floor(points.length / 2)];
   return (
     <MapContainer center={[c.lat, c.lng]} zoom={16} maxZoom={MAX_ZOOM} zoomSnap={0.5} zoomDelta={1} wheelPxPerZoomLevel={80} style={{ height: '100%', width: '100%', background: '#0f1420' }} zoomControl={false} attributionControl>
       {layer === 'calle' ? (
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={MAX_ZOOM} maxNativeZoom={19} />
       ) : (
-        <>
-          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Tiles © Esri" maxZoom={MAX_ZOOM} maxNativeZoom={19} />
-          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" attribution="" maxZoom={MAX_ZOOM} maxNativeZoom={19} opacity={0.6} />
-        </>
+        <SatelliteLayers onCoverage={onCoverage} />
       )}
       <Controller points={points} events={events} home={home} onReady={onReady} follow={follow} onZoom={onZoom} />
     </MapContainer>

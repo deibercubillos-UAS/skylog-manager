@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import { normalizeReplay, summarizeReplay, sampleAt, describeEvent } from '@skylog/domain';
 import { useFlightWeather } from './replay/useFlightWeather';
 import ReplayCharts from './replay/ReplayCharts';
-import { InstrumentsPanel, GpsLinkPanel, SticksPanel, BatteryPanel, WeatherPanel, EventsPanel, SummaryChips, fmtClock } from './replay/ReplayPanels';
+import { InstrumentsPanel, GpsLinkPanel, SticksPanel, SticksOverlay, hasSticks, BatteryPanel, WeatherPanel, EventsPanel, SummaryChips, fmtClock } from './replay/ReplayPanels';
 
 const ReplayMap = dynamic(() => import('./replay/ReplayMap'), { ssr: false });
 const SPEEDS = [0.5, 1, 2, 5, 10, 20];
@@ -28,29 +28,52 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
   const [zoom, setZoom] = useState(null);
   const [eventFilter, setEventFilter] = useState('todos');
   const [tab, setTab] = useState('datos'); // solo en pantallas angostas
+  const [sticksOnMap, setSticksOnMap] = useState(true);
 
   const mapApiRef = useRef(null);
   const tRef = useRef(0);
   const lastPaintRef = useRef(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/flights/${flightId}/replay`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'No se pudo cargar el replay');
-        const r = normalizeReplay(data.track);
-        if (r.points.length < 2) throw new Error('El replay de este vuelo no tiene puntos GPS válidos');
-        if (cancelled) return;
-        setReplay(r);
-        setState('ready');
-      } catch (e) {
-        if (!cancelled) { setError(e.message); setState('error'); }
-      }
-    })();
-    return () => { cancelled = true; };
+  const loadReplay = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/flights/${flightId}/replay`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cargar el replay');
+      const r = normalizeReplay(data.track);
+      if (r.points.length < 2) throw new Error('El replay de este vuelo no tiene puntos GPS válidos');
+      setReplay(r);
+      setState('ready');
+    } catch (e) {
+      setError(e.message);
+      setState('error');
+    }
   }, [flightId]);
+
+  useEffect(() => { loadReplay(); }, [loadReplay]);
+
+  // Vuelos guardados con el replay anterior: se actualizan con el log del mismo vuelo (analiza el archivo y reemplaza solo el replay).
+  const [updating, setUpdating] = useState(null); // null | 'working' | texto de error
+  async function updateReplay(file) {
+    if (!file) return;
+    setUpdating('working');
+    try {
+      const form = new FormData();
+      form.append('files', file);
+      const a = await fetch('/api/flights/import-dji', { method: 'POST', body: form });
+      const ad = await a.json().catch(() => ({}));
+      const r = ad.results?.[0];
+      if (!a.ok || !r || r.error || !r.replayTrack || !r.importToken) throw new Error(r?.error || ad.error || 'No se pudo leer ese log. Revisa que sea el archivo del vuelo.');
+      const u = await fetch(`/api/flights/${flightId}/replay`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ replayTrack: r.replayTrack, importToken: r.importToken, takeoffAt: r.takeoffAt, landingAt: r.landingAt, totalTime: r.totalTime, batterySerial: r.batterySerial, batteryCycles: r.batteryCycles }) });
+      const ud = await u.json().catch(() => ({}));
+      if (!u.ok) throw new Error(ud.error || 'No se pudo actualizar el replay');
+      tRef.current = 0;
+      setSnap({ t: 0 });
+      await loadReplay();
+      setUpdating(null);
+    } catch (e) {
+      setUpdating(e.message);
+    }
+  }
 
   const points = replay?.points;
   const duration = points ? points[points.length - 1].t : 0;
@@ -108,7 +131,7 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
     <>
       <InstrumentsPanel s={s} has={replay.has} modes={replay.modes} ghs={replay.ghs} />
       <GpsLinkPanel s={s} has={replay.has} />
-      <SticksPanel s={s} has={replay.has} points={points} t={t} />
+      <SticksPanel s={s} has={replay.has} points={points} t={t} legacy={replay.legacy} />
       <BatteryPanel s={s} has={replay.has} />
       <WeatherPanel weather={weather} t={t} dateLabel={weather.dateLabel} />
     </>
@@ -122,6 +145,17 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary-300">Replay del vuelo</p>
             <p className="text-sm font-bold text-white truncate">{flightLabel || 'Vuelo'}</p>
             {state === 'ready' && <div className="mt-1.5 hidden sm:block"><SummaryChips summary={summary} /></div>}
+            {state === 'ready' && replay.legacy && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-amber-200 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-1.5">
+                <span>Replay con el formato anterior: sin palancas, satélites ni alertas.</span>
+                <label className={`inline-flex items-center gap-1 font-bold text-white bg-primary rounded-full px-2.5 py-1 cursor-pointer ${updating === 'working' ? 'opacity-60 pointer-events-none' : ''}`}>
+                  <span className="material-symbols-outlined text-sm">sync</span>
+                  {updating === 'working' ? 'Actualizando…' : 'Actualizar replay'}
+                  <input type="file" accept=".txt" className="hidden" onChange={(e) => { updateReplay(e.target.files?.[0]); e.target.value = ''; }} />
+                </label>
+                {updating && updating !== 'working' && <span className="text-red-200 font-semibold">{updating}</span>}
+              </div>
+            )}
           </div>
           <button type="button" onClick={onClose} className="text-white/60 hover:text-white size-9 flex items-center justify-center shrink-0" aria-label="Cerrar"><span className="material-symbols-outlined">close</span></button>
         </div>
@@ -140,13 +174,15 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
                     {fmtClock(banner.t)} · {describeEvent(banner)}
                   </div>
                 )}
-                {zoom != null && <span className="absolute bottom-6 left-3 z-[500] text-[10px] font-bold text-white/80 bg-navy/70 rounded px-1.5 py-0.5 tabular-nums" aria-label={`Nivel de zoom ${zoom}`}>Zoom {zoom}</span>}
+                {sticksOnMap && hasSticks(replay.has) && <SticksOverlay s={s} points={points} t={t} />}
+                {zoom != null && <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[500] text-[10px] font-bold text-white/80 bg-navy/70 rounded px-1.5 py-0.5 tabular-nums" aria-label={`Nivel de zoom ${zoom}`}>Zoom {zoom}</span>}
                 <div className="absolute top-3 right-3 z-[500] flex flex-col gap-1.5">
                   <button type="button" onClick={() => mapApiRef.current?.zoomIn()} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Acercar" aria-label="Acercar"><span className="material-symbols-outlined text-lg">add</span></button>
                   <button type="button" onClick={() => mapApiRef.current?.zoomOut()} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Alejar" aria-label="Alejar"><span className="material-symbols-outlined text-lg">remove</span></button>
                   <button type="button" onClick={() => mapApiRef.current?.zoomToDrone(21)} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Acercarse al dron" aria-label="Acercarse al dron"><span className="material-symbols-outlined text-lg">zoom_in_map</span></button>
                   <button type="button" onClick={() => setLayer((l) => (l === 'satelite' ? 'calle' : 'satelite'))} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Cambiar mapa" aria-label="Cambiar entre satélite y calles"><span className="material-symbols-outlined text-lg">{layer === 'satelite' ? 'map' : 'satellite'}</span></button>
                   <button type="button" onClick={() => setFollow((f) => !f)} className={`size-9 rounded-lg border border-white/15 flex items-center justify-center ${follow ? 'bg-primary text-white' : 'bg-navy/85 text-white'}`} title="Seguir al dron" aria-label="Seguir al dron" aria-pressed={follow}><span className="material-symbols-outlined text-lg">my_location</span></button>
+                  {hasSticks(replay.has) && <button type="button" onClick={() => setSticksOnMap((v) => !v)} className={`size-9 rounded-lg border border-white/15 flex items-center justify-center ${sticksOnMap ? 'bg-primary text-white' : 'bg-navy/85 text-white'}`} title="Palancas sobre el mapa" aria-label="Palancas sobre el mapa" aria-pressed={sticksOnMap}><span className="material-symbols-outlined text-lg">gamepad</span></button>}
                   <button type="button" onClick={() => mapApiRef.current?.fit()} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Ver toda la ruta" aria-label="Ver toda la ruta"><span className="material-symbols-outlined text-lg">fit_screen</span></button>
                 </div>
               </div>

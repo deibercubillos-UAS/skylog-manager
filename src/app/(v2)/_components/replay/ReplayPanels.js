@@ -140,27 +140,51 @@ export function GpsLinkPanel({ s, has }) {
   );
 }
 
-function StickPad({ label, x, y, trail }) {
+export function StickPad({ label, x, y, trail, size = 'w-24 h-24', showLabel = true }) {
   const cx = (v) => 50 + (v ?? 0) * 40;
   const cy = (v) => 50 - (v ?? 0) * 40;
   return (
     <div className="text-center">
-      <svg viewBox="0 0 100 100" className="w-24 h-24 mx-auto" role="img" aria-label={`${label}: horizontal ${f1(x, 2)}, vertical ${f1(y, 2)}`}>
+      <svg viewBox="0 0 100 100" className={`${size} mx-auto`} role="img" aria-label={`${label}: horizontal ${f1(x, 2)}, vertical ${f1(y, 2)}`}>
         <rect x="6" y="6" width="88" height="88" rx="16" fill="#0b1220" stroke="#475569" strokeWidth="2" />
         <path d="M50 8v84M8 50h84" stroke="#334155" strokeWidth="1" />
         <circle cx="50" cy="50" r="40" fill="none" stroke="#334155" strokeDasharray="2 3" />
         {trail.length > 1 && <polyline points={trail.map((p) => `${cx(p.x)},${cy(p.y)}`).join(' ')} fill="none" stroke="#EC5B13" strokeOpacity=".6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
         <circle cx={cx(x)} cy={cy(y)} r="7" fill="#EC5B13" stroke="#fff" strokeWidth="2" />
       </svg>
-      <p className="text-[10px] font-bold text-navy-200 mt-0.5">{label}</p>
+      {showLabel && <p className="text-[10px] font-bold text-navy-200 mt-0.5">{label}</p>}
     </div>
   );
 }
 
-export function SticksPanel({ s, has, points, t }) {
-  if (!has.ail && !has.ele && !has.thr && !has.rud) return null;
-  // Estela de los últimos 1,5 s.
-  const trailOf = (kx, ky) => Array.from({ length: 8 }, (_, i) => sampleAt(points, Math.max(0, t - 1.5 + (i * 1.5) / 7))).map((p) => ({ x: p?.[kx] ?? 0, y: p?.[ky] ?? 0 }));
+export const hasSticks = (has) => Boolean(has.ail || has.ele || has.thr || has.rud);
+
+/** Estela de los últimos 1,5 s de una palanca (puntos x/y normalizados). */
+export const stickTrail = (points, t, kx, ky) => Array.from({ length: 8 }, (_, i) => sampleAt(points, Math.max(0, t - 1.5 + (i * 1.5) / 7))).map((p) => ({ x: p?.[kx] ?? 0, y: p?.[ky] ?? 0 }));
+
+/** Las dos palancas grandes sobre el mapa, como en la pantalla de la app de DJI. */
+export function SticksOverlay({ s, points, t }) {
+  return (
+    <div className="pointer-events-none absolute bottom-8 inset-x-3 z-[500] flex items-end justify-between">
+      <div className="bg-navy/60 backdrop-blur-sm rounded-2xl p-1.5"><StickPad label="Izquierda" x={s.rud} y={s.thr} trail={stickTrail(points, t, 'rud', 'thr')} size="w-20 h-20 sm:w-28 sm:h-28" showLabel={false} /></div>
+      <div className="bg-navy/60 backdrop-blur-sm rounded-2xl p-1.5"><StickPad label="Derecha" x={s.ail} y={s.ele} trail={stickTrail(points, t, 'ail', 'ele')} size="w-20 h-20 sm:w-28 sm:h-28" showLabel={false} /></div>
+    </div>
+  );
+}
+
+export function SticksPanel({ s, has, points, t, legacy }) {
+  if (!hasSticks(has)) {
+    return (
+      <Card title="Palancas del control" icon="gamepad">
+        <p className="text-xs text-navy-300">
+          {legacy
+            ? 'Este replay se guardó con la versión anterior y no incluye el movimiento de las palancas, los satélites ni las alertas. Actualízalo con el archivo de log de este vuelo (botón «Actualizar replay») para verlos.'
+            : 'El log de este vuelo no registró el movimiento de las palancas (algunos modelos o versiones de la app no lo guardan).'}
+        </p>
+      </Card>
+    );
+  }
+  const trailOf = (kx, ky) => stickTrail(points, t, kx, ky);
   return (
     <Card title="Palancas del control" icon="gamepad">
       <div className="grid grid-cols-2 gap-2">

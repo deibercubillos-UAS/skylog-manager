@@ -1,7 +1,7 @@
 'use client';
 
 // Editar o anular un vuelo registrado (matriz D6). El motivo es obligatorio; el servidor deja constancia de quién y cuándo.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const inputCls = 'mt-1 w-full min-h-[44px] text-base border border-navy-200 rounded-xl px-3 bg-white';
@@ -17,6 +17,7 @@ function toBogotaLocal(iso) {
 export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone }) {
   const isVoid = mode === 'void';
   const [form, setForm] = useState({
+    pilotPersonId: flight.pilot_person_id || '',
     takeoffAt: toBogotaLocal(flight.takeoff_at),
     landingAt: toBogotaLocal(flight.landing_at),
     totalTime: String(Number(flight.total_time)),
@@ -30,6 +31,16 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [pilots, setPilots] = useState([]);
+  // Un vuelo cerrado desde un despacho lleva el piloto de la constancia: no se cambia.
+  const pilotLocked = flight.source === 'despacho' || Boolean(flight.mission_id);
+  useEffect(() => {
+    if (isVoid || pilotLocked) return;
+    fetch(`/api/flights?organizationId=${flight.organization_id}&pilots=1`)
+      .then((r) => (r.ok ? r.json() : { pilots: [] }))
+      .then((d) => setPilots(d.pilots || []))
+      .catch(() => setPilots([]));
+  }, [isVoid, pilotLocked, flight.organization_id]);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
 
   async function submit(e) {
@@ -44,6 +55,7 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
           isVoid
             ? { reason: form.reason }
             : {
+                ...(pilotLocked ? {} : { pilotPersonId: form.pilotPersonId }),
                 takeoffAt: form.takeoffAt,
                 landingAt: form.landingAt,
                 totalTime: Number(form.totalTime),
@@ -59,7 +71,7 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo completar la acción');
-      onDone();
+      onDone(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,6 +101,13 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className={`${labelCls} sm:col-span-2`}>Piloto
+              <select value={form.pilotPersonId} disabled={pilotLocked} onChange={(e) => set({ pilotPersonId: e.target.value })} className={`${inputCls} disabled:bg-navy-50`}>
+                {!pilots.some((p) => p.id === form.pilotPersonId) && <option value={form.pilotPersonId}>{flight.pilot?.full_name || 'Piloto actual'}</option>}
+                {pilots.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {pilotLocked && <span className="block mt-1 text-[11px] normal-case font-normal text-navy-400">El piloto de un vuelo despachado lo fija el despacho y no se puede cambiar.</span>}
+            </label>
             <label className={labelCls}>Despegue (hora Colombia)
               <input type="datetime-local" required value={form.takeoffAt} onChange={(e) => set({ takeoffAt: e.target.value })} className={inputCls} />
             </label>

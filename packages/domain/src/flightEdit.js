@@ -2,7 +2,14 @@
 // Un vuelo es un evento: se corrige dejando constancia (quién, cuándo, por qué) y se anula, no se borra.
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 const FLIGHT_RULES = ['VMC', 'IMC', 'NIGHT'];
-export const FLIGHT_EDITABLE_FIELDS = ['takeoff_at', 'landing_at', 'total_time', 'visual_condition', 'mission_type', 'aircraft_id', 'location', 'notes', 'flight_rules'];
+export const FLIGHT_EDITABLE_FIELDS = ['pilot_person_id', 'takeoff_at', 'landing_at', 'total_time', 'visual_condition', 'mission_type', 'aircraft_id', 'location', 'notes', 'flight_rules'];
+
+/** Roles que pueden figurar como piloto de un vuelo (el Gerente SMS no vuela). */
+export const FLIGHT_PILOT_ROLES = ['admin', 'jefe_pilotos', 'piloto'];
+export const canBeFlightPilot = (role) => FLIGHT_PILOT_ROLES.includes(role);
+
+/** Un vuelo cerrado desde un despacho tiene el piloto de la constancia del despacho (inmutable): no se le cambia el piloto. */
+export const flightPilotLocked = (flight) => flight?.source === 'despacho' || Boolean(flight?.mission_id);
 
 export const FLIGHT_REASON_LIMITS = { min: 5, max: 500 };
 

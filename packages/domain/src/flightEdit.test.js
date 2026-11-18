@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateFlightReason, validateFlightFields, diffFlight, aircraftHoursAdjustments, voidHoursAdjustment } from './flightEdit.js';
+import { canBeFlightPilot, flightPilotLocked, validateFlightReason, validateFlightFields, diffFlight, aircraftHoursAdjustments, voidHoursAdjustment } from './flightEdit.js';
 
 describe('validateFlightReason', () => {
   it('exige un motivo de al menos 5 caracteres', () => {
@@ -30,6 +30,24 @@ describe('validateFlightFields', () => {
     expect(validateFlightFields({ ...base, visual_condition: 'XYZ' }).ok).toBe(false);
     expect(validateFlightFields({ ...base, flight_rules: 'IFR' }).ok).toBe(false);
     expect(validateFlightFields({ ...base, visual_condition: 'BVLOS', flight_rules: 'NIGHT' }).ok).toBe(true);
+  });
+});
+
+describe('piloto del vuelo', () => {
+  it('solo gerente general, jefe de pilotos y piloto pueden figurar como piloto', () => {
+    expect(['admin', 'jefe_pilotos', 'piloto'].every(canBeFlightPilot)).toBe(true);
+    expect(canBeFlightPilot('gerente_sms')).toBe(false);
+    expect(canBeFlightPilot('superadmin')).toBe(false);
+    expect(canBeFlightPilot(undefined)).toBe(false);
+  });
+  it('un vuelo de despacho no admite cambio de piloto; uno importado o manual sí', () => {
+    expect(flightPilotLocked({ source: 'despacho' })).toBe(true);
+    expect(flightPilotLocked({ source: 'importado', mission_id: 'm1' })).toBe(true);
+    expect(flightPilotLocked({ source: 'importado', mission_id: null })).toBe(false);
+    expect(flightPilotLocked({ source: 'manual' })).toBe(false);
+  });
+  it('el cambio de piloto aparece en el detalle de cambios', () => {
+    expect(diffFlight({ pilot_person_id: 'a' }, { pilot_person_id: 'b' })).toEqual({ pilot_person_id: { before: 'a', after: 'b' } });
   });
 });
 

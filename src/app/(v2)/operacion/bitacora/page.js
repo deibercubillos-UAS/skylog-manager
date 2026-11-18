@@ -348,7 +348,7 @@ export default function BitacoraPage() {
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
       {dutyNotice.length > 0 && (
         <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-          <p className="font-semibold">El vuelo se registró, pero ten en cuenta:</p>
+          <p className="font-semibold">El vuelo se guardó, pero ten en cuenta:</p>
           <ul className="mt-1 space-y-0.5">
             {dutyNotice.map((w) => (
               <li key={w}>• {w}</li>
@@ -791,8 +791,9 @@ export default function BitacoraPage() {
           mode={flightAction.mode}
           fleet={fleet}
           onClose={() => setFlightAction(null)}
-          onDone={async () => {
+          onDone={async (result) => {
             setFlightAction(null);
+            setDutyNotice(result?.dutyWarnings || []);
             await Promise.all([loadFlights(organizationId), loadFleet(organizationId), loadVoided(organizationId)]).catch((e) => setError(e.message));
           }}
         />

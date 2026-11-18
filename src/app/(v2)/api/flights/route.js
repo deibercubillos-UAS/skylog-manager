@@ -11,7 +11,7 @@
 // servicio o despachar cuando el piloto ya está en el límite (lib/v2/serviceGates.js).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
-import { evaluateFlightLimits, fetchAllPages } from '@skylog/domain';
+import { evaluateFlightLimits, fetchAllPages, FLIGHT_PILOT_ROLES } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
@@ -42,6 +42,19 @@ export async function GET(request) {
   const orgIds = (memberships || []).map((m) => m.organization_id);
   if (!organizationId || !orgIds.includes(organizationId)) {
     return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
+  }
+
+  // Pilotos que pueden figurar en un vuelo (miembros activos con rol que vuela): para cambiar el piloto al editar (D6).
+  if (searchParams.get('pilots') === '1') {
+    if (!membershipsCanEdit(memberships, organizationId, 'D6')) return Response.json({ error: 'Tu rol no puede cambiar el piloto de un vuelo' }, { status: 403 });
+    const { data: members, error: membersError } = await supabase
+      .from('memberships')
+      .select('person_id, role, people(full_name)')
+      .eq('organization_id', organizationId)
+      .eq('status', 'activa')
+      .in('role', FLIGHT_PILOT_ROLES);
+    if (membersError) return Response.json({ error: 'Error consultando los pilotos' }, { status: 500 });
+    return Response.json({ pilots: (members || []).map((m) => ({ id: m.person_id, name: m.people?.full_name || '—', role: m.role })).sort((a, b) => a.name.localeCompare(b.name, 'es')) });
   }
 
   // Vuelos anulados (solo quien puede editar/anular, D6): la RLS los oculta para todos, así que los lee el servidor.

@@ -4,12 +4,12 @@
 // Se escribe con la llave de servicio (la RLS de `flights` no tiene política de update) DESPUÉS de verificar sesión, membresía,
 // rol, custodia legal y datos. Ajusta las horas de la aeronave con `adjust_aircraft_hours`. Requiere la migración 20261118120000.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { membershipsCanEdit, readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { asBogotaInstant } from '@/lib/v2/dispatchContext';
 import { logAudit } from '@/lib/v2/auditLog';
-import { validateFlightReason, validateFlightFields, diffFlight, aircraftHoursAdjustments, voidHoursAdjustment } from '@skylog/domain';
+import { validateFlightReason, validateFlightFields, diffFlight, aircraftHoursAdjustments, voidHoursAdjustment, canBeFlightPilot, flightPilotLocked, evaluateFlightLimits } from '@skylog/domain';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +41,7 @@ async function authorize(id) {
   if (heldError) return { response: Response.json({ error: 'No se pudo verificar la custodia legal del vuelo' }, { status: 500 }) };
   if (held) return { response: Response.json({ error: 'Este vuelo está bajo una custodia legal activa y no se puede modificar' }, { status: 409 }) };
 
-  return { admin, flight, personId };
+  return { admin, flight, personId, supabase };
 }
 
 async function applyHours(admin, adjustments) {
@@ -57,7 +57,7 @@ export async function PATCH(request, { params }) {
   const { id } = await params;
   const auth = await authorize(id);
   if (auth.response) return auth.response;
-  const { admin, flight, personId } = auth;
+  const { admin, flight, personId, supabase } = auth;
 
   const body = await request.json().catch(() => ({}));
   const reason = validateFlightReason(body.reason);
@@ -65,6 +65,21 @@ export async function PATCH(request, { params }) {
 
   // Solo cambian los campos enviados; la hora llega como en el registro (hora de Colombia sin zona) y se guarda como instante real.
   const next = { ...flight };
+  if (body.pilotPersonId !== undefined && body.pilotPersonId !== flight.pilot_person_id) {
+    // El vuelo de un despacho lleva el piloto de la constancia (inmutable): no se cambia. El nuevo piloto debe ser miembro
+    // activo de la organización con un rol que vuela.
+    if (flightPilotLocked(flight)) return Response.json({ error: 'El piloto de un vuelo despachado no se puede cambiar: lo fija la constancia del despacho' }, { status: 409 });
+    const { data: member, error: memberError } = await admin
+      .from('memberships')
+      .select('role')
+      .eq('organization_id', flight.organization_id)
+      .eq('person_id', String(body.pilotPersonId))
+      .eq('status', 'activa')
+      .maybeSingle();
+    if (memberError) return dbError(memberError, 'flights/[id]');
+    if (!member || !canBeFlightPilot(member.role)) return Response.json({ error: 'Ese piloto no es un miembro activo de la organización que pueda volar' }, { status: 400 });
+    next.pilot_person_id = String(body.pilotPersonId);
+  }
   if (body.takeoffAt !== undefined) next.takeoff_at = asBogotaInstant(body.takeoffAt);
   if (body.landingAt !== undefined) next.landing_at = asBogotaInstant(body.landingAt);
   if (body.totalTime !== undefined) next.total_time = Number(body.totalTime);
@@ -82,12 +97,12 @@ export async function PATCH(request, { params }) {
   const changes = diffFlight(flight, next);
   if (Object.keys(changes).length === 0) return Response.json({ error: 'No hay cambios para guardar' }, { status: 400 });
 
-  if (changes.takeoff_at) {
+  if (changes.takeoff_at || changes.pilot_person_id) {
     const { data: duplicate } = await admin
       .from('flights')
       .select('id')
       .eq('organization_id', flight.organization_id)
-      .eq('pilot_person_id', flight.pilot_person_id)
+      .eq('pilot_person_id', next.pilot_person_id)
       .eq('takeoff_at', next.takeoff_at)
       .is('voided_at', null)
       .neq('id', id)
@@ -102,6 +117,7 @@ export async function PATCH(request, { params }) {
   const { data, error } = await admin
     .from('flights')
     .update({
+      pilot_person_id: next.pilot_person_id,
       takeoff_at: next.takeoff_at,
       landing_at: next.landing_at,
       total_time: next.total_time,
@@ -125,7 +141,16 @@ export async function PATCH(request, { params }) {
 
   await applyHours(admin, aircraftHoursAdjustments(flight, next));
   await logAudit({ organizationId: flight.organization_id, action: 'update', module: 'flights', entityLabel: label(flight), metadata: { flightId: id, reason: reason.reason, changes } });
-  return Response.json({ flight: data, changes: Object.keys(changes) });
+
+  // Avisos de §100.540 para el piloto del vuelo ya corregido (el vuelo se guarda igual; es solo advertencia). Se pide con la
+  // sesión del gestor, sin este vuelo, y solo si el despegue cae en la ventana de 32 días que carga `getRecentFlights`.
+  let dutyWarnings = [];
+  if (Date.now() - Date.parse(next.takeoff_at) < 31 * 86_400_000) {
+    const { data: recent } = await getRecentFlights(supabase, next.pilot_person_id, 32);
+    const limits = evaluateFlightLimits((recent || []).filter((f) => f.id !== id), { personId: next.pilot_person_id, takeoffAt: next.takeoff_at, totalTime: Number(next.total_time), lineOfSight: next.visual_condition || 'VLOS' });
+    dutyWarnings = limits.warnings || [];
+  }
+  return Response.json({ flight: data, changes: Object.keys(changes), dutyWarnings });
 }
 
 export async function DELETE(request, { params }) {

@@ -15,11 +15,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
   const [slow, setSlow] = useState(false);
+  // Dentro de la app (WebView de Android) Google bloquea el inicio de sesión («disallowed_useragent»): ahí solo se usa correo y contraseña.
+  const [inApp, setInApp] = useState(false);
 
   const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
+    setInApp(/; wv\)|\bwv\b/.test(navigator.userAgent) || Boolean(window.Capacitor?.isNativePlatform?.()));
     if (new URLSearchParams(window.location.search).get('error') === 'google') setError('No se pudo iniciar sesión con Google. Intenta de nuevo o usa tu correo y contraseña.');
   }, []);
 
@@ -175,6 +178,12 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {inApp ? (
+            <p className="mt-6 text-xs text-slate-500 text-center">
+              En la app ingresa con tu correo y contraseña. Si tu cuenta se creó con Google, usa «¿Olvidaste tu contraseña?» para crear una.
+            </p>
+          ) : (
+            <>
           {/* Divisor */}
           <div className="relative flex items-center my-6">
             <div className="flex-grow border-t border-slate-100" />
@@ -195,6 +204,8 @@ export default function LoginPage() {
             </svg>
             Continuar con Google
           </button>
+            </>
+          )}
 
           <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">
             ¿No tienes cuenta?{' '}

@@ -1,52 +1,36 @@
 'use client';
 
-// Skylog V2.0 — Replay GPS (Operación/Bitácora), complemento del sitemap
-// (36-sitemap.md §1) que todavía no existía en V2. MVP deliberado, no un
-// puerto 1:1 de v1 (components/FlightReplayModal.js, con joysticks/batería
-// detallada/detección de alertas): aquí la traza ya viene decimada y lista
-// desde `flights.replay_track` (ver api/flights/import-dji + migración
-// 20261001000000) — solo play/pausa/velocidad/scrubber + métricas básicas
-// sobre el mapa animado. Reutiliza components/dev/FlightAnimMap tal cual
-// (componente genérico, sin acoplamiento a tablas de v1: solo recibe
-// path/telemetry/onReady) en vez de reescribir la lógica de Leaflet.
-import { useEffect, useRef, useState, useCallback } from 'react';
+// Skylog V2.0 — Replay del vuelo (Operación/Bitácora). Reproduce el vuelo con TODO lo que trae el log: mapa satelital con la ruta y
+// las alertas, instrumentos (horizonte, rumbo, altura, velocidades, distancia a casa, modo de vuelo), satélites GPS y señal del
+// control, palancas, batería, clima del día y la hora del vuelo, y la lista de alertas/eventos que salta al instante. Las
+// gráficas en el tiempo sirven también para moverse por el vuelo. Los replays guardados con el formato anterior (solo posición,
+// altura, velocidad, rumbo y batería) se siguen viendo: los paneles sin datos se ocultan. Datos y reglas: @skylog/domain/flightTelemetry.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Button } from '@skylog/ui';
+import { normalizeReplay, summarizeReplay, sampleAt, describeEvent } from '@skylog/domain';
+import { useFlightWeather } from './replay/useFlightWeather';
+import ReplayCharts from './replay/ReplayCharts';
+import { InstrumentsPanel, GpsLinkPanel, SticksPanel, BatteryPanel, WeatherPanel, EventsPanel, SummaryChips, fmtClock } from './replay/ReplayPanels';
 
-const FlightAnimMap = dynamic(() => import('@/components/dev/FlightAnimMap'), { ssr: false });
+const ReplayMap = dynamic(() => import('./replay/ReplayMap'), { ssr: false });
+const SPEEDS = [0.5, 1, 2, 5, 10, 20];
+const SEV_BANNER = ['bg-sky-500/90', 'bg-amber-500/95', 'bg-red-600/95'];
 
-const SPEEDS = [1, 2, 5, 10];
-
-function bsearch(arr, t) {
-  let lo = 0;
-  let hi = arr.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (arr[mid].t < t) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
-
-function fmtTime(s) {
-  if (s == null || Number.isNaN(s)) return '0:00';
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${String(sec).padStart(2, '0')}`;
-}
-
-export default function FlightReplayViewer({ flightId, flightLabel, onClose }) {
+export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, onClose }) {
   const [state, setState] = useState('loading'); // loading | ready | error
   const [error, setError] = useState(null);
-  const [track, setTrack] = useState([]);
+  const [replay, setReplay] = useState(null);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [currentT, setCurrentT] = useState(0);
-  const [currentFrame, setCurrentFrame] = useState(null);
+  const [speed, setSpeed] = useState(2);
+  const [snap, setSnap] = useState({ t: 0 });
+  const [layer, setLayer] = useState('satelite');
+  const [follow, setFollow] = useState(false);
+  const [eventFilter, setEventFilter] = useState('todos');
+  const [tab, setTab] = useState('datos'); // solo en pantallas angostas
 
   const mapApiRef = useRef(null);
-  const rafRef = useRef(null);
-  const lastTickRef = useRef(null);
+  const tRef = useRef(0);
+  const lastPaintRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,147 +39,153 @@ export default function FlightReplayViewer({ flightId, flightLabel, onClose }) {
         const res = await fetch(`/api/flights/${flightId}/replay`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'No se pudo cargar el replay');
+        const r = normalizeReplay(data.track);
+        if (r.points.length < 2) throw new Error('El replay de este vuelo no tiene puntos GPS válidos');
         if (cancelled) return;
-        setTrack(data.track);
-        setCurrentFrame({ ...data.track[0], hasGps: true });
+        setReplay(r);
         setState('ready');
       } catch (e) {
-        if (!cancelled) {
-          setError(e.message);
-          setState('error');
-        }
+        if (!cancelled) { setError(e.message); setState('error'); }
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [flightId]);
 
-  const duration = track.length ? track[track.length - 1].t - track[0].t : 0;
-  const t0 = track.length ? track[0].t : 0;
+  const points = replay?.points;
+  const duration = points ? points[points.length - 1].t : 0;
+  const summary = useMemo(() => (points ? summarizeReplay(points) : null), [points]);
+  const weather = useFlightWeather({ lat: replay?.home?.lat ?? points?.[0]?.lat, lng: replay?.home?.lng ?? points?.[0]?.lng, takeoffAt, durationS: duration });
 
-  const seekTo = useCallback(
-    (relativeT) => {
-      if (!track.length) return;
-      const clamped = Math.max(0, Math.min(duration, relativeT));
-      setCurrentT(clamped);
-      const idx = bsearch(track, t0 + clamped);
-      const frame = { ...track[idx], hasGps: true };
-      setCurrentFrame(frame);
-      mapApiRef.current?.updateDrone(frame);
-      mapApiRef.current?.updatePlayedPath(idx);
-    },
-    [track, duration, t0]
-  );
+  // Pinta el instante t: el mapa a cada cuadro; el resto de la pantalla ~15 veces por segundo para no recargar al navegador.
+  const paint = useCallback((t, force = false) => {
+    if (!points) return;
+    const s = sampleAt(points, t);
+    mapApiRef.current?.update(s);
+    mapApiRef.current?.pulse(t);
+    const now = performance.now();
+    if (force || now - lastPaintRef.current > 66) { lastPaintRef.current = now; setSnap({ t }); }
+  }, [points]);
+
+  const seek = useCallback((t) => { tRef.current = Math.max(0, Math.min(duration, t)); paint(tRef.current, true); }, [duration, paint]);
 
   useEffect(() => {
-    if (!playing) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      lastTickRef.current = null;
-      return;
-    }
+    if (!playing) return undefined;
+    let raf;
+    let last = null;
     const tick = (now) => {
-      if (lastTickRef.current == null) lastTickRef.current = now;
-      const deltaS = ((now - lastTickRef.current) / 1000) * speed;
-      lastTickRef.current = now;
-      setCurrentT((prev) => {
-        const next = prev + deltaS;
-        if (next >= duration) {
-          setPlaying(false);
-          return duration;
-        }
-        seekTo(next);
-        return next;
-      });
-      rafRef.current = requestAnimationFrame(tick);
+      if (last == null) last = now;
+      tRef.current += ((now - last) / 1000) * speed;
+      last = now;
+      if (tRef.current >= duration) { tRef.current = duration; paint(duration, true); setPlaying(false); return; }
+      paint(tRef.current);
+      raf = requestAnimationFrame(tick);
     };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, speed, duration]);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, speed, duration, paint]);
 
-  const mapPath = track.map((p) => ({ lat: p.lat, lng: p.lng, t: p.t }));
-  const mapTelemetry = track.map((p) => ({ ...p, hasGps: true }));
+  // Teclado: espacio = reproducir/pausar; flechas = ±5 s.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (e.code === 'Space') { e.preventDefault(); setPlaying((p) => !p); }
+      if (e.code === 'ArrowRight') seek(tRef.current + 5);
+      if (e.code === 'ArrowLeft') seek(tRef.current - 5);
+      if (e.code === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [seek, onClose]);
+
+  const onMapReady = useCallback((api) => { mapApiRef.current = api; api.update(sampleAt(points, tRef.current)); }, [points]);
+
+  const t = snap.t;
+  const s = points ? sampleAt(points, t) : null;
+  const banner = replay?.events.filter((e) => e.t <= t && t - e.t < 6 && (e.s >= 1 || t - e.t < 3)).slice(-1)[0];
+
+  const panels = replay && s && (
+    <>
+      <InstrumentsPanel s={s} has={replay.has} modes={replay.modes} ghs={replay.ghs} />
+      <GpsLinkPanel s={s} has={replay.has} />
+      <SticksPanel s={s} has={replay.has} points={points} t={t} />
+      <BatteryPanel s={s} has={replay.has} />
+      <WeatherPanel weather={weather} t={t} dateLabel={weather.dateLabel} />
+    </>
+  );
 
   return (
-    <div className="fixed inset-0 z-[400] bg-navy/90 flex items-center justify-center p-3 md:p-6">
-      <div className="bg-[#0f1420] rounded-2xl w-full h-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary-300">Replay GPS</p>
-            <p className="text-sm font-bold text-white">{flightLabel || 'Vuelo'}</p>
+    <div className="fixed inset-0 z-[400] bg-navy/90 flex items-center justify-center p-0 sm:p-3" role="dialog" aria-modal="true" aria-label="Replay del vuelo">
+      <div className="bg-[#0f1420] sm:rounded-2xl w-full h-full max-w-[1500px] overflow-hidden flex flex-col shadow-2xl">
+        <div className="flex items-start justify-between gap-3 px-4 py-2.5 border-b border-white/10 shrink-0">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary-300">Replay del vuelo</p>
+            <p className="text-sm font-bold text-white truncate">{flightLabel || 'Vuelo'}</p>
+            {state === 'ready' && <div className="mt-1.5 hidden sm:block"><SummaryChips summary={summary} /></div>}
           </div>
-          <button type="button" onClick={onClose} className="text-white/60 hover:text-white">
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <button type="button" onClick={onClose} className="text-white/60 hover:text-white size-9 flex items-center justify-center shrink-0" aria-label="Cerrar"><span className="material-symbols-outlined">close</span></button>
         </div>
 
-        {state === 'loading' && <div className="flex-1 flex items-center justify-center text-white/60 text-sm">Cargando traza…</div>}
+        {state === 'loading' && <div className="flex-1 flex items-center justify-center text-white/60 text-sm">Cargando el vuelo…</div>}
         {state === 'error' && <div className="flex-1 flex items-center justify-center text-red-300 text-sm px-6 text-center">{error}</div>}
 
         {state === 'ready' && (
-          <>
-            <div className="flex-1 relative min-h-0">
-              <FlightAnimMap path={mapPath} telemetry={mapTelemetry} onReady={(api) => (mapApiRef.current = api)} />
-
-              <div className="absolute top-3 right-3 grid grid-cols-2 gap-2 z-[1]">
-                <Metric label="Altitud" value={currentFrame?.alt != null ? `${currentFrame.alt} m` : '—'} />
-                <Metric label="Velocidad" value={currentFrame?.speed != null ? `${currentFrame.speed} m/s` : '—'} />
-                <Metric label="Batería" value={currentFrame?.battery != null ? `${currentFrame.battery}%` : '—'} />
-                <Metric label="Tiempo" value={fmtTime(currentT)} />
-              </div>
-            </div>
-
-            <div className="px-4 py-3 border-t border-white/10 shrink-0 space-y-2">
-              <input
-                type="range"
-                min={0}
-                max={duration}
-                step={0.1}
-                value={currentT}
-                onChange={(e) => {
-                  setPlaying(false);
-                  seekTo(Number(e.target.value));
-                }}
-                className="w-full accent-primary"
-              />
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Button variant="primary" className="w-9 h-9 p-0 flex items-center justify-center rounded-full" onClick={() => setPlaying((p) => !p)}>
-                    <span className="material-symbols-outlined text-lg">{playing ? 'pause' : 'play_arrow'}</span>
-                  </Button>
-                  <span className="text-xs text-white/60 tabular-nums">
-                    {fmtTime(currentT)} / {fmtTime(duration)}
-                  </span>
+          <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+            <div className="flex flex-col min-h-0 lg:flex-1 h-[46%] lg:h-auto">
+              <div className="relative flex-1 min-h-0">
+                <ReplayMap points={points} events={replay.events} home={replay.home} layer={layer} follow={follow} onReady={onMapReady} />
+                {banner && (
+                  <div className={`absolute top-3 left-3 right-16 z-[500] rounded-xl px-3 py-2 text-white text-sm font-bold shadow-lg ${SEV_BANNER[banner.s] || SEV_BANNER[0]}`}>
+                    <span className="material-symbols-outlined text-base align-middle mr-1">{banner.s >= 1 ? 'warning' : 'info'}</span>
+                    {fmtClock(banner.t)} · {describeEvent(banner)}
+                  </div>
+                )}
+                <div className="absolute top-3 right-3 z-[500] flex flex-col gap-1.5">
+                  <button type="button" onClick={() => setLayer((l) => (l === 'satelite' ? 'calle' : 'satelite'))} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Cambiar mapa" aria-label="Cambiar entre satélite y calles"><span className="material-symbols-outlined text-lg">{layer === 'satelite' ? 'map' : 'satellite'}</span></button>
+                  <button type="button" onClick={() => setFollow((f) => !f)} className={`size-9 rounded-lg border border-white/15 flex items-center justify-center ${follow ? 'bg-primary text-white' : 'bg-navy/85 text-white'}`} title="Seguir al dron" aria-label="Seguir al dron" aria-pressed={follow}><span className="material-symbols-outlined text-lg">my_location</span></button>
+                  <button type="button" onClick={() => mapApiRef.current?.fit()} className="size-9 rounded-lg bg-navy/85 text-white border border-white/15 flex items-center justify-center" title="Ver toda la ruta" aria-label="Ver toda la ruta"><span className="material-symbols-outlined text-lg">fit_screen</span></button>
                 </div>
-                <div className="flex items-center gap-1">
-                  {SPEEDS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSpeed(s)}
-                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${speed === s ? 'bg-primary text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
-                    >
-                      {s}x
-                    </button>
-                  ))}
+              </div>
+              <div className="shrink-0 border-t border-white/10 max-h-[34vh] overflow-y-auto hidden sm:block">
+                <ReplayCharts points={points} events={replay.events} has={replay.has} t={t} onSeek={seek} />
+              </div>
+              <div className="px-3 py-2 border-t border-white/10 shrink-0 space-y-1.5">
+                <div className="relative">
+                  <input type="range" min={0} max={duration} step={0.1} value={t} onChange={(e) => { setPlaying(false); seek(Number(e.target.value)); }} className="w-full accent-primary" aria-label="Posición en el vuelo" />
+                  {replay.events.filter((e) => e.s >= 1).map((e, i) => <span key={i} className={`absolute top-0 w-0.5 h-2 pointer-events-none ${e.s === 2 ? 'bg-red-500' : 'bg-amber-400'}`} style={{ left: `calc(${(e.t / (duration || 1)) * 100}% )` }} />)}
+                </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => { if (tRef.current >= duration) seek(0); setPlaying((p) => !p); }} className="size-10 rounded-full bg-primary text-white flex items-center justify-center" aria-label={playing ? 'Pausar' : 'Reproducir'}><span className="material-symbols-outlined">{playing ? 'pause' : 'play_arrow'}</span></button>
+                    <button type="button" onClick={() => seek(t - 10)} className="size-9 rounded-full bg-white/10 text-white flex items-center justify-center" aria-label="Retroceder 10 segundos"><span className="material-symbols-outlined text-lg">replay_10</span></button>
+                    <button type="button" onClick={() => seek(t + 10)} className="size-9 rounded-full bg-white/10 text-white flex items-center justify-center" aria-label="Adelantar 10 segundos"><span className="material-symbols-outlined text-lg">forward_10</span></button>
+                    <span className="text-xs text-white/70 tabular-nums ml-1">{fmtClock(t)} / {fmtClock(duration)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {SPEEDS.map((v) => <button key={v} type="button" onClick={() => setSpeed(v)} className={`text-xs font-bold px-2.5 py-1 rounded-full ${speed === v ? 'bg-primary text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}>{v}x</button>)}
+                  </div>
                 </div>
               </div>
             </div>
-          </>
+
+            {/* Panel de datos: a un lado en pantallas anchas; debajo del mapa en las angostas */}
+            <aside className="lg:w-[380px] lg:border-l border-t lg:border-t-0 border-white/10 min-h-0 flex-1 lg:flex-none overflow-y-auto p-3 space-y-3">
+              <div className="sm:hidden flex gap-1">
+                {[['datos', 'Datos'], ['alertas', 'Alertas'], ['graficas', 'Gráficas']].map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`flex-1 text-xs font-bold py-1.5 rounded-lg ${tab === k ? 'bg-primary text-white' : 'bg-white/10 text-navy-200'}`}>{label}</button>)}
+              </div>
+              <div className={`${tab === 'datos' ? '' : 'max-sm:hidden'} space-y-3`}>
+                <div className="sm:hidden"><SummaryChips summary={summary} /></div>
+                {panels}
+              </div>
+              <div className={`${tab === 'alertas' ? '' : 'max-sm:hidden'}`}>
+                <EventsPanel events={replay.events} t={t} onSeek={seek} filter={eventFilter} setFilter={setEventFilter} />
+              </div>
+              <div className={`sm:hidden ${tab === 'graficas' ? '' : 'hidden'}`}>
+                <ReplayCharts points={points} events={replay.events} has={replay.has} t={t} onSeek={seek} />
+              </div>
+            </aside>
+          </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function Metric({ label, value }) {
-  return (
-    <div className="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-1.5 text-right">
-      <p className="text-[9px] font-bold uppercase tracking-wide text-navy-300">{label}</p>
-      <p className="text-sm font-black text-white tabular-nums">{value}</p>
     </div>
   );
 }

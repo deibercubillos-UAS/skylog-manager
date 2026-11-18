@@ -515,7 +515,7 @@ export default function BitacoraPage() {
                               {row.replayTrack ? (
                                 <span className="inline-flex items-center gap-1 text-primary-700">
                                   <span className="material-symbols-outlined text-sm">route</span>
-                                  {row.replayTrack.length} pts
+                                  {Array.isArray(row.replayTrack) ? row.replayTrack.length : row.replayTrack.n} pts
                                 </span>
                               ) : (
                                 <span className="text-navy-300">Sin GPS</span>
@@ -803,6 +803,7 @@ export default function BitacoraPage() {
         <FlightReplayViewer
           flightId={replayFlight.id}
           flightLabel={`${formatDate(replayFlight.takeoff_at)} · ${replayFlight.pilot?.full_name || 'Vuelo'}`}
+          takeoffAt={replayFlight.takeoff_at}
           onClose={() => setReplayFlight(null)}
         />
       )}
@@ -945,7 +946,7 @@ function ImportRowCard({ row, fleet, confirming, onChange, onConfirm, onDiscard 
             <div><dt className="text-navy-300 font-bold uppercase">Duración</dt><dd className="font-black text-navy-700">{row.totalTime}h</dd></div>
             <div>
               <dt className="text-navy-300 font-bold uppercase">Replay</dt>
-              <dd className={row.replayTrack ? 'text-primary-700' : 'text-navy-300'}>{row.replayTrack ? `${row.replayTrack.length} puntos GPS` : 'Sin GPS'}</dd>
+              <dd className={row.replayTrack ? 'text-primary-700' : 'text-navy-300'}>{row.replayTrack ? `${Array.isArray(row.replayTrack) ? row.replayTrack.length : row.replayTrack.n} puntos GPS` : 'Sin GPS'}</dd>
             </div>
             <div className="col-span-2">
               <dt className="text-navy-300 font-bold uppercase">Batería</dt>

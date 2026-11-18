@@ -28,48 +28,18 @@ import { parseDjiTxtBuffer, errorText } from '@/lib/djiParser';
 import { signFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { checkRateLimit } from '@/lib/rateLimiter';
-import { checkDjiImportBatch, DJI_IMPORT_LIMITS } from '@skylog/domain';
+import { checkDjiImportBatch, DJI_IMPORT_LIMITS, buildTelemetryTrack } from '@skylog/domain';
 
 // Cada log se descifra (WASM) y, si es reciente, pide sus llaves a DJI: puede tardar varios segundos. La pantalla envía un
 // log por petición; este margen evita que Vercel corte el análisis a mitad.
 export const maxDuration = 60;
 
-// Replay GPS — decima `parsed._frames` (ya disponibles server-side, antes se
-// descartaban tras extraer los campos resumen) a como máximo ~400 puntos con
-// GPS válido, con el mismo shape de campo que ya usa el visor de v1
-// (lib/djiTelemetry.js#buildTelemetry — osd.flyTime/xSpeed/ySpeed/height,
-// no un campo inventado) para poder reutilizar su mapa animado
-// (components/dev/FlightAnimMap) sin traducir nada: {t, lat, lng, alt,
-// speed, yaw, battery}. `t` es `osd.flyTime` (segundos desde el despegue,
-// ya relativo) — nunca un timestamp de reloj, que no aplica para animar.
-const REPLAY_MAX_POINTS = 400;
-
+// Replay — la serie completa del vuelo sale de `parsed._frames` (cuadros del log, que antes se descartaban tras extraer el resumen):
+// posición, altura, velocidades, actitud, satélites GPS, señal del control, palancas, batería, modo de vuelo, cámara y la lista de
+// eventos/alertas. Formato v2 por columnas, ~1 punto por segundo (tope 1.500), definido y probado en
+// packages/domain/src/flightTelemetry.js. `t` son segundos desde el primer punto con GPS, nunca un reloj.
 function buildReplayTrack(frames) {
-  if (!Array.isArray(frames) || !frames.length) return null;
-  const withGps = frames.filter(
-    (f) => f.osd?.latitude && Math.abs(f.osd.latitude) <= 90 && f.osd.latitude !== 0 && f.osd?.longitude && Math.abs(f.osd.longitude) <= 180 && f.osd.longitude !== 0
-  );
-  if (withGps.length < 2) return null;
-
-  const toPoint = (f) => ({
-    t: f.osd.flyTime != null ? Math.round(f.osd.flyTime * 10) / 10 : null,
-    lat: f.osd.latitude,
-    lng: f.osd.longitude,
-    alt: f.osd.height != null ? Math.round(f.osd.height * 10) / 10 : (f.osd.altitude != null ? Math.round(f.osd.altitude * 10) / 10 : null),
-    speed: Math.round(Math.hypot(f.osd.xSpeed ?? 0, f.osd.ySpeed ?? 0) * 10) / 10,
-    yaw: f.osd.yaw ?? null,
-    battery: f.battery?.chargeLevel ?? null,
-  });
-
-  const step = Math.max(1, Math.floor(withGps.length / REPLAY_MAX_POINTS));
-  const track = [];
-  for (let i = 0; i < withGps.length; i += step) {
-    track.push(toPoint(withGps[i]));
-  }
-  // Siempre cerrar con el último punto real, no un múltiplo redondo del paso.
-  const last = toPoint(withGps[withGps.length - 1]);
-  if (track[track.length - 1]?.t !== last.t) track.push(last);
-  return track;
+  return buildTelemetryTrack(frames);
 }
 
 // Vuelos que cruzan medianoche: si la hora de aterrizaje es "menor" que la de

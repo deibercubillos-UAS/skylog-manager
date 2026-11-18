@@ -11,7 +11,7 @@
 // servicio o despachar cuando el piloto ya está en el límite (lib/v2/serviceGates.js).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
-import { evaluateFlightLimits, fetchAllPages, FLIGHT_PILOT_ROLES } from '@skylog/domain';
+import { evaluateFlightLimits, fetchAllPages, FLIGHT_PILOT_ROLES, validateReplayPayload } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
@@ -182,18 +182,12 @@ export async function POST(request) {
     if (!aircraftRow) return Response.json({ error: 'La aeronave no pertenece a esta organización' }, { status: 400 });
   }
 
-  // Replay GPS — nunca se confía ciegamente en el jsonb que manda el
-  // cliente (aunque en este flujo sea un eco de lo que el propio servidor
-  // le devolvió segundos antes, en /api/flights/import-dji): se revalida la
-  // forma mínima antes de guardar. Un valor con forma inválida se descarta
-  // en silencio (el vuelo se guarda igual, solo sin replay) en vez de
-  // romper la confirmación del vuelo por un dato que es puro extra.
-  const validReplayTrack =
-    Array.isArray(replayTrack) &&
-    replayTrack.length >= 2 &&
-    replayTrack.every((p) => p && typeof p.lat === 'number' && typeof p.lng === 'number' && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180)
-      ? replayTrack
-      : null;
+  // Replay — nunca se confía ciegamente en el jsonb que manda el cliente (aunque sea un eco de lo que el propio servidor le
+  // devolvió segundos antes, en /api/flights/import-dji): `validateReplayPayload` acepta el formato v2 (por columnas) o la
+  // lista antigua de puntos, guarda solo columnas conocidas con números finitos y topa tamaño y eventos. Un valor inválido se
+  // descarta en silencio (el vuelo se guarda igual, solo sin replay) en vez de romper la confirmación por un dato extra.
+  const replayCheck = replayTrack == null ? null : validateReplayPayload(replayTrack);
+  const validReplayTrack = replayCheck?.ok ? replayCheck.value : null;
 
   // El vuelo se escribe con la llave de servicio, no con la sesión: aquí ya se verificó la persona, la membresía y el rol
   // (D4/D5), el token de importación, la ventana de duración y que la aeronave sea de la organización. Con la sesión, la RLS

@@ -64,6 +64,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **reabierto 2026-10-01** (decisión 156): esquema + `c2-gateway/` + página H5 + panel "Drones en línea" escritos, **nada desplegado ni validado contra hardware real** | 307 | 🔄 |
 | [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones — **F4a en construcción**: dominio del análisis de riesgos (MAUT-5.0-12-055) + esquema/RLS + API, ver decisiones 44-45 en `51-bitacora.md` | 77 | 🔄 |
 | [`45-simulador-3d-plan.md`](45-simulador-3d-plan.md) · [`45a-simulador-3d-investigacion.md`](45a-simulador-3d-investigacion.md) | **Simulador 3D de capacitación** (celular y control enterprise) — plan por fases F0–F8 con puertas de verificación + investigación y análisis (pedagogía, modelo de vuelo, plataforma, hardware). **Fase 0 en curso** (RC Plus 2 · jefe de pilotos · Mini 5 Pro y Matrice 4): prototipo de prueba de equipo en `/capacitacion/simulador/prueba`; datos externos ⚠️ VERIFICAR (decisiones 205-206) | 347 + 267 | 🔄 |
+| [`46-sincronizacion-nube-dji.md`](46-sincronizacion-nube-dji.md) | **Sincronizar vuelos desde la nube de DJI** (RC 2): plan, riesgos informados al piloto, diseño seguro y bloqueos (sin código) |
 
 ## 5 · Ejecución
 

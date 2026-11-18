@@ -351,11 +351,39 @@ function App({ onError, onNotice }) {
         </label>
         <div className="sm:col-span-2"><Button type="submit" disabled={busy}>{busy ? 'Publicando…' : 'Publicar versión'}</Button></div>
       </form>
+      {releases.find((r) => r.is_current) && (() => {
+        const cur = releases.find((r) => r.is_current);
+        return (
+          <div className="bg-white rounded-2xl border border-primary-100 p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-primary-600">Versión vigente para instalar</p>
+                <p className="text-lg font-black text-navy">BitaFly {cur.version_name} <span className="text-sm font-normal text-navy-400">· código {cur.version_code}</span></p>
+              </div>
+              <a href={cur.apk_url} download className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700">
+                <span className="material-symbols-outlined text-lg">download</span>
+                Descargar APK
+              </a>
+            </div>
+            <p className="text-xs text-navy-500 break-all"><b>Huella SHA-256:</b> {cur.apk_sha256}</p>
+            <ol className="list-decimal pl-5 text-sm text-navy-500 space-y-1">
+              <li>En el control, inicia sesión aquí como superadmin y toca «Descargar APK» (también puedes descargarlo en un computador y pasarlo por USB o tarjeta microSD).</li>
+              <li>Al terminar, toca «Abrir» en el aviso de la descarga. Si Android lo pide, permite «Instalar apps de fuentes desconocidas» para el navegador.</li>
+              <li>Toca «Instalar». Para actualizar una versión anterior, instala encima: no se pierden los datos.</li>
+              <li>Opcional: compara la huella SHA-256 del archivo descargado con la de arriba.</li>
+            </ol>
+            <p className="text-xs text-navy-400">Instala el APK solo desde esta pantalla: no lo compartas por canales públicos.</p>
+          </div>
+        );
+      })()}
       <ul className="divide-y divide-navy-50 bg-white rounded-2xl border border-navy-100">
         {releases.map((r) => (
           <li key={r.id} className="px-4 py-2.5 text-sm flex flex-wrap items-center justify-between gap-2">
             <span className="font-bold text-navy">{r.version_name} <span className="font-normal text-navy-400">· código {r.version_code}{r.force_update ? ' · obligatoria' : ''}</span></span>
-            {r.is_current && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">vigente</span>}
+            <span className="flex items-center gap-2">
+              {r.is_current && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">vigente</span>}
+              {r.apk_url && <a href={r.apk_url} download className="text-xs font-bold text-primary-700 hover:underline">Descargar</a>}
+            </span>
           </li>
         ))}
         {releases.length === 0 && <li className="px-4 py-3 text-sm text-navy-400">Aún no hay versiones.</li>}

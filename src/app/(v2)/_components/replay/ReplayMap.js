@@ -12,7 +12,9 @@ const SEVERITY_COLOR = ['#38bdf8', '#f59e0b', '#ef4444'];
 
 const dot = (color, size, glyph = '') => L.divIcon({ className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2], html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.55)}px;line-height:1">${glyph}</div>` });
 
-function Controller({ points, events, home, onReady, follow }) {
+const MAX_ZOOM = 25; // más allá de la cobertura real de las imágenes (≈19) se amplía el último mosaico: se ve borroso pero permite acercarse al detalle
+
+function Controller({ points, events, home, onReady, follow, onZoom }) {
   const map = useMap();
   const followRef = useRef(follow);
   followRef.current = follow;
@@ -44,6 +46,9 @@ function Controller({ points, events, home, onReady, follow }) {
     layers.push(drone);
     map.fitBounds(L.latLngBounds(all), { padding: [50, 50], maxZoom: 18 });
 
+    const reportZoom = () => onZoom?.(Math.round(map.getZoom() * 10) / 10);
+    map.on('zoomend', reportZoom);
+    reportZoom();
     let lastIndex = -1;
     onReady({
       update(sample) {
@@ -61,27 +66,30 @@ function Controller({ points, events, home, onReady, follow }) {
         else if (!map.getBounds().pad(-0.1).contains(ll)) map.panTo(ll, { animate: true, duration: 0.4 });
       },
       fit() { map.fitBounds(L.latLngBounds(all), { padding: [50, 50], maxZoom: 18 }); },
+      zoomIn() { map.zoomIn(1); },
+      zoomOut() { map.zoomOut(1); },
+      zoomToDrone(level = 21) { const ll = drone.getLatLng(); map.setView(ll, Math.max(map.getZoom(), level), { animate: true }); },
       pulse(t) { for (const { e, mk } of eventMarkers) mk.setRadius(Math.abs(e.t - t) < 3 ? 10 : 6); },
     });
-    return () => layers.forEach((l) => l.remove());
+    return () => { map.off('zoomend', reportZoom); layers.forEach((l) => l.remove()); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, points, events, home]);
   return null;
 }
 
-export default function ReplayMap({ points, events, home, layer, follow, onReady }) {
+export default function ReplayMap({ points, events, home, layer, follow, onReady, onZoom }) {
   const c = points[Math.floor(points.length / 2)];
   return (
-    <MapContainer center={[c.lat, c.lng]} zoom={16} style={{ height: '100%', width: '100%', background: '#0f1420' }} zoomControl={false} attributionControl>
+    <MapContainer center={[c.lat, c.lng]} zoom={16} maxZoom={MAX_ZOOM} zoomSnap={0.5} zoomDelta={1} wheelPxPerZoomLevel={80} style={{ height: '100%', width: '100%', background: '#0f1420' }} zoomControl={false} attributionControl>
       {layer === 'calle' ? (
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={22} maxNativeZoom={19} />
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={MAX_ZOOM} maxNativeZoom={19} />
       ) : (
         <>
-          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Tiles © Esri" maxZoom={22} maxNativeZoom={19} />
-          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" attribution="" maxZoom={22} maxNativeZoom={19} opacity={0.6} />
+          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Tiles © Esri" maxZoom={MAX_ZOOM} maxNativeZoom={19} />
+          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" attribution="" maxZoom={MAX_ZOOM} maxNativeZoom={19} opacity={0.6} />
         </>
       )}
-      <Controller points={points} events={events} home={home} onReady={onReady} follow={follow} />
+      <Controller points={points} events={events} home={home} onReady={onReady} follow={follow} onZoom={onZoom} />
     </MapContainer>
   );
 }

@@ -14,7 +14,7 @@ export async function POST(request) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);
   if (!user?.email) return Response.json({ error: 'No autenticado' }, { status: 401 });
-  if (!checkRateLimit(`completar:${user.id}:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`completar:${user.id}:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiados intentos. Intenta más tarde.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'El registro no está disponible por ahora. Intenta más tarde.' }, { status: 503 });

@@ -71,7 +71,7 @@ export async function POST(request) {
   // Cada log gasta una llamada a DJI con la llave compartida: el ritmo se cuenta por archivo y por persona
   // (en memoria, por instancia: frena la ráfaga; el tope por petición de arriba es el que no depende de la instancia).
   for (let i = 0; i < files.length; i++) {
-    if (!checkRateLimit(`dji-import:${personId}`, { limit: DJI_IMPORT_LIMITS.filesPerWindow, windowMs: DJI_IMPORT_LIMITS.windowMs }).allowed) {
+    if (!(await checkRateLimit(`dji-import:${personId}`, { limit: DJI_IMPORT_LIMITS.filesPerWindow, windowMs: DJI_IMPORT_LIMITS.windowMs })).allowed) {
       return Response.json({ error: 'Importaste muchos logs en poco tiempo. Espera unos minutos e inténtalo de nuevo.' }, { status: 429 });
     }
   }

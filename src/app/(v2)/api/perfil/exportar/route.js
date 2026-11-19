@@ -13,7 +13,7 @@ export async function GET(request) {
   const supabase = await createClientSSR();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
-  if (!checkRateLimit(`export:${user.id}:${getClientIp(request)}`, { limit: 5, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`export:${user.id}:${getClientIp(request)}`, { limit: 5, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Ya descargaste tus datos varias veces. Intenta en una hora.' }, { status: 429 });
   }
   const { error, personId } = await resolveCurrentPerson(supabase, user.id);

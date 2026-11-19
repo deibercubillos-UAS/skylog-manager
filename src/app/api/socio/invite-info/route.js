@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const MESSAGES = { usada: 'Esta invitación ya fue aceptada.', expirada: 'Esta invitación venció. Pide que te envíen una nueva.', revocada: 'Esta invitación fue cancelada.' };
 
 export async function GET(request) {
-  if (!checkRateLimit(`invite-info:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 }).allowed) {
+  if (!(await checkRateLimit(`invite-info:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 })).allowed) {
     return Response.json({ error: 'Demasiadas solicitudes. Intenta más tarde.' }, { status: 429 });
   }
   const token = new URL(request.url).searchParams.get('token');

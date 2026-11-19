@@ -8,7 +8,7 @@ export async function POST(req) {
   try {
     // Rate limiting: máx 3 mensajes de contacto por IP cada 10 minutos
     const ip = getClientIp(req);
-    const { allowed } = checkRateLimit(`contact:${ip}`, { limit: 3, windowMs: 600_000 });
+    const { allowed } = await checkRateLimit(`contact:${ip}`, { limit: 3, windowMs: 600_000 });
     if (!allowed) {
       return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' }, { status: 429 });
     }

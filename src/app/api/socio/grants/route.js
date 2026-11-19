@@ -40,7 +40,7 @@ export async function GET() {
 export async function POST(request) {
   const s = await session();
   if (s.error) return s.error;
-  if (!checkRateLimit(`regalo:${s.personId}:${getClientIp(request)}`, { limit: 30, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`regalo:${s.personId}:${getClientIp(request)}`, { limit: 30, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiados regalos en poco tiempo. Intenta más tarde.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'El servicio no está disponible por ahora.' }, { status: 503 });

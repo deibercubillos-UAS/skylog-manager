@@ -8,7 +8,7 @@ import { grantDaysLeft } from '@skylog/domain';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
-  if (!checkRateLimit(`regalo-info:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 }).allowed) {
+  if (!(await checkRateLimit(`regalo-info:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 })).allowed) {
     return Response.json({ error: 'Demasiadas solicitudes. Intenta más tarde.' }, { status: 429 });
   }
   const token = new URL(request.url).searchParams.get('token');

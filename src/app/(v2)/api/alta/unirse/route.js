@@ -13,7 +13,7 @@ import { validateJoinRegistration } from '@skylog/domain';
 const MAX_ATTRIBUTION_BYTES = 2000;
 
 export async function POST(request) {
-  if (!checkRateLimit(`unirse:${getClientIp(request)}`, { limit: 8, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`unirse:${getClientIp(request)}`, { limit: 8, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiados registros desde esta conexión. Intenta más tarde.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'El registro no está disponible por ahora. Intenta más tarde.' }, { status: 503 });
@@ -25,7 +25,7 @@ export async function POST(request) {
   const check = validateJoinRegistration(body);
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
   const { clean } = check;
-  if (!checkRateLimit(`unirse-email:${clean.email}`, { limit: 3, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`unirse-email:${clean.email}`, { limit: 3, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiados intentos con este correo. Intenta más tarde.' }, { status: 429 });
   }
 

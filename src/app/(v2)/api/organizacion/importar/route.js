@@ -20,7 +20,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const keyProblem = adminKeyProblem();
   if (keyProblem) return Response.json({ error: keyProblem, setup: true }, { status: 503 });
-  if (!checkRateLimit(`import:${user.id}`, { limit: 20, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`import:${user.id}`, { limit: 20, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiadas importaciones seguidas. Intenta en una hora.' }, { status: 429 });
   }
 

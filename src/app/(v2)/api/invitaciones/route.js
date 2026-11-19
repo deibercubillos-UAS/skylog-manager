@@ -59,7 +59,7 @@ export async function POST(request) {
   if (readOnly) return readOnly;
 
   // Freno de ráfaga (en memoria, por instancia) y tope duradero contado sobre las invitaciones ya guardadas.
-  if (!checkRateLimit(`invitar:${s.personId}`, { limit: 10, windowMs: 60_000 }).allowed) {
+  if (!(await checkRateLimit(`invitar:${s.personId}`, { limit: 10, windowMs: 60_000 })).allowed) {
     return Response.json({ error: 'Demasiadas invitaciones seguidas. Espera un minuto.' }, { status: 429 });
   }
 

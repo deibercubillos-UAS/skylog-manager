@@ -8,7 +8,7 @@ import { loadJoinContext, decideJoin } from '@/lib/v2/joinOrganization';
 import { JOINABLE_ROLES } from '@skylog/domain';
 
 export async function GET(request) {
-  if (!checkRateLimit(`alta-org:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 }).allowed) {
+  if (!(await checkRateLimit(`alta-org:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 })).allowed) {
     return Response.json({ found: false, error: 'Demasiadas consultas. Intenta en un minuto.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ found: false, error: 'Servicio no disponible por ahora.' }, { status: 503 });

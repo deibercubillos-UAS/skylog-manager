@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
   params = await params;
   const { token } = await params;
   const ip = getClientIp(request);
-  if (!checkRateLimit(`sms-public-get:${ip}`, { limit: 60, windowMs: 60_000 }).allowed) return Response.json({ error: 'Demasiadas solicitudes.' }, { status: 429 });
+  if (!(await checkRateLimit(`sms-public-get:${ip}`, { limit: 60, windowMs: 60_000 })).allowed) return Response.json({ error: 'Demasiadas solicitudes.' }, { status: 429 });
   const keyProblem = adminKeyProblem();
   if (keyProblem) return Response.json({ error: 'El servicio de reportes no está disponible por ahora.' }, { status: 503 });
 
@@ -43,7 +43,7 @@ export async function POST(request, { params }) {
   params = await params;
   const { token } = await params;
   const ip = getClientIp(request);
-  if (!checkRateLimit(`sms-public:${ip}`, { limit: 10, windowMs: 3_600_000 }).allowed || !checkRateLimit(`sms-public-token:${token}`, { limit: 40, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`sms-public:${ip}`, { limit: 10, windowMs: 3_600_000 })).allowed || !(await checkRateLimit(`sms-public-token:${token}`, { limit: 40, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Se enviaron demasiados reportes desde esta conexión. Intenta de nuevo más tarde.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'El servicio de reportes no está disponible por ahora.' }, { status: 503 });

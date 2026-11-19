@@ -19,7 +19,7 @@ async function loadInvitation(admin, token) {
 export async function GET(request, { params }) {
   params = await params;
   const { token } = await params;
-  if (!checkRateLimit(`inv-get:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 }).allowed) {
+  if (!(await checkRateLimit(`inv-get:${getClientIp(request)}`, { limit: 30, windowMs: 60_000 })).allowed) {
     return Response.json({ error: 'Demasiadas consultas. Intenta en un minuto.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'Servicio no disponible por ahora.' }, { status: 503 });
@@ -42,7 +42,7 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   params = await params;
   const { token } = await params;
-  if (!checkRateLimit(`inv-accept:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`inv-accept:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiados intentos. Intenta más tarde.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'El servicio no está disponible por ahora.' }, { status: 503 });

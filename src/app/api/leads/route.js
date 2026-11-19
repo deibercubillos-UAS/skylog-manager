@@ -13,7 +13,7 @@ export async function POST(request) {
   try {
     // Rate limit: 5 por IP por hora (anti-spam en endpoint público)
     const ip = getClientIp(request);
-    const { allowed } = checkRateLimit(`lead:${ip}`, { limit: 5, windowMs: 3_600_000 });
+    const { allowed } = await checkRateLimit(`lead:${ip}`, { limit: 5, windowMs: 3_600_000 });
     if (!allowed) {
       return NextResponse.json({ error: 'Demasiados envíos. Intenta más tarde.' }, { status: 429 });
     }

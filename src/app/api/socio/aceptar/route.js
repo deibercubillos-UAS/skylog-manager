@@ -18,7 +18,7 @@ const PHRASES = [
 ];
 
 export async function POST(request) {
-  if (!checkRateLimit(`socio-aceptar:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 }).allowed) {
+  if (!(await checkRateLimit(`socio-aceptar:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 })).allowed) {
     return Response.json({ error: 'Demasiados intentos desde esta conexión. Intenta más tarde.' }, { status: 429 });
   }
   if (adminKeyProblem()) return Response.json({ error: 'El servicio no está disponible por ahora.' }, { status: 503 });

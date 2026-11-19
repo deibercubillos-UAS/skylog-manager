@@ -25,7 +25,7 @@ export async function POST(request) {
   if (!canSendAnnouncement(myRoles)) return Response.json({ error: 'Solo un gestor puede enviar anuncios' }, { status: 403 });
   const readOnly = readOnlyBlock(memberships, organizationId);
   if (readOnly) return readOnly;
-  if (!checkRateLimit(`anuncio:${personId}`, { limit: 10, windowMs: 3_600_000 }).allowed) return Response.json({ error: 'Demasiados anuncios en poco tiempo. Intenta más tarde.' }, { status: 429 });
+  if (!(await checkRateLimit(`anuncio:${personId}`, { limit: 10, windowMs: 3_600_000 })).allowed) return Response.json({ error: 'Demasiados anuncios en poco tiempo. Intenta más tarde.' }, { status: 429 });
 
   const check = validateAnnouncement(body);
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });

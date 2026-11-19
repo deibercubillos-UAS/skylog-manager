@@ -61,3 +61,8 @@ Se muestra **antes** de pedir nada y exige marcar la casilla «Entiendo y autori
 | S3 | Endurecimiento: avisos de error, límites, pruebas, registro de acciones | S2 |
 
 Alternativa siempre disponible (y respaldo si DJI bloquea): subida manual del log, con guía dentro de BitaFly sobre cómo sacarlo del RC 2.
+
+## 7. Hallazgos adicionales (2026-11-19, búsqueda web; sin probar)
+- **No se encontró una forma documentada de descargar el .txt desde la nube de DJI** ni desde DJI Fly. DJI Fly tiene la opción «Sincronizar registros de vuelo» (sube a la nube de DJI), pero esa copia solo la recoge un tercero con las credenciales del piloto (Airdata, DroneDesk); sin interfaz oficial.
+- **La copia confiable del RC 2 es la del propio control:** USB-C a un computador → «DJI RC 2» → almacenamiento interno compartido → `Android/data/dji.go.v5/files/FlightRecord` (archivos `DJIFlightRecord_AAAA-MM-DD_[HH-MM-SS].txt`). Varias fuentes (foro DJI, Mavicpilots, Dronedesk) coinciden; la ruta cambia entre versiones de DJI Fly. En celulares Android 11+ la carpeta `Android/data` está oculta para el administrador de archivos del propio teléfono: por USB desde un computador suele verse.
+- Se agregó a Bitácora → Importar → «¿Cómo saco los logs del RC 2?» una guía de 4 pasos con esa ruta (marcada como puede variar).

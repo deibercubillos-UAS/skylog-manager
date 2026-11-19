@@ -384,6 +384,16 @@ export default function BitacoraPage() {
                   <code className="mx-1 px-1 py-0.5 bg-navy-100 rounded text-[11px]">.txt</code>
                   de la carpeta FlightRecord al computador o celular y súbelos aquí.
                 </p>
+                <details className="mt-2 text-xs text-navy-500 group">
+                  <summary className="cursor-pointer font-bold text-primary-700">¿Cómo saco los logs del RC 2?</summary>
+                  <ol className="list-decimal pl-5 mt-1.5 space-y-1">
+                    <li>Conecta el RC 2 encendido a un <b>computador</b> con un cable USB-C de datos. Aparece como «DJI RC 2».</li>
+                    <li>Abre <b>Almacenamiento interno compartido → Android → data → dji.go.v5 → files → FlightRecord</b>. La ruta puede variar con la versión de DJI Fly: si no la ves, busca archivos llamados <code className="px-1 bg-navy-100 rounded">DJIFlightRecord_…txt</code>.</li>
+                    <li>Copia los archivos <b>.txt</b> (no la carpeta «Logs» ni los de «MCDatFlightRecords»).</li>
+                    <li>Entra a BitaFly desde ese computador (o pásalos al celular) y súbelos aquí con «Elegir logs .txt».</li>
+                  </ol>
+                  <p className="mt-1.5 text-navy-400">DJI Fly puede subir los registros a la nube de DJI, pero no hay una opción documentada para descargarlos desde allí como archivo: la copia confiable es la del control.</p>
+                </details>
                 <label className="mt-3 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-primary-100 transition-colors">
                   <span className="material-symbols-outlined text-base">{analyzing ? 'progress_activity' : 'file_upload'}</span>
                   {analyzing ? `Analizando${analyzeProgress ? ` ${analyzeProgress.current} de ${analyzeProgress.total}` : ''}…` : 'Elegir logs .txt'}

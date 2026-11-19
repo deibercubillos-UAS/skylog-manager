@@ -96,7 +96,7 @@ Instancia de Supabase pequeña: la fecha del 31 de octubre ya pasó; confirmar c
 
 ## Pendientes conocidos
 
-Ver `docs/skylog-v2/70-matriz-de-permisos.md` §4–5 (cambio de roles) y `docs/skylog-v2/51-bitacora.md` (decisiones y estado; la última es la 233). Deuda de dependencias: Next 16 y `jspdf` 5 son
+Ver `docs/skylog-v2/70-matriz-de-permisos.md` §4–5 (cambio de roles) y `docs/skylog-v2/51-bitacora.md` (decisiones y estado; la última es la 234). Deuda de dependencias: Next 16 y `jspdf` 5 son
 saltos mayores que requieren regresión dedicada (Next está en 15.5.28; `npm audit` en 0 vulnerabilidades).
 
 Abiertos hoy: sincronizar logs desde la nube de DJI para controles RC 2 (`46-sincronizacion-nube-dji.md`, `46a-…`: plan sin código, falta prueba de factibilidad y revisión jurídica); transmisión de video en vivo

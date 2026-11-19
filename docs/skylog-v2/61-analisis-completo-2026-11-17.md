@@ -18,9 +18,9 @@
 |---|---|---|---|
 | S1 | CI en rojo hacía días (`npm audit`: dompurify crítico). | **Corregido**, 0 vulnerabilidades; Next en 15.5.28. | 220 |
 | S2 | 272 respuestas con `error.message` de la base en 133 rutas (filtraba tablas, columnas y políticas). | **Corregido** en 188 + 8 sitios con `dbError`; quedan a propósito los mensajes de validación propios, los cron y dos archivos internos. | 223 |
-| S3 | Limitador de peticiones en memoria (por instancia; no frena de forma global). | **Pendiente**: requiere almacén compartido. | — |
+| S3 | Limitador de peticiones en memoria (por instancia; no frena de forma global). | **Hecho (2026-11-19).** Almacén compartido en Postgres (tabla `rate_limits` + función atómica `check_rate_limit`, migración `v2_rate_limits_shared`); `lib/rateLimiter.js` ahora es async con fallback en memoria si la base falla. Cron diario de poda (`/api/cron/prune-rate-limits`). Probado: atómico bajo concurrencia. | — |
 | S4 | Sin monitoreo de errores externo; registros de Vercel Hobby duran 1 hora. | **Decidido por el dueño: no usar Sentry.** Queda el riesgo de perder rastro de errores nocturnos. | — |
-| S5 | Pendientes del dueño: activar la inscripción de segundo factor (TOTP) en Supabase; confirmar `BACKUP_ENCRYPTION_KEY`; borrar `ADMIN_SECRET` de Vercel; aplicar migraciones `20261118120000` y `20261118130000`. | **Abiertos** (del dueño). | — |
+| S5 | Pendientes del dueño: activar la inscripción de segundo factor (TOTP) en Supabase; confirmar `BACKUP_ENCRYPTION_KEY`; borrar `ADMIN_SECRET` de Vercel; aplicar migraciones `20261118120000` y `20261118130000`. | **Migraciones hechas (2026-11-19):** su esquema ya estaba en producción (se había aplicado **a mano en la consola**, contra la regla de `CLAUDE.md`), así que las features F2/F5 nunca estuvieron rotas; se registraron en el ledger para reconciliar repo↔prod (SQL idempotente, sin tocar datos). **Siguen abiertos (consola, del dueño):** TOTP en Supabase, confirmar `BACKUP_ENCRYPTION_KEY`, borrar `ADMIN_SECRET`. | — |
 | S6 | Vercel en plan Hobby (cuerpo 4,5 MB, cron diario, 1 h de registros). | **Nota**; sube de plan cuando el dueño decida. | — |
 
 ## 3. Lo que estaba a medias
@@ -48,4 +48,7 @@
 1. ✅ Hora de los vuelos + reparar datos (F1). 2. ✅ CI en verde (S1). 3. ✅ Editar y anular vuelos (F2). 4. ✅ Paginar reportes y Bitácora (F3, F4).
 5. ✅ No mostrar errores técnicos (S2). 6. ⛔ Monitoreo de errores (descartado por el dueño). 7. ✅ Despacho huérfano (F5). 8. ✅ Actualizar `CLAUDE.md`.
 9. ✅ Importación de logs por «Compartir» (§3, 2026-11-19).
-Siguiente candidato: limitador de peticiones compartido (S3), o reactivar el auto-sync en segundo plano (§3) una vez exista el endpoint de auto-guardado y la decisión confirmar-vs-directo.
+10. ✅ Limitador de peticiones compartido (S3, 2026-11-19): almacén en Postgres + cron de poda; migración aplicada en prod.
+11. ✅ Reconciliadas en el ledger las migraciones S5 `v2_flights_void_edit` y `v2_dispatch_manager_close` (su esquema ya estaba en prod por aplicación manual).
+Siguiente candidato: reactivar el auto-sync en segundo plano (§3) una vez exista el endpoint de auto-guardado y la decisión confirmar-vs-directo; o extender el segundo factor (TOTP) a todos los roles (hoy solo superadmin).
+Pendientes del dueño en consola (S5): activar TOTP en Supabase, confirmar `BACKUP_ENCRYPTION_KEY`, borrar `ADMIN_SECRET` de Vercel.

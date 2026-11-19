@@ -58,6 +58,49 @@ public class FlightFilesPlugin extends Plugin {
         "Android/data/dji.go.v5/files/FlightRecord"
     };
 
+    // ── Recepción por "Compartir" (ACTION_SEND) — método de importación vigente ──
+    // DJI Fly / el gestor de archivos → "Compartir" → BitaFly. Es la vía que no depende
+    // del acceso a carpetas (que Google restringe en Android 12+) ni de credenciales DJI:
+    // el piloto elige los .txt y nos los entrega. Llegan como URIs content:// con permiso
+    // de lectura para esta actividad; se guardan y la web los pide con getSharedFlightFiles().
+    private final List<Uri> pendingShared = new ArrayList<>();
+
+    @Override
+    public void load() {
+        captureShareIntent(getActivity().getIntent());
+    }
+
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        if (captureShareIntent(intent)) {
+            JSObject ev = new JSObject();
+            ev.put("count", pendingShared.size());
+            // Avisa a la web ya abierta (app en segundo plano que recibe un "Compartir").
+            notifyListeners("sharedFlightFiles", ev);
+        }
+    }
+
+    /** Extrae las URIs de un intent ACTION_SEND/SEND_MULTIPLE y las deja pendientes. true si había algo. */
+    private boolean captureShareIntent(Intent intent) {
+        if (intent == null) return false;
+        String action = intent.getAction();
+        if (action == null) return false;
+        List<Uri> uris = new ArrayList<>();
+        if (Intent.ACTION_SEND.equals(action)) {
+            Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (u != null) uris.add(u);
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            ArrayList<Uri> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (list != null) for (Uri u : list) if (u != null) uris.add(u);
+        } else {
+            return false;
+        }
+        if (uris.isEmpty()) return false;
+        pendingShared.addAll(uris);
+        return true;
+    }
+
     private boolean hasAllFilesAccess() {
         if (BuildConfig.PLAY_BUILD) return false; // Play: solo carpeta elegida con el selector del sistema (SAF)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -237,6 +280,65 @@ public class FlightFilesPlugin extends Plugin {
             }
         } catch (Exception ignored) {}
         return false;
+    }
+
+    /**
+     * Entrega a la web los .txt que llegaron por "Compartir" y los descarta (uso único). Solo lee URIs que
+     * entraron por un intent de compartir dirigido a esta app; un script del origen remoto no puede pedir
+     * otra ruta. Cada archivo vuelve como {name, data(base64)}, igual que readFlightFile.
+     */
+    @PluginMethod
+    public void getSharedFlightFiles(PluginCall call) {
+        List<Uri> drain = new ArrayList<>(pendingShared);
+        pendingShared.clear();
+        JSArray arr = new JSArray();
+        for (Uri u : drain) {
+            try {
+                String name = queryDisplayName(u);
+                // Solo logs DJI .txt; se ignora cualquier otra cosa que el usuario comparta por error.
+                if (name == null || !name.toLowerCase().endsWith(".txt")) continue;
+                InputStream in = getContext().getContentResolver().openInputStream(u);
+                if (in == null) continue;
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int n;
+                long total = 0;
+                boolean tooBig = false;
+                while ((n = in.read(buf)) != -1) {
+                    total += n;
+                    if (total > MAX_LOG_BYTES) { tooBig = true; break; }
+                    bos.write(buf, 0, n);
+                }
+                in.close();
+                if (tooBig) continue; // un .txt enorme no es un log DJI
+                JSObject o = new JSObject();
+                o.put("name", name);
+                o.put("data", Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP));
+                arr.put(o);
+            } catch (Exception ignored) {
+                // Un archivo ilegible no detiene a los demás; la web muestra solo los que sí llegaron.
+            }
+        }
+        JSObject ret = new JSObject();
+        ret.put("files", arr);
+        call.resolve(ret);
+    }
+
+    /** Nombre visible de una URI compartida (content:// por DISPLAY_NAME, o el último segmento). */
+    private String queryDisplayName(Uri uri) {
+        if ("content".equals(uri.getScheme())) {
+            try (android.database.Cursor c = getContext().getContentResolver().query(
+                    uri, new String[]{ android.provider.OpenableColumns.DISPLAY_NAME }, null, null, null)) {
+                if (c != null && c.moveToFirst()) {
+                    int idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                    if (idx >= 0) {
+                        String dn = c.getString(idx);
+                        if (dn != null) return dn;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return uri.getLastPathSegment();
     }
 
     private DocumentFile getTree() {

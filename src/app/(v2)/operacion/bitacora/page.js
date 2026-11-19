@@ -27,12 +27,13 @@
 // Visual: mismo lenguaje moderno del dashboard (/inicio) — hero degradado +
 // tarjetas de color, ya no PageHero/KPIStrip planos de @skylog/ui.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import FlightReplayViewer from '../../_components/FlightReplayViewer';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 import { DJI_IMPORT_LIMITS } from '@skylog/domain';
+import { pullSharedFlightFiles, onSharedFlightFiles } from '@/lib/flightShare';
 import FlightEditDialog from './_FlightEditDialog';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
@@ -252,6 +253,24 @@ export default function BitacoraPage() {
     setAnalyzeProgress(null);
     setAnalyzing(false);
   }
+
+  // Importación por "Compartir" (solo app nativa Android): los .txt que el piloto envía desde
+  // DJI Fly / el gestor de archivos entran directo al mismo análisis que el <input> manual,
+  // abriendo el panel de importación. En navegador no-op. Ref para no reatar el efecto en cada render.
+  const analyzeRef = useRef(null);
+  analyzeRef.current = handleAnalyzeFiles;
+  useEffect(() => {
+    let cancelled = false;
+    const intake = async () => {
+      const files = await pullSharedFlightFiles();
+      if (cancelled || !files.length) return;
+      setShowImport(true);
+      analyzeRef.current?.(files);
+    };
+    intake(); // arranque en frío: la app se abrió por un "Compartir"
+    const off = onSharedFlightFiles(intake); // app ya abierta: recibe otro "Compartir"
+    return () => { cancelled = true; off(); };
+  }, []);
 
   function updateImportRow(idx, patch) {
     setImportRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));

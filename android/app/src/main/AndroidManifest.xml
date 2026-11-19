@@ -28,6 +28,22 @@
                 <data android:scheme="https" android:host="bitafly.com" />
                 <data android:scheme="https" android:host="www.bitafly.com" />
             </intent-filter>
+
+            <!-- "Compartir" logs DJI: BitaFly aparece en el menú Compartir del gestor de
+                 archivos / DJI Fly al enviar los .txt de FlightRecord. Es la vía de importación
+                 vigente (la misma que usa Airdata), sin credenciales ni acceso a carpetas.
+                 Se limita a text/plain (el tipo de un .txt) para no aparecer como destino de
+                 cualquier archivo. FlightFilesPlugin filtra de nuevo por extensión .txt. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <provider

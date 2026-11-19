@@ -26,7 +26,8 @@
 ## 3. Lo que estaba a medias
 | Tema | Estado |
 |---|---|
-| Sincronización automática desde el control | El trabajador de la app Android sube a `/api/logbook/import-dji` (ruta de la v1 que **no existe** en V2) y la pantalla dice «Próximamente». Pendiente rehacerla (ruta nueva, pantalla, APK nuevo) y decidir entre confirmar cada vuelo o guardarlo directo. Plan de la nube de DJI: `46-…` y `46a-…` (sin código). |
+| Importación por «Compartir» (ACTION_SEND) | **Hecho (2026-11-19, en producción + APK).** El piloto envía los `.txt` de FlightRecord desde DJI Fly / el gestor de archivos → «Compartir» → BitaFly, y confirma cada vuelo en la Bitácora (mismo análisis que la carga manual, sin credenciales de DJI ni acceso a carpetas). Es el método vigente de Airdata. Plugin `FlightFiles.getSharedFlightFiles` + `src/lib/flightShare.js` + intent-filters del manifiesto. |
+| Sincronización automática en segundo plano | **Parqueada.** El worker (`FlightSyncWorker`) apuntaba a `/api/logbook/import-dji` (ruta v1 inexistente) con el campo `file`; se corrigió a `/api/flights/import-dji` + `files`, pero se dejó en early-return porque esa ruta **solo parsea, no inserta** (notificar «sincronizado» sería falso) y además nadie llama `enableBackgroundSync`. Reactivarla exige un endpoint de auto-guardado y decidir confirmar-cada-uno vs guardar-directo. Plan de la nube de DJI (descartado por términos/seguridad): `46-…`, `46a-…`. |
 | Importación de logs desde RC 2 | Guía de 4 pasos por USB agregada a la pantalla (234); falta confirmar la ruta con un control real. |
 | Replay del vuelo | Rehecho con satélites, señal, palancas, clima, alertas y zoom (230–233); falta validarlo con un log real. |
 | Centro de Control | Sin terminar. |
@@ -38,6 +39,7 @@
 | `CLAUDE.md` desactualizado | **Corregido** (guía actualizada con convenciones y pendientes). |
 
 ## 4. Hallazgos posteriores (2026-11-18/19)
+- **DJI respondió por escrito:** no hay vía oficial para que un tercero lea los registros de DJI Fly en la nube (sin OAuth, sin API pública, sin programa de socios); solo el dueño los ve en la app. Airdata usa credenciales DJI, pero DJI está **cerrando** ese sync por nube (EE. UU. desde jun-2024). Por eso se descartó pedir/guardar credenciales de DJI y se construyó la vía por «Compartir». Para el RC 2 la única ruta es USB o «Compartir»; es el límite real, igual que Airdata.
 - El inicio de sesión con Google no funciona dentro de la app de Android (WebView): se ocultó ahí (229).
 - El RC 2 no admite apps de terceros ni tiene SDK de DJI: no hay datos en vivo; video solo por RTMP de DJI Fly (hasta 720p). Ver `46-…` §7 y la decisión 224.
 - Esri no tiene imagen satelital a todos los niveles de zoom en todas las zonas: el replay ajusta el nivel y lo avisa (233).
@@ -45,4 +47,5 @@
 ## 5. Orden de trabajo que se recomendó y cómo va
 1. ✅ Hora de los vuelos + reparar datos (F1). 2. ✅ CI en verde (S1). 3. ✅ Editar y anular vuelos (F2). 4. ✅ Paginar reportes y Bitácora (F3, F4).
 5. ✅ No mostrar errores técnicos (S2). 6. ⛔ Monitoreo de errores (descartado por el dueño). 7. ✅ Despacho huérfano (F5). 8. ✅ Actualizar `CLAUDE.md`.
-Siguiente candidato: sincronización automática del control (§3) o el limitador de peticiones compartido (S3).
+9. ✅ Importación de logs por «Compartir» (§3, 2026-11-19).
+Siguiente candidato: limitador de peticiones compartido (S3), o reactivar el auto-sync en segundo plano (§3) una vez exista el endpoint de auto-guardado y la decisión confirmar-vs-directo.

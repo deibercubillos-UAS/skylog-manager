@@ -31,11 +31,16 @@ import java.util.Set;
 /**
  * FlightSyncWorker — vigilancia en segundo plano de la carpeta DJI FlightRecord (F3.8).
  *
- * Corre vía WorkManager (periódico, mín. 15 min) aunque la app esté cerrada.
- * Lee los .txt por la carpeta SAF elegida (DocumentFile/ContentResolver) o, en su
- * defecto, por acceso directo a File. Reusa la SESIÓN de la WebView (cookies) → sube
- * al mismo POST /api/logbook/import-dji, sin cambios en el backend ni tokens aparte.
- * Deduplica localmente por nombre (SharedPreferences) + el server descarta 409.
+ * PARQUEADO (2026-11-19): hoy doWork() no sube nada (early-return). Dos razones:
+ *   1) La única ruta de importación en V2, POST /api/flights/import-dji, SOLO PARSEA —
+ *      no inserta el vuelo. Subir aquí no guardaría nada, y la notificación
+ *      "sincronizado automáticamente" sería falsa.
+ *   2) Nadie llama enableBackgroundSync (no hay consumidor JS), así que nunca se agenda.
+ * La vía de importación que SÍ funciona es "Compartir" (ACTION_SEND): el piloto envía los
+ * .txt y confirma cada vuelo en la Bitácora (necesario para el chequeo §100.540 por vuelo).
+ * Reactivar este auto-sync exige: (a) un endpoint de auto-guardado y (b) la decisión
+ * confirmar-cada-uno vs guardar-directo (doc 61 §3). El escaneo y la subida quedan listos y
+ * ya apuntan a la ruta y el campo correctos para ese día; falta quitar el early-return.
  */
 public class FlightSyncWorker extends Worker {
     private static final String TAG = "BitaflyDjiSync";
@@ -68,6 +73,11 @@ public class FlightSyncWorker extends Worker {
     @Override
     public Result doWork() {
         Context ctx = getApplicationContext();
+
+        // PARQUEADO: no subir en segundo plano hasta que exista un endpoint de auto-guardado
+        // (la ruta actual solo parsea) y se decida confirmar-cada-uno vs guardar-directo.
+        // Ver el javadoc de la clase y doc 61 §3. Quitar este return para reactivarlo.
+        if (true) return Result.success();
 
         String cookies = null;
         try { cookies = CookieManager.getInstance().getCookie(API_BASE); } catch (Exception ignored) {}
@@ -173,7 +183,7 @@ public class FlightSyncWorker extends Worker {
                 : new FileInputStream(e.file);
             if (src == null) return -1;
 
-            URL url = new URL(API_BASE + "/api/logbook/import-dji");
+            URL url = new URL(API_BASE + "/api/flights/import-dji");
             conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
@@ -184,7 +194,7 @@ public class FlightSyncWorker extends Worker {
 
             try (DataOutputStream out = new DataOutputStream(conn.getOutputStream()); InputStream in = src) {
                 out.writeBytes("--" + boundary + "\r\n");
-                out.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + e.name + "\"\r\n");
+                out.writeBytes("Content-Disposition: form-data; name=\"files\"; filename=\"" + e.name + "\"\r\n");
                 out.writeBytes("Content-Type: text/plain\r\n\r\n");
                 byte[] buf = new byte[8192];
                 int n;

@@ -69,6 +69,8 @@ export default function OrganizacionPage() {
   const [members, setMembers] = useState([]);
   const [roleBusyId, setRoleBusyId] = useState(null);
   const [roleError, setRoleError] = useState(null);
+  const [mfaBusyId, setMfaBusyId] = useState(null);
+  const [mfaNotice, setMfaNotice] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['AD2'] === 'edit';
@@ -258,6 +260,27 @@ export default function OrganizacionPage() {
     }
   }
 
+  // Recuperación del segundo factor: el Gerente General le quita el TOTP a un miembro que perdió su autenticador.
+  async function handleRemoveMfa(personId, name) {
+    if (!window.confirm(`¿Quitar el segundo factor de ${name}? Podrá entrar sin código y volver a activarlo desde su perfil.`)) return;
+    setMfaBusyId(personId);
+    setMfaNotice(null);
+    try {
+      const res = await fetch('/api/organizacion/members/remove-mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId, personId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error quitando el segundo factor');
+      setMfaNotice({ ok: true, text: data.removed > 0 ? `Segundo factor quitado a ${name}.` : `${name} no tenía segundo factor activo.` });
+    } catch (e) {
+      setMfaNotice({ ok: false, text: e.message });
+    } finally {
+      setMfaBusyId(null);
+    }
+  }
+
   if (loading) return <p className="text-sm text-navy-400">Cargando…</p>;
 
   if (!context?.personId) {
@@ -441,6 +464,7 @@ export default function OrganizacionPage() {
           <p className="text-sm font-semibold text-navy">Miembros</p>
           <p className="text-xs text-navy-400 mb-3">{members.length} persona(s) con membresía activa.</p>
           {roleError && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-1.5 mb-2">{roleError}</p>}
+          {mfaNotice && <p className={`text-xs rounded-lg px-3 py-1.5 mb-2 ${mfaNotice.ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>{mfaNotice.text}</p>}
         </div>
         <div className="divide-y divide-navy-50">
           {members.length === 0 ? (
@@ -449,27 +473,41 @@ export default function OrganizacionPage() {
             members.map((m) => (
               <div key={m.person_id} className="flex items-center justify-between px-4 py-2.5 text-sm gap-3">
                 <span className="font-medium text-navy truncate">{m.people?.full_name || m.person_id}</span>
-                {canChangeRoles ? (
-                  <select
-                    value={m.role}
-                    disabled={roleBusyId === m.person_id || m.role === 'superadmin'}
-                    onChange={(e) => handleRoleChange(m.person_id, e.target.value)}
-                    className="text-xs border border-navy-200 rounded-lg px-2 py-1 shrink-0 disabled:opacity-60"
-                  >
-                    {!ASSIGNABLE_ROLES.includes(m.role) && (
-                      <option value={m.role} disabled>
-                        {ROLE_LABELS[m.role] || m.role}
-                      </option>
-                    )}
-                    {ASSIGNABLE_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-xs text-navy-400 shrink-0">{ROLE_LABELS[m.role] || m.role}</span>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Recuperación del 2FA: solo el Gerente General, nunca sobre sí mismo (eso va en su perfil) ni sobre el superadmin. */}
+                  {canChangeRoles && m.role !== 'superadmin' && m.person_id !== context.personId && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMfa(m.person_id, m.people?.full_name || 'este miembro')}
+                      disabled={mfaBusyId === m.person_id}
+                      className="text-xs text-navy-400 hover:text-red-600 underline underline-offset-2 disabled:opacity-50"
+                      title="Quitar el segundo factor si perdió su autenticador"
+                    >
+                      {mfaBusyId === m.person_id ? 'Quitando…' : 'Quitar 2FA'}
+                    </button>
+                  )}
+                  {canChangeRoles ? (
+                    <select
+                      value={m.role}
+                      disabled={roleBusyId === m.person_id || m.role === 'superadmin'}
+                      onChange={(e) => handleRoleChange(m.person_id, e.target.value)}
+                      className="text-xs border border-navy-200 rounded-lg px-2 py-1 disabled:opacity-60"
+                    >
+                      {!ASSIGNABLE_ROLES.includes(m.role) && (
+                        <option value={m.role} disabled>
+                          {ROLE_LABELS[m.role] || m.role}
+                        </option>
+                      )}
+                      {ASSIGNABLE_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-xs text-navy-400">{ROLE_LABELS[m.role] || m.role}</span>
+                  )}
+                </div>
               </div>
             ))
           )}

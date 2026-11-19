@@ -13,12 +13,12 @@ import { isOrgReadOnly } from '@skylog/domain';
 export async function resolveCurrentPerson(supabase, userId) {
   const { data: account, error: accountError } = await supabase
     .from('accounts')
-    .select('id, person_id')
+    .select('id, person_id, mfa_enabled')
     .eq('auth_user_id', userId)
     .maybeSingle();
 
   if (accountError) return { error: accountError };
-  if (!account) return { error: null, personId: null, organizationIds: [] };
+  if (!account) return { error: null, personId: null, organizationIds: [], mfaEnabled: false };
 
   // Una sola consulta (RPC): rol de cada membresía y si la persona es «piloto independiente» (Gerente General, plan
   // «piloto» y único integrante activo de su organización — columna PI de la matriz de permisos). Antes eran tres
@@ -43,6 +43,7 @@ export async function resolveCurrentPerson(supabase, userId) {
     personId: account.person_id,
     organizationIds: marked.map((m) => m.organization_id),
     memberships: marked,
+    mfaEnabled: !!account.mfa_enabled,
   };
 }
 

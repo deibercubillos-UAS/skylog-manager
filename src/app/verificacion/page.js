@@ -1,8 +1,11 @@
 'use client';
 
-// Skylog V2.0 — verificación en dos pasos (TOTP) para el superadmin de la plataforma. Dos casos en la misma pantalla:
-// ya tiene un autenticador → pide el código de 6 dígitos; es la primera vez → muestra el QR para configurarlo y
-// confirma con el primer código. El servidor (`requireSuperadmin` y el layout de /admin) exige que la sesión sea aal2.
+// Skylog V2.0 — verificación en dos pasos (TOTP). Dos usos:
+//  1) Cualquier usuario que activó el segundo factor en su perfil (opt-in): al entrar, el contexto de sesión marca
+//     `mfaRequired` y el shell lo trae aquí → pide el código de 6 dígitos (ya tiene un factor verificado).
+//  2) El superadmin de la plataforma, para quien es obligatorio en /admin: si aún no tiene factor, aquí lo configura
+//     (QR). La inscripción de un usuario normal NO ocurre aquí — se hace en el perfil; por eso solo se auto-inscribe
+//     cuando el destino es /admin. El servidor (`requireSuperadmin` y el layout de /admin) exige aal2.
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { safeNextPath } from '@/lib/v2/safeNext';
@@ -32,9 +35,12 @@ export default function VerificacionPage() {
       if (e) { setError(e.message); setMode('challenge'); return; }
       const verified = (data?.totp || []).find((f) => f.status === 'verified');
       if (verified) { setFactorId(verified.id); setMode('challenge'); return; }
+      // Sin factor verificado: solo el flujo obligatorio del superadmin (destino /admin) lo configura aquí. Un usuario
+      // normal sin factor nunca debería llegar (el shell no lo manda), pero si llega por URL, no se le fuerza: sigue.
+      if (!safeNext().startsWith('/admin')) { window.location.href = safeNext() || '/inicio'; return; }
       // Un alta a medias (factor sin verificar) estorba al crear el nuevo: se descarta.
       for (const f of data?.all || []) if (f.status === 'unverified') await supabase.auth.mfa.unenroll({ factorId: f.id });
-      const enrolled = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Skylog superadmin' });
+      const enrolled = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'BitaFly' });
       if (enrolled.error) { setError(enrolled.error.message); setMode('enroll'); return; }
       setFactorId(enrolled.data.id);
       setQr(enrolled.data.totp.qr_code);
@@ -63,7 +69,7 @@ export default function VerificacionPage() {
         {mode === 'loading' && <p className="mt-4 text-sm text-slate-500">Cargando…</p>}
         {mode === 'enroll' && (
           <p className="mt-2 text-sm text-slate-600">
-            Para entrar al panel de la plataforma, configura una app autenticadora (Google Authenticator, Authy, 1Password…): escanea el código y escribe el que te muestre.
+            Para continuar, configura una app autenticadora (Google Authenticator, Authy, 1Password…): escanea el código y escribe el que te muestre.
           </p>
         )}
         {mode === 'challenge' && <p className="mt-2 text-sm text-slate-600">Escribe el código de 6 dígitos de tu app autenticadora.</p>}
@@ -93,7 +99,7 @@ export default function VerificacionPage() {
             </button>
           </form>
         )}
-        <p className="mt-4 text-xs text-slate-500">Si pierdes tu autenticador, un administrador de Supabase puede quitar el factor desde el panel de Auth.</p>
+        <p className="mt-4 text-xs text-slate-500">Si pierdes tu autenticador, el Gerente General de tu organización puede quitarte el segundo factor desde Organización → Miembros.</p>
       </div>
     </main>
   );

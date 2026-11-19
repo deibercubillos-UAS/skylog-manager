@@ -178,6 +178,11 @@ export default function V2Layout({ children }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
+        // Segundo factor pendiente (el usuario activó TOTP y la sesión aún es aal1): verificar antes de ver la app.
+        if (data.mfaRequired) {
+          window.location.href = '/verificacion?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+          return;
+        }
         // Sesión sin persona (entró con Google y no completó el registro): se le pide completarlo.
         if (data.personId === null) {
           window.location.href = '/registro/completar';

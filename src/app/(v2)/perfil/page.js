@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase';
 import IconField from './_IconField';
 import JoinOrganization from './_JoinOrganization';
 import PrivacySection from './_PrivacySection';
+import TwoFactor from './_TwoFactor';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = {
@@ -283,6 +284,8 @@ export default function PerfilPage() {
               </Button>
             </div>
             {resetMessage && <p className={`text-xs mt-2 ${resetMessage.ok ? 'text-emerald-600' : 'text-red-600'}`}>{resetMessage.text}</p>}
+
+            <TwoFactor />
 
             <div className="flex items-center justify-between gap-3 pt-3">
               <div>

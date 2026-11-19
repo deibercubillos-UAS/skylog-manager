@@ -15,11 +15,25 @@ export async function GET() {
   mark('auth');
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
-  const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
+  const { error, personId, memberships, mfaEnabled } = await resolveCurrentPerson(supabase, user.id);
   mark('persona');
   if (error) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+
+  // Segundo factor (TOTP) opcional. El nivel actual (`aal`) viene del token local (sin red). Solo si el usuario
+  // activó 2FA (bandera `mfa_enabled`, gratis) y la sesión aún es aal1, se confirma con Auth que el factor sigue
+  // verificado y se exige el código. Así el 99 % sin 2FA no llama a Auth, y la bandera desincronizada no bloquea
+  // (si ya no hay factor, no se exige). El superadmin tiene su exigencia obligatoria aparte (requireSuperadmin).
+  let mfaRequired = false;
+  if (mfaEnabled && user.aal !== 'aal2') {
+    try {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      mfaRequired = (factors?.totp || []).some((f) => f.status === 'verified');
+    } catch { mfaRequired = false; }
+  }
+  mark('mfa');
+
   if (!personId) {
-    return Response.json({ personId: null, organizations: [] });
+    return Response.json({ personId: null, organizations: [], mfaRequired });
   }
 
   // Las tres consultas son independientes: en paralelo (antes iban una tras otra).
@@ -56,7 +70,7 @@ export async function GET() {
   const isPartner = (partnerRows || []).some((r) => r.partner?.status === 'activo');
 
   return Response.json(
-    { personId, fullName: person?.full_name || null, organizations, isPartner },
+    { personId, fullName: person?.full_name || null, organizations, isPartner, mfaRequired },
     { headers: { 'Server-Timing': marks.join(', ') } }
   );
 }

@@ -34,6 +34,14 @@ import FlightReplayViewer from '../../_components/FlightReplayViewer';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 import { DJI_IMPORT_LIMITS } from '@skylog/domain';
 import { pullSharedFlightFiles, onSharedFlightFiles } from '@/lib/flightShare';
+import {
+  isFolderImportAvailable,
+  checkFolderPermission,
+  pickFlightFolder,
+  clearFlightFolder,
+  listFolderFlightFiles,
+  readFolderFlightFile,
+} from '@/lib/flightImportBridge';
 import FlightEditDialog from './_FlightEditDialog';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
@@ -99,6 +107,9 @@ export default function BitacoraPage() {
   const [analyzeProgress, setAnalyzeProgress] = useState(null); // { current, total } mientras se analizan los logs
   const [importRows, setImportRows] = useState([]);
   const [confirmingIdx, setConfirmingIdx] = useState(null);
+  // Importación por carpeta — solo app nativa Android (en web es no-op); se decide tras montar
+  // para no desalinear la hidratación con el render del servidor.
+  const [nativeFolder, setNativeFolder] = useState(false);
 
   const loadFlights = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -272,6 +283,8 @@ export default function BitacoraPage() {
     return () => { cancelled = true; off(); };
   }, []);
 
+  useEffect(() => { setNativeFolder(isFolderImportAvailable()); }, []);
+
   function updateImportRow(idx, patch) {
     setImportRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   }
@@ -430,20 +443,25 @@ export default function BitacoraPage() {
                 </label>
               </div>
 
-              {/* Sincronización automática — depende de la app móvil/RC de V2, todavía sin construir */}
-              <div className="rounded-2xl border border-dashed border-navy-200 p-4 bg-navy-50/10 opacity-70">
-                <p className="text-xs font-black uppercase text-navy-400 tracking-wide flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base">sync</span>
-                  Sincronización automática
-                </p>
-                <p className="text-xs text-navy-400 mt-1.5">
-                  Para el resto de controles (RC Pro, RC-N3, celular) los vuelos se cargarán solos desde el control o el
-                  celular en cuanto se instale la app — próximamente.
-                </p>
-                <span className="inline-block mt-3 text-[11px] font-bold uppercase tracking-wide text-navy-400 bg-navy-100 rounded-full px-3 py-1.5">
-                  Próximamente
-                </span>
-              </div>
+              {/* Segunda vía según plataforma: app nativa → elegir la carpeta del control y subir en
+                  lote; web → aviso de que esa vía vive en la app móvil de Android. */}
+              {nativeFolder ? (
+                <FolderImportCard onFiles={handleAnalyzeFiles} analyzing={analyzing} />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-navy-200 p-4 bg-navy-50/10 opacity-70">
+                  <p className="text-xs font-black uppercase text-navy-400 tracking-wide flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base">folder_open</span>
+                    Importar desde la carpeta del control
+                  </p>
+                  <p className="text-xs text-navy-400 mt-1.5">
+                    Desde la app de BitaFly para Android eliges una vez la carpeta FlightRecord del control
+                    o celular y subes los logs en lote, sin sacarlos por USB.
+                  </p>
+                  <span className="inline-block mt-3 text-[11px] font-bold uppercase tracking-wide text-navy-400 bg-navy-100 rounded-full px-3 py-1.5">
+                    En la app móvil
+                  </span>
+                </div>
+              )}
             </div>
 
             {importError && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{importError}</p>}
@@ -1014,6 +1032,178 @@ function ImportRowCard({ row, fleet, confirming, onChange, onConfirm, onDiscard 
             {confirming ? 'Guardando…' : 'Confirmar vuelo'}
           </button>
         </>
+      )}
+    </div>
+  );
+}
+
+// Importación por carpeta — SOLO app nativa Android (en web este componente no se monta). El piloto
+// elige UNA vez la carpeta FlightRecord del control/celular (selector del sistema, SAF) o ya tiene
+// acceso a todos los archivos; BitaFly lista los .txt y sube los que el piloto marque al MISMO análisis
+// (handleAnalyzeFiles → /api/flights/import-dji) y a la confirmación §100.540. Es la vía que sirve a
+// DJI Pilot 2 (Matrice, enterprise) —logs en almacenamiento público— y para cargar en lote, sin USB y
+// sin el "Compartir" uno por uno. No reactiva ningún auto-sync de fondo: cada vuelo se confirma a mano.
+function FolderImportCard({ onFiles, analyzing }) {
+  const [perm, setPerm] = useState(null);        // { granted, allFiles, folder }
+  const [files, setFiles] = useState(null);      // null = sin buscar; [] = buscado y vacío
+  const [selected, setSelected] = useState(() => new Set());
+  const [scanning, setScanning] = useState(false);
+  const [reading, setReading] = useState(null);  // { current, total } mientras se leen los .txt
+  const [err, setErr] = useState(null);
+
+  useEffect(() => { checkFolderPermission().then(setPerm); }, []);
+
+  const connected = !!(perm?.folder || perm?.allFiles);
+  const busy = scanning || !!reading || analyzing;
+
+  const scan = useCallback(async () => {
+    setScanning(true);
+    setErr(null);
+    try {
+      const found = await listFolderFlightFiles();
+      found.sort((a, b) => (b.mtime || 0) - (a.mtime || 0)); // más reciente primero
+      setFiles(found);
+      setSelected(new Set());
+    } finally {
+      setScanning(false);
+    }
+  }, []);
+
+  async function connectFolder() {
+    setErr(null);
+    const res = await pickFlightFolder();
+    if (!res.picked) { setErr('No se eligió ninguna carpeta.'); return; }
+    setPerm(await checkFolderPermission());
+    await scan();
+  }
+
+  async function changeFolder() {
+    await clearFlightFolder();
+    setFiles(null);
+    setSelected(new Set());
+    await connectFolder();
+  }
+
+  function toggle(path) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path); else next.add(path);
+      return next;
+    });
+  }
+  function toggleAll() {
+    setSelected((prev) => (prev.size === (files?.length || 0) ? new Set() : new Set((files || []).map((f) => f.path))));
+  }
+
+  async function importSelected() {
+    const paths = (files || []).filter((f) => selected.has(f.path)).map((f) => f.path);
+    if (!paths.length) return;
+    setReading({ current: 0, total: paths.length });
+    const out = [];
+    for (let i = 0; i < paths.length; i++) {
+      setReading({ current: i + 1, total: paths.length });
+      const file = await readFolderFlightFile(paths[i]); // lectura secuencial: no carga todo a memoria a la vez
+      if (file) out.push(file);
+    }
+    setReading(null);
+    if (out.length) onFiles(out); // reusa el análisis + confirmación por vuelo
+  }
+
+  const fmtMb = (n) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : '');
+  const fmtDate = (ms) => (ms ? new Date(ms).toLocaleDateString('es-CO') : '');
+
+  return (
+    <div className="rounded-2xl border border-navy-100 p-4 bg-navy-50/20">
+      <p className="text-xs font-black uppercase text-navy tracking-wide flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-base text-primary-600">folder_open</span>
+        Importar desde la carpeta del control
+      </p>
+      <p className="text-xs text-navy-400 mt-1.5">
+        Elige una vez la carpeta <b>FlightRecord</b> del control o celular; BitaFly lista los logs y subes
+        los que marques. Pensado para DJI Pilot 2 (Matrice) y cualquier control cuyo celular tenga los .txt accesibles.
+      </p>
+
+      {err && <p className="text-xs text-red-600 mt-2">{err}</p>}
+
+      {!connected ? (
+        <button
+          type="button"
+          onClick={connectFolder}
+          disabled={busy}
+          className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 hover:bg-primary-100 transition-colors disabled:opacity-50"
+        >
+          <span className="material-symbols-outlined text-base">create_new_folder</span>
+          Elegir carpeta de vuelos
+        </button>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+              <span className="material-symbols-outlined text-sm">check_circle</span>
+              Carpeta conectada
+            </span>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={scan} disabled={busy} className="font-bold text-primary-700 disabled:opacity-50">
+                {scanning ? 'Buscando…' : 'Buscar logs'}
+              </button>
+              {perm?.folder && (
+                <button type="button" onClick={changeFolder} disabled={busy} className="font-bold text-navy-400 disabled:opacity-50">
+                  Cambiar
+                </button>
+              )}
+            </div>
+          </div>
+
+          {files && files.length === 0 && (
+            <p className="text-xs text-navy-400">
+              No se encontraron logs .txt. Elige la carpeta <b>FlightRecord</b> (no una carpeta superior).
+            </p>
+          )}
+
+          {files && files.length > 0 && (
+            <>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={toggleAll} className="text-[11px] font-bold uppercase tracking-wide text-navy-400">
+                  {selected.size === files.length ? 'Quitar todos' : 'Seleccionar todos'}
+                </button>
+                <span className="text-[11px] text-navy-400">{files.length} log(s)</span>
+              </div>
+              <ul className="max-h-48 overflow-y-auto rounded-xl border border-navy-100 divide-y divide-navy-50">
+                {files.map((f) => (
+                  <li key={f.path}>
+                    <label className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-navy-50/50">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(f.path)}
+                        onChange={() => toggle(f.path)}
+                        className="size-4 accent-primary-600"
+                      />
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-semibold text-navy-600 truncate">{f.name}</span>
+                        <span className="block text-[11px] text-navy-400">
+                          {fmtDate(f.mtime)}{f.size ? ` · ${fmtMb(f.size)}` : ''}
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={importSelected}
+                disabled={busy || selected.size === 0}
+                className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 hover:bg-primary-100 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-base">{reading ? 'progress_activity' : 'upload'}</span>
+                {reading
+                  ? `Leyendo ${reading.current} de ${reading.total}…`
+                  : analyzing
+                    ? 'Analizando…'
+                    : `Importar seleccionados (${selected.size})`}
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

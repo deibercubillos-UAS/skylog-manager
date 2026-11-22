@@ -28,6 +28,8 @@
 |---|---|
 | Importación por «Compartir» (ACTION_SEND) | **Hecho (2026-11-19, en producción + APK).** El piloto envía los `.txt` de FlightRecord desde DJI Fly / el gestor de archivos → «Compartir» → BitaFly, y confirma cada vuelo en la Bitácora (mismo análisis que la carga manual, sin credenciales de DJI ni acceso a carpetas). Es el método vigente de Airdata. Plugin `FlightFiles.getSharedFlightFiles` + `src/lib/flightShare.js` + intent-filters del manifiesto. |
 | Sincronización automática en segundo plano | **Parqueada.** El worker (`FlightSyncWorker`) apuntaba a `/api/logbook/import-dji` (ruta v1 inexistente) con el campo `file`; se corrigió a `/api/flights/import-dji` + `files`, pero se dejó en early-return porque esa ruta **solo parsea, no inserta** (notificar «sincronizado» sería falso) y además nadie llama `enableBackgroundSync`. Reactivarla exige un endpoint de auto-guardado y decidir confirmar-cada-uno vs guardar-directo. Plan de la nube de DJI (descartado por términos/seguridad): `46-…`, `46a-…`. |
+| Importación por carpeta (SAF, app nativa Android) | **Hecho (2026-11-21, falta prueba en dispositivo).** El plugin `FlightFiles` ya exponía elegir carpeta (SAF)/listar/leer `.txt` pero sin consumidor JS (el `flightImportBridge.js` que decía usar no existía); se creó ese puente y se cableó en la Bitácora (`FolderImportCard`): el piloto elige una vez la carpeta FlightRecord, BitaFly lista los logs y sube en lote los marcados al mismo `import-dji` + confirmación §100.540. Sirve sobre todo a DJI Pilot 2 (Matrice, almacenamiento público); reutiliza el descifrado ya vivo en prod. No reactiva el auto-sync. |
+| Modelo de aeronave en logs nuevos | **Hecho (2026-11-21).** El Mini 5 Pro reporta `productType` numérico (139) que la librería no mapea → `modelo_aeronave` quedaba null; ahora cae a `aircraftName` del propio log. Verificado con un log real v14. |
 | Importación de logs desde RC 2 | Guía de 4 pasos por USB agregada a la pantalla (234); falta confirmar la ruta con un control real. |
 | Replay del vuelo | Rehecho con satélites, señal, palancas, clima, alertas y zoom (230–233); falta validarlo con un log real. |
 | Centro de Control | Sin terminar. |
@@ -50,5 +52,6 @@
 9. ✅ Importación de logs por «Compartir» (§3, 2026-11-19).
 10. ✅ Limitador de peticiones compartido (S3, 2026-11-19): almacén en Postgres + cron de poda; migración aplicada en prod.
 11. ✅ Reconciliadas en el ledger las migraciones S5 `v2_flights_void_edit` y `v2_dispatch_manager_close` (su esquema ya estaba en prod por aplicación manual).
-Siguiente candidato: reactivar el auto-sync en segundo plano (§3) una vez exista el endpoint de auto-guardado y la decisión confirmar-vs-directo; o extender el segundo factor (TOTP) a todos los roles (hoy solo superadmin).
+12. ✅ Segundo factor (TOTP) para todos los roles, opt-in (2026-11-19). 13. ✅ Importación por carpeta (SAF) en la app nativa + fix de modelo en logs nuevos (§3, 2026-11-21).
+Siguiente candidato: prueba en dispositivo/emulador de la importación por carpeta (RC 2 con DJI Pilot 2); reactivar el auto-sync en segundo plano (§3) sigue aparcado por decisión del dueño (solo asistido).
 Pendientes del dueño en consola (S5): activar TOTP en Supabase, confirmar `BACKUP_ENCRYPTION_KEY`, borrar `ADMIN_SECRET` de Vercel.

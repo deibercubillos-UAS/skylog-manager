@@ -166,7 +166,10 @@ export async function parseDjiTxtBuffer(buf) {
     _meta: {
       fuente:               'TXT_V13',
       log_version:          parser.version,
-      modelo_aeronave:      formatProductType(details.productType),
+      // Mini 5 Pro (y otros modelos nuevos) reportan `productType` numérico que la librería aún no
+      // mapea a nombre (caso real: log v14, Mini 5 Pro, 2026-11-19). En ese caso se usa el nombre que
+      // el propio log trae en `aircraftName`, para que la fila de importación no quede sin modelo.
+      modelo_aeronave:      formatProductType(details.productType) || details.aircraftName || null,
       nombre_aeronave:      details.aircraftName ?? null,
       serial_aeronave_full,
       serial_camara,

@@ -2,10 +2,12 @@
 
 [← Índice maestro](00-INDICE.md) · [Investigación y análisis](45a-simulador-3d-investigacion.md) · [Reglas](01-reglas.md)
 
-> **Estado: solo planeación (2026-11-07). Nada construido.** Este documento dice **qué** se
-> construye, **en qué orden** y **cómo se sabe que cada fase terminó** (regla Q1: la puerta de
-> verificación se escribe antes de construir). El porqué de cada decisión está en
-> [`45a-simulador-3d-investigacion.md`](45a-simulador-3d-investigacion.md).
+> **Estado (2026-11-22): Fase 1 construida y probada** (`packages/domain/src/sim/`, consumida como
+> `@skylog/domain/sim`), con los perfiles reales **DJI Mini 5 Pro** y **DJI Matrice 4** cargados desde
+> su ficha oficial de DJI (regla Q2 cumplida: cada cifra cita su URL; lo que DJI no publica se omite).
+> El resto es planeación. Este documento dice **qué** se construye, **en qué orden** y **cómo se sabe
+> que cada fase terminó** (regla Q1: la puerta de verificación se escribe antes de construir). El
+> porqué de cada decisión está en [`45a-simulador-3d-investigacion.md`](45a-simulador-3d-investigacion.md).
 
 ---
 
@@ -155,12 +157,16 @@ cumple su puerta de verificación.
 | 1.3 `battery` | Consumo según régimen y viento, umbrales configurables, aterrizaje forzado |
 | 1.4 Automatismos | Retorno a casa (altura, ruta, cancelación), acción ante pérdida de enlace |
 | 1.5 Determinismo | Paso fijo, semilla, grabar y reproducir entradas con resultado idéntico |
-| 1.6 Perfiles base | 3–4 perfiles genéricos con parámetros de fichas técnicas públicas (con fuente) |
+| 1.6 Perfiles base | DJI Mini 5 Pro y DJI Matrice 4 (D-SIM-7), cada cifra de su ficha oficial de DJI con la URL de fuente; lo no publicado se omite |
 
-**Puerta de verificación**:
-- [ ] Pruebas automáticas del dominio: frenado en GNSS vs deriva en ATTI con el mismo viento; autonomía de cada perfil dentro de ±10 % de su ficha; retorno a casa al umbral; misma semilla + entradas = mismo estado final.
-- [ ] Ningún valor numérico de aeronave sin fuente (Q2).
-- [ ] `npm run test:domain` en verde.
+**Puerta de verificación** (cumplida 2026-11-22):
+- [x] Pruebas automáticas del dominio: frenado en GNSS vs deriva en ATTI con el mismo viento; autonomía de cada perfil dentro de ±10 % de su ficha; retorno a casa al umbral; misma semilla + entradas = mismo estado final.
+- [x] Ningún valor numérico de aeronave sin fuente (Q2): los dos perfiles reales (Mini 5 Pro, Matrice 4 — D-SIM-7) traen sus cifras de la ficha oficial de DJI, cada una con su URL en `source`. Lo que DJI no publica (velocidad de giro; tope separado del modo normal) NO se inventa: no es campo del perfil, es constante de control del simulador. La única autonomía que DJI publica para el Mini 5 Pro es en vuelo frontal (no estacionario); el perfil lo marca con `enduranceKind`.
+- [x] `npm run test:domain` en verde (687 pruebas; 32 nuevas en `src/sim/`).
+
+**Entregado**: `packages/domain/src/sim/` — `flightModel.js`, `environment.js`, `battery.js`,
+`automation.js` (RTH + pérdida de enlace), `engine.js` (`advance` puro), `replay.js` (grabar/reproducir),
+`profiles.js`, `rng.js`, `util.js`, cada uno con su `.test.js`. Subpath `@skylog/domain/sim`.
 
 ### Fase 2 — Escena 3D y controles en el celular (L)
 

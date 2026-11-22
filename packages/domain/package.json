@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
-    "./migration": "./src/migration/index.js"
+    "./migration": "./src/migration/index.js",
+    "./sim": "./src/sim/index.js"
   },
   "scripts": {
     "test": "vitest run"

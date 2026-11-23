@@ -13,16 +13,12 @@ import { storagePut } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { dbError } from '@/lib/v2/apiErrors';
-
-const BUCKET = 'documents';
-const MAX_BYTES = 25 * 1024 * 1024; // 25 MB, mismo límite que v1
-const ALLOWED_TYPES = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-]);
+import {
+  MANUALES_BUCKET as BUCKET,
+  MANUALES_MAX_BYTES as MAX_BYTES,
+  MANUALES_ALLOWED_TYPES as ALLOWED_TYPES,
+  verifyUploadedManual,
+} from '@/lib/v2/manualesUpload';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -66,23 +62,47 @@ export async function POST(request) {
   const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
-  const form = await request.formData();
-  const organizationId = form.get('organizationId');
-  const title = form.get('title');
-  const category = form.get('category');
-  const version = form.get('version');
-  const effectiveDate = form.get('effectiveDate');
-  const comments = form.get('comments') || '';
-  const file = form.get('file');
+  // Dos caminos: subida directa a R2 (el navegador ya subió el archivo y manda
+  // sólo `key` por JSON — evita el tope de ~4.5 MB del cuerpo serverless) o
+  // archivo en el cuerpo vía FormData (p. ej. el MSMS, PDFs chicos).
+  const ct = request.headers.get('content-type') || '';
+  const isJson = ct.includes('application/json');
+
+  let organizationId, title, category, version, effectiveDate, comments, uploadedKey, declaredType, file;
+  if (isJson) {
+    let b;
+    try { b = await request.json(); } catch { return Response.json({ error: 'Cuerpo inválido' }, { status: 400 }); }
+    organizationId = b.organizationId;
+    title = b.title;
+    category = b.category;
+    version = b.version;
+    effectiveDate = b.effectiveDate;
+    comments = b.comments || '';
+    uploadedKey = b.key;
+    declaredType = b.contentType;
+  } else {
+    const form = await request.formData();
+    organizationId = form.get('organizationId');
+    title = form.get('title');
+    category = form.get('category');
+    version = form.get('version');
+    effectiveDate = form.get('effectiveDate');
+    comments = form.get('comments') || '';
+    file = form.get('file');
+  }
 
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
   if (!title || typeof title !== 'string' || !title.trim()) return Response.json({ error: 'title es requerido' }, { status: 400 });
   if (!category || typeof category !== 'string') return Response.json({ error: 'category es requerido' }, { status: 400 });
   if (!version || typeof version !== 'string' || !version.trim()) return Response.json({ error: 'version es requerido' }, { status: 400 });
   if (!effectiveDate) return Response.json({ error: 'effectiveDate es requerido' }, { status: 400 });
-  if (!file || typeof file === 'string') return Response.json({ error: 'file es requerido' }, { status: 400 });
-  if (!ALLOWED_TYPES.has(file.type)) return Response.json({ error: 'Formato no soportado — usa PDF, Word o Excel' }, { status: 400 });
-  if (file.size > MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 25 MB' }, { status: 413 });
+  if (isJson) {
+    if (!uploadedKey || typeof uploadedKey !== 'string') return Response.json({ error: 'key es requerido' }, { status: 400 });
+  } else {
+    if (!file || typeof file === 'string') return Response.json({ error: 'file es requerido' }, { status: 400 });
+    if (!ALLOWED_TYPES.has(file.type)) return Response.json({ error: 'Formato no soportado — usa PDF, Word o Excel' }, { status: 400 });
+    if (file.size > MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 25 MB' }, { status: 413 });
+  }
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
@@ -92,7 +112,7 @@ export async function POST(request) {
   }
 
   // Se crea la fila del manual primero (para tener un id al que anclar el
-  // archivo); si la subida falla, se revierte — mismo patrón que v1.
+  // archivo); si la subida/verificación falla, se revierte — mismo patrón que v1.
   const { data: manual, error: createError } = await supabase
     .from('manuales')
     .insert({ organization_id: organizationId, title: title.trim(), category, created_by: personId })
@@ -100,13 +120,23 @@ export async function POST(request) {
     .single();
   if (createError) return Response.json({ error: createError.message }, { status: 500 });
 
-  const ext = file.name?.split('.').pop() || 'pdf';
-  const key = `v2-orgs/${organizationId}/manuales/${manual.id}/${Date.now()}-v${version.trim()}.${ext}`;
-  const body = Buffer.from(await file.arrayBuffer());
-  const { error: putError } = await storagePut({ bucket: BUCKET, key, body, contentType: file.type });
-  if (putError) {
-    await supabase.from('manuales').delete().eq('id', manual.id);
-    return Response.json({ error: 'No se pudo subir el archivo' }, { status: 500 });
+  let key;
+  if (isJson) {
+    const v = await verifyUploadedManual({ key: uploadedKey, declaredContentType: declaredType });
+    if (!v.ok) {
+      await supabase.from('manuales').delete().eq('id', manual.id);
+      return Response.json({ error: v.error }, { status: v.status });
+    }
+    key = uploadedKey;
+  } else {
+    const ext = file.name?.split('.').pop() || 'pdf';
+    key = `v2-orgs/${organizationId}/manuales/${manual.id}/${Date.now()}-v${version.trim()}.${ext}`;
+    const body = Buffer.from(await file.arrayBuffer());
+    const { error: putError } = await storagePut({ bucket: BUCKET, key, body, contentType: file.type });
+    if (putError) {
+      await supabase.from('manuales').delete().eq('id', manual.id);
+      return Response.json({ error: 'No se pudo subir el archivo' }, { status: 500 });
+    }
   }
 
   const { data: versionRow, error: versionError } = await supabase

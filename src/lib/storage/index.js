@@ -62,6 +62,18 @@ export async function storagePut({ bucket, key, body, contentType, cacheControl 
   }
 }
 
+// Consulta los metadatos de un objeto (sin descargarlo). Sirve para verificar,
+// tras una subida directa desde el navegador, que el archivo llegó y con el
+// tipo/tamaño declarados. Devuelve { data: { size, contentType }, error }.
+export async function storageHead({ bucket, key }) {
+  try {
+    const res = await s3().send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return { data: { size: res.ContentLength ?? 0, contentType: res.ContentType || '' }, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
 // Genera una URL firmada de descarga. Devuelve { data: { signedUrl }, error }.
 export async function storageSignedUrl({ bucket, key, expiresIn = 3600 }) {
   try {

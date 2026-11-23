@@ -19,6 +19,7 @@ function formatBytes(bytes) {
 }
 
 const ACCEPT = 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MAX_BYTES = 25 * 1024 * 1024; // 25 MB — mismo límite que valida el servidor
 
 function FileDropzone({ file, onChange }) {
   const [dragOver, setDragOver] = useState(false);
@@ -79,24 +80,56 @@ export default function ManualFormPanel({ open, onClose, organizationId, manual,
       setError('Selecciona un archivo');
       return;
     }
+    if (file.size > MAX_BYTES) {
+      setError('El archivo supera el límite de 25 MB');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const form = new FormData();
-      form.set('version', version);
-      form.set('effectiveDate', effectiveDate);
-      form.set('comments', comments);
-      form.set('file', file);
+      // El archivo se sube DIRECTO a R2 con una URL prefirmada: así no pasa por
+      // la función serverless (cuyo cuerpo está topado en ~4.5 MB en Vercel) y
+      // los manuales grandes sí se pueden cargar.
+      // 1) Pedir la URL de subida.
+      const urlRes = await fetch('/api/manuales/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: isNewVersion ? undefined : organizationId,
+          manualId: isNewVersion ? manual.id : undefined,
+          version,
+          fileName: file.name,
+          contentType: file.type,
+        }),
+      });
+      const urlData = await urlRes.json().catch(() => ({}));
+      if (!urlRes.ok) throw new Error(urlData.error || 'No se pudo preparar la subida');
+
+      // 2) Subir el archivo a R2 (el Content-Type debe coincidir con el firmado).
+      const putRes = await fetch(urlData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error('No se pudo subir el archivo al almacenamiento. Revisa tu conexión e inténtalo de nuevo.');
+
+      // 3) Crear el manual / publicar la versión con la clave del archivo subido.
+      const payload = { version, effectiveDate, comments, key: urlData.key, contentType: file.type };
       let res;
       if (isNewVersion) {
-        res = await fetch(`/api/manuales/${manual.id}/versions`, { method: 'POST', body: form });
+        res = await fetch(`/api/manuales/${manual.id}/versions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
       } else {
-        form.set('organizationId', organizationId);
-        form.set('title', title);
-        form.set('category', category);
-        res = await fetch('/api/manuales', { method: 'POST', body: form });
+        res = await fetch('/api/manuales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, organizationId, title, category }),
+        });
       }
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Error guardando el manual');
       onSaved();
       onClose();

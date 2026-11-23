@@ -9,16 +9,12 @@ import { createNotifications } from '@/lib/v2/notify';
 import { storagePut } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
-
-const BUCKET = 'documents';
-const MAX_BYTES = 25 * 1024 * 1024;
-const ALLOWED_TYPES = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-]);
+import {
+  MANUALES_BUCKET as BUCKET,
+  MANUALES_MAX_BYTES as MAX_BYTES,
+  MANUALES_ALLOWED_TYPES as ALLOWED_TYPES,
+  verifyUploadedManual,
+} from '@/lib/v2/manualesUpload';
 
 export async function POST(request, { params }) {
   params = await params;
@@ -38,23 +34,50 @@ export async function POST(request, { params }) {
     return Response.json({ error: 'Solo un gestor puede publicar nuevas versiones' }, { status: 403 });
   }
 
-  const form = await request.formData();
-  const version = form.get('version');
-  const effectiveDate = form.get('effectiveDate');
-  const comments = form.get('comments') || '';
-  const file = form.get('file');
+  // Dos caminos: subida directa a R2 (JSON con `key`, evita el tope de ~4.5 MB
+  // del cuerpo serverless) o archivo en el cuerpo vía FormData (p. ej. el MSMS).
+  const ct = request.headers.get('content-type') || '';
+  const isJson = ct.includes('application/json');
+
+  let version, effectiveDate, comments, uploadedKey, declaredType, file;
+  if (isJson) {
+    let b;
+    try { b = await request.json(); } catch { return Response.json({ error: 'Cuerpo inválido' }, { status: 400 }); }
+    version = b.version;
+    effectiveDate = b.effectiveDate;
+    comments = b.comments || '';
+    uploadedKey = b.key;
+    declaredType = b.contentType;
+  } else {
+    const form = await request.formData();
+    version = form.get('version');
+    effectiveDate = form.get('effectiveDate');
+    comments = form.get('comments') || '';
+    file = form.get('file');
+  }
 
   if (!version || typeof version !== 'string' || !version.trim()) return Response.json({ error: 'version es requerido' }, { status: 400 });
   if (!effectiveDate) return Response.json({ error: 'effectiveDate es requerido' }, { status: 400 });
-  if (!file || typeof file === 'string') return Response.json({ error: 'file es requerido' }, { status: 400 });
-  if (!ALLOWED_TYPES.has(file.type)) return Response.json({ error: 'Formato no soportado — usa PDF, Word o Excel' }, { status: 400 });
-  if (file.size > MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 25 MB' }, { status: 413 });
+  if (isJson) {
+    if (!uploadedKey || typeof uploadedKey !== 'string') return Response.json({ error: 'key es requerido' }, { status: 400 });
+  } else {
+    if (!file || typeof file === 'string') return Response.json({ error: 'file es requerido' }, { status: 400 });
+    if (!ALLOWED_TYPES.has(file.type)) return Response.json({ error: 'Formato no soportado — usa PDF, Word o Excel' }, { status: 400 });
+    if (file.size > MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 25 MB' }, { status: 413 });
+  }
 
-  const ext = file.name?.split('.').pop() || 'pdf';
-  const key = `v2-orgs/${manual.organization_id}/manuales/${manual.id}/${Date.now()}-v${version.trim()}.${ext}`;
-  const body = Buffer.from(await file.arrayBuffer());
-  const { error: putError } = await storagePut({ bucket: BUCKET, key, body, contentType: file.type });
-  if (putError) return Response.json({ error: 'No se pudo subir el archivo' }, { status: 500 });
+  let key;
+  if (isJson) {
+    const v = await verifyUploadedManual({ key: uploadedKey, declaredContentType: declaredType });
+    if (!v.ok) return Response.json({ error: v.error }, { status: v.status });
+    key = uploadedKey;
+  } else {
+    const ext = file.name?.split('.').pop() || 'pdf';
+    key = `v2-orgs/${manual.organization_id}/manuales/${manual.id}/${Date.now()}-v${version.trim()}.${ext}`;
+    const body = Buffer.from(await file.arrayBuffer());
+    const { error: putError } = await storagePut({ bucket: BUCKET, key, body, contentType: file.type });
+    if (putError) return Response.json({ error: 'No se pudo subir el archivo' }, { status: 500 });
+  }
 
   const { data: versionRow, error: versionError } = await supabase
     .from('manual_versions')

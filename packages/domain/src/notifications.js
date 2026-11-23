@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = {
   manual_publicado: { label: 'Manual publicado', icon: 'library_books' },
   miembro_nuevo: { label: 'Nuevo miembro', icon: 'person_add' },
   sms_reporte: { label: 'Reporte SMS', icon: 'report' },
+  zona_excursion: { label: 'Salida de zona', icon: 'wrong_location' },
   sms_caso_asignado: { label: 'Caso asignado', icon: 'assignment_ind' },
   sms_plazo: { label: 'Plazo SMS', icon: 'alarm' },
   custodia_abierta: { label: 'Custodia legal', icon: 'gavel' },

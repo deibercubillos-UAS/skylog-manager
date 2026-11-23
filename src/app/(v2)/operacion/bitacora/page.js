@@ -28,6 +28,7 @@
 // tarjetas de color, ya no PageHero/KPIStrip planos de @skylog/ui.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import FlightReplayViewer from '../../_components/FlightReplayViewer';
@@ -43,6 +44,9 @@ import {
   readFolderFlightFile,
 } from '@/lib/flightImportBridge';
 import FlightEditDialog from './_FlightEditDialog';
+import ZoneReportDialog from './_ZoneReportDialog';
+// Leaflet toca `window` al importar; como en programación, se carga sin SSR.
+const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), { ssr: false });
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -110,6 +114,15 @@ export default function BitacoraPage() {
   // Importación por carpeta — solo app nativa Android (en web es no-op); se decide tras montar
   // para no desalinear la hidratación con el render del servidor.
   const [nativeFolder, setNativeFolder] = useState(false);
+  // Salida de zona — la zona de operación se define una vez para todo el lote de importación (los
+  // vuelos importados sí traen traza GPS, así que se puede evaluar si el dron salió). `importZone` es
+  // { geoType, points, radius }. Tras confirmar un vuelo, si salió de la zona se abre el reporte de
+  // motivos del piloto. El banner de pendientes y el enlace `?vuelo=` llevan al mismo diálogo.
+  const [importZone, setImportZone] = useState(null);
+  const [zoneGeoType, setZoneGeoType] = useState('polygon');
+  const [showZonePicker, setShowZonePicker] = useState(false);
+  const [zoneReportFlight, setZoneReportFlight] = useState(null); // vuelo para el diálogo de motivos
+  const [zoneParamHandled, setZoneParamHandled] = useState(false); // ?vuelo= ya atendido (abrir una sola vez)
 
   const loadFlights = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -309,6 +322,7 @@ export default function BitacoraPage() {
           batterySerial: row.batterySerial || null,
           batteryCycles: row.batteryCycles ?? null,
           replayTrack: row.replayTrack || null,
+          zoneGeo: importZone,
           importToken: row.importToken || null,
         }),
       });
@@ -318,6 +332,10 @@ export default function BitacoraPage() {
       setImportRows((prev) => prev.filter((_, i) => i !== idx));
       await loadFlights(organizationId);
       await loadFleet(organizationId);
+      // El dron salió de la zona: se le pide al piloto el reporte de motivos (ya se avisó al SMS).
+      if (data.zoneExcursion?.outside && data.flight?.id) {
+        setZoneReportFlight({ id: data.flight.id, zone_excursion: data.zoneExcursion });
+      }
     } catch (e) {
       setImportError(e.message);
     } finally {
@@ -333,6 +351,20 @@ export default function BitacoraPage() {
     new Map(flights.filter((f) => f.pilot?.full_name).map((f) => [f.pilot_person_id, f.pilot.full_name])).entries()
   ).map(([id, name]) => ({ id, name }));
   const visibleFlights = pilotFilter ? flights.filter((f) => f.pilot_person_id === pilotFilter) : flights;
+
+  // Salida de zona pendiente de reporte — solo del piloto actual (solo él puede registrar los motivos).
+  const pendingZoneFlights = flights.filter((f) => f.zone_report_status === 'pendiente' && f.pilot_person_id === context?.personId);
+
+  // La notificación de salida de zona enlaza a ?vuelo=<id>: al llegar, se abre el diálogo de motivos
+  // para ese vuelo si sigue pendiente y es del piloto actual. Se hace una sola vez por carga.
+  useEffect(() => {
+    if (zoneParamHandled || !context?.personId || !flights.length) return;
+    const wanted = new URLSearchParams(window.location.search).get('vuelo');
+    if (!wanted) return;
+    const match = pendingZoneFlights.find((f) => f.id === wanted);
+    if (match) setZoneReportFlight(match);
+    setZoneParamHandled(true);
+  }, [flights, context?.personId, zoneParamHandled, pendingZoneFlights]);
 
   // Con filtro de piloto se suma lo cargado de ese piloto; sin filtro se usan los totales reales de la organización.
   const useServerTotals = totals && !pilotFilter;
@@ -389,6 +421,29 @@ export default function BitacoraPage() {
         </div>
       )}
 
+      {pendingZoneFlights.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 space-y-2">
+          <p className="text-sm font-black text-amber-900 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-base">wrong_location</span>
+            {pendingZoneFlights.length === 1 ? 'Un vuelo salió de la zona de operación' : `${pendingZoneFlights.length} vuelos salieron de la zona de operación`}
+          </p>
+          <ul className="space-y-1.5">
+            {pendingZoneFlights.map((f) => (
+              <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="text-amber-800 min-w-0 truncate">{formatDate(f.takeoff_at)}{f.aircraft?.serial_number ? ` · ${f.aircraft.serial_number}` : ''}</span>
+                <button
+                  type="button"
+                  onClick={() => setZoneReportFlight(f)}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-amber-600 text-white px-3 py-1.5 text-xs font-bold hover:bg-amber-700"
+                >
+                  Reportar motivos
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <button
           type="button"
@@ -404,6 +459,39 @@ export default function BitacoraPage() {
 
         {showImport && (
           <div className="p-5 border-t border-navy-50 space-y-4">
+            {/* Zona de operación del lote — opcional. Si se define, cada vuelo importado se evalúa
+                contra ella (sale/no sale) con la traza GPS del log. Vale para todo el lote. */}
+            <div className="rounded-2xl border border-navy-100 p-4 bg-cyan-50/30">
+              <p className="text-xs font-black uppercase text-navy tracking-wide flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-base text-cyan-600">my_location</span>
+                Zona de operación <span className="text-navy-300 font-semibold normal-case">(opcional)</span>
+              </p>
+              <p className="text-[11px] text-navy-400 mt-1">
+                Si defines la zona, cada vuelo importado se revisa: si el dron salió, se te pedirá el motivo y se avisará al Gerente SMS.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  value={zoneGeoType}
+                  onChange={(e) => { setZoneGeoType(e.target.value); setImportZone(null); }}
+                  className="rounded-xl border border-navy-200 px-2.5 py-2 text-sm bg-white"
+                  aria-label="Tipo de zona"
+                >
+                  <option value="polygon">Polígono (área)</option>
+                  <option value="circle">Círculo (radio)</option>
+                  <option value="linear">Pasillo (línea)</option>
+                </select>
+                <Button variant="ghost" onClick={() => setShowZonePicker(true)}>
+                  {importZone ? 'Editar zona en el mapa' : 'Definir zona en el mapa'}
+                </Button>
+                {importZone && (
+                  <span className="inline-flex items-center gap-2 text-xs font-bold text-cyan-800 bg-cyan-100 border border-cyan-200 rounded-lg px-2.5 py-1">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                    Zona definida ({importZone.points?.length || 0} punto{(importZone.points?.length || 0) === 1 ? '' : 's'})
+                    <button type="button" onClick={() => setImportZone(null)} className="text-cyan-700 hover:text-red-600" aria-label="Quitar zona">✕</button>
+                  </span>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Carga manual — RC / RC2, sin app compañera que sincronice sola */}
               <div className="rounded-2xl border border-navy-100 p-4 bg-navy-50/20">
@@ -852,6 +940,27 @@ export default function BitacoraPage() {
           flightLabel={`${formatDate(replayFlight.takeoff_at)} · ${replayFlight.pilot?.full_name || 'Vuelo'}`}
           takeoffAt={replayFlight.takeoff_at}
           onClose={() => setReplayFlight(null)}
+        />
+      )}
+
+      {showZonePicker && (
+        <MapPickerModal
+          type={zoneGeoType}
+          points={importZone?.points || []}
+          onSave={({ points, radius }) => {
+            setImportZone({ geoType: zoneGeoType, points, radius });
+            setShowZonePicker(false);
+          }}
+          onClose={() => setShowZonePicker(false)}
+        />
+      )}
+
+      {zoneReportFlight && (
+        <ZoneReportDialog
+          flight={zoneReportFlight}
+          excursion={zoneReportFlight.zone_excursion}
+          onClose={() => setZoneReportFlight(null)}
+          onDone={() => { setZoneReportFlight(null); loadFlights(organizationId); }}
         />
       )}
     </div>

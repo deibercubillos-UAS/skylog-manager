@@ -20,7 +20,8 @@ import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { asBogotaInstant } from '@/lib/v2/dispatchContext';
 import { logAudit } from '@/lib/v2/auditLog';
 import { dbError } from '@/lib/v2/apiErrors';
-import { validateReplayPayload } from '@skylog/domain';
+import { createNotifications } from '@/lib/v2/notify';
+import { validateReplayPayload, normalizeReplay, evaluateZoneExcursion } from '@skylog/domain';
 
 export async function GET(request, { params }) {
   params = await params;
@@ -29,7 +30,7 @@ export async function GET(request, { params }) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;
-  const { data, error } = await supabase.from('flights').select('replay_track').eq('id', id).maybeSingle();
+  const { data, error } = await supabase.from('flights').select('replay_track, zone_geo, zone_excursion').eq('id', id).maybeSingle();
   if (error) return Response.json({ error: 'Error consultando el replay' }, { status: 500 });
   if (!data) return Response.json({ error: 'Vuelo no encontrado' }, { status: 404 });
   if (!data.replay_track) return Response.json({ error: 'Este vuelo no tiene replay GPS' }, { status: 404 });
@@ -58,7 +59,7 @@ export async function GET(request, { params }) {
     }
   }
 
-  return Response.json({ track: data.replay_track });
+  return Response.json({ track: data.replay_track, zoneGeo: data.zone_geo, zoneExcursion: data.zone_excursion });
 }
 
 // PUT — actualiza el replay de un vuelo ya guardado con los datos de su log (palancas, satélites, señal, alertas…), p. ej. un vuelo
@@ -78,7 +79,7 @@ export async function PUT(request, { params }) {
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado' }, { status: 404 });
 
   // La RLS decide si ve el vuelo (su piloto o un gestor); si no, «no encontrado».
-  const { data: flight, error: fetchError } = await supabase.from('flights').select('id, organization_id, pilot_person_id, takeoff_at').eq('id', id).maybeSingle();
+  const { data: flight, error: fetchError } = await supabase.from('flights').select('id, organization_id, pilot_person_id, takeoff_at, zone_geo, zone_report_status').eq('id', id).maybeSingle();
   if (fetchError) return dbError(fetchError, 'flights/[id]/replay');
   if (!flight) return Response.json({ error: 'Vuelo no encontrado' }, { status: 404 });
   const allowed = membershipsCanEdit(memberships, flight.organization_id, 'D6') || (flight.pilot_person_id === personId && membershipsCanEdit(memberships, flight.organization_id, 'D4'));
@@ -102,5 +103,56 @@ export async function PUT(request, { params }) {
   const { error: updateError } = await admin.from('flights').update({ replay_track: check.value }).eq('id', id);
   if (updateError) return dbError(updateError, 'flights/[id]/replay');
   await logAudit({ organizationId: flight.organization_id, action: 'update', module: 'flights', entityLabel: `Replay actualizado del vuelo del ${String(flight.takeoff_at).slice(0, 10)}`, metadata: { flightId: id, formato: check.value.v ? 'v2' : 'lista' } });
-  return Response.json({ ok: true });
+
+  // Salida de zona: si el vuelo ya trae zona (p. ej. precargada al cerrar un despacho desde la
+  // misión) y ahora se le adjunta la traza GPS, se evalúa. Si el dron se salió, se marca el vuelo,
+  // se le pide al piloto el reporte de motivos y se avisa al Gerente SMS. No reabre un reporte ya en
+  // curso o enviado. Best-effort: nunca rompe la actualización del replay.
+  let zoneExcursion = null;
+  if (flight.zone_geo) {
+    try {
+      const { points } = normalizeReplay(check.value);
+      const { data: org } = await admin
+        .from('organizations')
+        .select('zone_excursion_margin_m, zone_excursion_min_duration_s')
+        .eq('id', flight.organization_id)
+        .maybeSingle();
+      const result = evaluateZoneExcursion(points, flight.zone_geo, {
+        marginM: org?.zone_excursion_margin_m,
+        minDurationS: org?.zone_excursion_min_duration_s,
+      });
+      if (result.applicable) {
+        zoneExcursion = result;
+        const opensReport = result.outside && flight.zone_report_status == null;
+        await admin
+          .from('flights')
+          .update({ zone_excursion: result, ...(opensReport ? { zone_report_status: 'pendiente' } : {}) })
+          .eq('id', id);
+        if (opensReport) {
+          const label = `El vuelo salió de la zona de operación (hasta ${result.maxExceedM} m fuera del perímetro)`;
+          const link = `/operacion/bitacora?vuelo=${id}`;
+          await createNotifications({
+            organizationId: flight.organization_id, personIds: [flight.pilot_person_id], type: 'zona_excursion',
+            title: 'Tu vuelo salió de la zona de operación',
+            body: `${label}. Registra los motivos para el seguimiento de seguridad operacional (SMS).`,
+            link, actorPersonId: personId, includeActor: true,
+            dedupeKey: `zona_excursion_piloto:${id}`,
+            metadata: { flightId: id, maxExceedM: result.maxExceedM },
+          }, admin);
+          await createNotifications({
+            organizationId: flight.organization_id, roles: ['gerente_sms'], type: 'zona_excursion',
+            title: 'Salida de zona detectada en un vuelo',
+            body: `${label}. Queda pendiente el reporte de motivos del piloto.`,
+            link, actorPersonId: personId,
+            dedupeKey: `zona_excursion_sms:${id}`,
+            metadata: { flightId: id, maxExceedM: result.maxExceedM },
+          }, admin);
+        }
+      }
+    } catch (e) {
+      console.error('[flights/replay] evaluación de salida de zona falló:', e.message);
+    }
+  }
+
+  return Response.json({ ok: true, zoneExcursion });
 }

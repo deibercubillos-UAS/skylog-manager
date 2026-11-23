@@ -60,3 +60,4 @@ export * from './flightEdit.js';
 export * from './paginate.js';
 export * from './apiErrors.js';
 export * from './flightTelemetry.js';
+export * from './zoneExcursion.js';

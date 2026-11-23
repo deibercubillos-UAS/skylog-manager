@@ -11,8 +11,9 @@
 // servicio o despachar cuando el piloto ya está en el límite (lib/v2/serviceGates.js).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
-import { evaluateFlightLimits, fetchAllPages, FLIGHT_PILOT_ROLES, validateReplayPayload } from '@skylog/domain';
+import { evaluateFlightLimits, fetchAllPages, FLIGHT_PILOT_ROLES, validateReplayPayload, validateZoneGeo, evaluateZoneExcursion, normalizeReplay } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
+import { createNotifications } from '@/lib/v2/notify';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { asBogotaInstant } from '@/lib/v2/dispatchContext';
@@ -76,7 +77,7 @@ export async function GET(request) {
   const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
   const { data: flights, error } = await supabase
     .from('flights')
-    .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
+    .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, zone_report_status, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
     .eq('organization_id', organizationId)
     .order('takeoff_at', { ascending: false })
     .order('id')
@@ -113,7 +114,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack, location, notes, externalRef, flightRules, alerts, importToken } = body;
+  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack, zoneGeo, location, notes, externalRef, flightRules, alerts, importToken } = body;
 
   if (!organizationId || !takeoffAt || !landingAt || !totalTime) {
     return Response.json({ error: 'organizationId, takeoffAt, landingAt y totalTime son requeridos' }, { status: 400 });
@@ -189,6 +190,11 @@ export async function POST(request) {
   const replayCheck = replayTrack == null ? null : validateReplayPayload(replayTrack);
   const validReplayTrack = replayCheck?.ok ? replayCheck.value : null;
 
+  // Zona de operación del vuelo (decisión del usuario: la zona vive en el vuelo). Se valida la
+  // geometría que manda el cliente; una inválida se descarta en silencio (el vuelo se guarda igual,
+  // solo sin zona, igual que el replay). La evaluación de salida se hace más abajo, tras el insert.
+  const validZoneGeo = zoneGeo == null ? null : validateZoneGeo(zoneGeo);
+
   // El vuelo se escribe con la llave de servicio, no con la sesión: aquí ya se verificó la persona, la membresía y el rol
   // (D4/D5), el token de importación, la ventana de duración y que la aeronave sea de la organización. Con la sesión, la RLS
   // dejaba a cualquier piloto insertar vuelos directo por PostgREST saltándose todo eso (auditoría 2026-11-12); la
@@ -206,6 +212,7 @@ export async function POST(request) {
       visual_condition: visualCondition || null,
       mission_type: missionType || null,
       replay_track: validReplayTrack,
+      zone_geo: validZoneGeo,
       location: typeof location === 'string' && location.trim() ? location.trim().slice(0, 300) : null,
       notes: typeof notes === 'string' && notes.trim() ? notes.trim().slice(0, 2000) : null,
       external_ref: typeof externalRef === 'string' && externalRef.trim() ? externalRef.trim().slice(0, 100) : null,
@@ -275,5 +282,57 @@ export async function POST(request) {
     }
   }
 
-  return Response.json({ flight: data, checks: { monthly: limits.monthly, daily: limits.daily }, dutyWarnings: limits.warnings });
+  // Salida de zona: si el vuelo trae zona y traza GPS real, se evalúa la traza contra la zona con los
+  // umbrales configurables de la organización (margen + tiempo sostenido). Si el dron se salió, se
+  // marca el vuelo, se le PIDE al piloto el reporte de motivos y se AVISA al Gerente SMS para que
+  // verifique y haga seguimiento. Best-effort: nunca rompe el registro del vuelo (igual que los correos).
+  let zoneExcursion = null;
+  if (validZoneGeo && validReplayTrack) {
+    try {
+      const { points } = normalizeReplay(validReplayTrack);
+      const { data: org } = await admin
+        .from('organizations')
+        .select('zone_excursion_margin_m, zone_excursion_min_duration_s')
+        .eq('id', organizationId)
+        .maybeSingle();
+      const result = evaluateZoneExcursion(points, validZoneGeo, {
+        marginM: org?.zone_excursion_margin_m,
+        minDurationS: org?.zone_excursion_min_duration_s,
+      });
+      if (result.applicable) {
+        zoneExcursion = result;
+        await admin
+          .from('flights')
+          .update({ zone_excursion: result, zone_report_status: result.outside ? 'pendiente' : null })
+          .eq('id', data.id);
+
+        if (result.outside) {
+          const label = `El vuelo salió de la zona de operación (hasta ${result.maxExceedM} m fuera del perímetro)`;
+          const link = `/operacion/bitacora?vuelo=${data.id}`;
+          // Al piloto: debe registrar los motivos.
+          await createNotifications({
+            organizationId, personIds: [personId], type: 'zona_excursion',
+            title: 'Tu vuelo salió de la zona de operación',
+            body: `${label}. Registra los motivos para el seguimiento de seguridad operacional (SMS).`,
+            link, actorPersonId: personId, includeActor: true,
+            dedupeKey: `zona_excursion_piloto:${data.id}`,
+            metadata: { flightId: data.id, maxExceedM: result.maxExceedM },
+          }, admin);
+          // Al Gerente SMS: para que verifique y prepare el seguimiento del caso.
+          await createNotifications({
+            organizationId, roles: ['gerente_sms'], type: 'zona_excursion',
+            title: 'Salida de zona detectada en un vuelo',
+            body: `${label}. Queda pendiente el reporte de motivos del piloto.`,
+            link, actorPersonId: personId,
+            dedupeKey: `zona_excursion_sms:${data.id}`,
+            metadata: { flightId: data.id, maxExceedM: result.maxExceedM },
+          }, admin);
+        }
+      }
+    } catch (e) {
+      console.error('[flights] evaluación de salida de zona falló:', e.message);
+    }
+  }
+
+  return Response.json({ flight: data, checks: { monthly: limits.monthly, daily: limits.daily }, dutyWarnings: limits.warnings, zoneExcursion });
 }

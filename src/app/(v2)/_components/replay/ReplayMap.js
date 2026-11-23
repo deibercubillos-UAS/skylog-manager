@@ -87,7 +87,16 @@ function SatelliteLayers({ onCoverage }) {
   return null;
 }
 
-function Controller({ points, events, home, onReady, follow, onZoom }) {
+// Dibuja la zona de operación del vuelo (si la hay): el perímetro contra el que se evaluó la salida.
+function drawZone(map, zone, add) {
+  if (!zone || !Array.isArray(zone.points) || !zone.points.length) return;
+  const style = { color: '#22d3ee', weight: 2, opacity: 0.9, fillColor: '#22d3ee', fillOpacity: 0.08, dashArray: '6 5' };
+  if (zone.geoType === 'polygon' && zone.points.length >= 3) add(L.polygon(zone.points.map((p) => [p.lat, p.lng]), style));
+  else if (zone.geoType === 'linear' && zone.points.length >= 2) add(L.polyline(zone.points.map((p) => [p.lat, p.lng]), { ...style, fillOpacity: 0 }));
+  else if (zone.geoType === 'circle' && zone.points.length === 1 && zone.radius > 0) add(L.circle([zone.points[0].lat, zone.points[0].lng], { ...style, radius: zone.radius }));
+}
+
+function Controller({ points, events, home, zone, onReady, follow, onZoom }) {
   const map = useMap();
   const followRef = useRef(follow);
   followRef.current = follow;
@@ -98,6 +107,7 @@ function Controller({ points, events, home, onReady, follow, onZoom }) {
     const layers = [];
     const add = (l) => { l.addTo(map); layers.push(l); return l; };
 
+    drawZone(map, zone, add);
     add(L.polyline(all, { color: '#e2e8f0', weight: 2.5, opacity: 0.55, dashArray: '4 6' }));
     const played = add(L.polyline([], { color: '#EC5B13', weight: 4, opacity: 0.95 }));
     const tail = add(L.polyline([], { color: '#EC5B13', weight: 4, opacity: 0.95 })); // del último punto guardado a la posición exacta del dron
@@ -146,11 +156,11 @@ function Controller({ points, events, home, onReady, follow, onZoom }) {
     });
     return () => { map.off('zoomend', reportZoom); layers.forEach((l) => l.remove()); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, points, events, home]);
+  }, [map, points, events, home, zone]);
   return null;
 }
 
-export default function ReplayMap({ points, events, home, layer, follow, onReady, onZoom, onCoverage }) {
+export default function ReplayMap({ points, events, home, zone, layer, follow, onReady, onZoom, onCoverage }) {
   const c = points[Math.floor(points.length / 2)];
   return (
     <MapContainer center={[c.lat, c.lng]} zoom={16} maxZoom={MAX_ZOOM} zoomSnap={0.5} zoomDelta={1} wheelPxPerZoomLevel={80} style={{ height: '100%', width: '100%', background: '#0f1420' }} zoomControl={false} attributionControl>
@@ -159,7 +169,7 @@ export default function ReplayMap({ points, events, home, layer, follow, onReady
       ) : (
         <SatelliteLayers onCoverage={onCoverage} />
       )}
-      <Controller points={points} events={events} home={home} onReady={onReady} follow={follow} onZoom={onZoom} />
+      <Controller points={points} events={events} home={home} zone={zone} onReady={onReady} follow={follow} onZoom={onZoom} />
     </MapContainer>
   );
 }

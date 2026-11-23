@@ -20,6 +20,8 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
   const [state, setState] = useState('loading'); // loading | ready | error
   const [error, setError] = useState(null);
   const [replay, setReplay] = useState(null);
+  const [zone, setZone] = useState(null); // geometría de la zona de operación del vuelo (si la hay)
+  const [excursion, setExcursion] = useState(null); // resultado de la evaluación de salida de zona
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(2);
   const [snap, setSnap] = useState({ t: 0 });
@@ -43,6 +45,8 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
       const r = normalizeReplay(data.track);
       if (r.points.length < 2) throw new Error('El replay de este vuelo no tiene puntos GPS válidos');
       setReplay(r);
+      setZone(data.zoneGeo || null);
+      setExcursion(data.zoneExcursion || null);
       setState('ready');
     } catch (e) {
       setError(e.message);
@@ -146,6 +150,12 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary-300">Replay del vuelo</p>
             <p className="text-sm font-bold text-white truncate">{flightLabel || 'Vuelo'}</p>
+            {excursion?.outside && (
+              <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-100 bg-amber-600/30 border border-amber-400/40 rounded-lg px-2.5 py-1">
+                <span className="material-symbols-outlined text-sm">wrong_location</span>
+                Salió de la zona de operación · hasta {excursion.maxExceedM} m fuera{excursion.segments?.length ? ` · ${excursion.segments.length} tramo(s)` : ''}
+              </div>
+            )}
             {state === 'ready' && <div className="mt-1.5 hidden sm:block"><SummaryChips summary={summary} /></div>}
             {state === 'ready' && replay.legacy && (
               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-amber-200 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-1.5">
@@ -169,7 +179,7 @@ export default function FlightReplayViewer({ flightId, flightLabel, takeoffAt, o
           <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
             <div className="flex flex-col min-h-0 lg:flex-1 h-[46%] lg:h-auto">
               <div className="relative flex-1 min-h-0">
-                <ReplayMap points={points} events={replay.events} home={replay.home} layer={layer} follow={follow} onReady={onMapReady} onZoom={setZoom} onCoverage={setCoverage} />
+                <ReplayMap points={points} events={replay.events} home={replay.home} zone={zone} layer={layer} follow={follow} onReady={onMapReady} onZoom={setZoom} onCoverage={setCoverage} />
                 {banner && (
                   <div className={`absolute top-3 left-3 right-16 z-[500] rounded-xl px-3 py-2 text-white text-sm font-bold shadow-lg ${SEV_BANNER[banner.s] || SEV_BANNER[0]}`}>
                     <span className="material-symbols-outlined text-base align-middle mr-1">{banner.s >= 1 ? 'warning' : 'info'}</span>

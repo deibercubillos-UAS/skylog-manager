@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ManualFormPanel from './_ManualFormPanel';
+import ReclassifyPanel from './_ReclassifyPanel';
 import AckRosterPanel from './_AckRosterPanel';
 import { CATEGORIES, CATEGORY_META } from './_categoryMeta';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
@@ -49,6 +50,7 @@ export default function ManualesPage() {
 
   const [showNewPanel, setShowNewPanel] = useState(false);
   const [versionTarget, setVersionTarget] = useState(null);
+  const [reclassifyTarget, setReclassifyTarget] = useState(null);
   const [rosterTarget, setRosterTarget] = useState(null);
   const [historyOpenId, setHistoryOpenId] = useState(null);
   const [history, setHistory] = useState({});
@@ -260,6 +262,7 @@ export default function ManualesPage() {
                   {isManager && (
                     <>
                       <ActionButton icon="upload" label="Nueva versión" tone="primary" onClick={() => setVersionTarget(m)} />
+                      <ActionButton icon="sell" label="Reclasificar" onClick={() => setReclassifyTarget(m)} />
                       <ActionButton icon="groups" label="Seguimiento" tone="primary" onClick={() => setRosterTarget(m.id)} />
                       <ActionButton icon="delete" label="Eliminar" tone="danger" onClick={() => handleDelete(m)} className="ml-auto" />
                     </>
@@ -315,6 +318,14 @@ export default function ManualesPage() {
             loadManuales(organizationId);
             setHistory((h) => ({ ...h, [versionTarget.id]: undefined }));
           }}
+        />
+      )}
+      {isManager && (
+        <ReclassifyPanel
+          open={!!reclassifyTarget}
+          onClose={() => setReclassifyTarget(null)}
+          manual={reclassifyTarget}
+          onSaved={() => loadManuales(organizationId)}
         />
       )}
       {isManager && <AckRosterPanel open={!!rosterTarget} onClose={() => setRosterTarget(null)} manualId={rosterTarget} />}

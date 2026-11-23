@@ -2,11 +2,12 @@
 
 // Skylog V2.0 — reporte público de un suceso, SIN cuenta (/reportar/<token>). Pensado para terceros, socios y
 // contratistas de una organización (RAC 219: deben poder notificar). Vive FUERA del grupo (v2): no hereda el
-// shell autenticado. Todo se valida de nuevo en el servidor (api/public/sms-report/[token]).
-import { useEffect, useRef, useState } from 'react';
+// shell autenticado. El ENLACE define el tipo (MOR o VOR, 40b): el formulario se arma desde la definición de
+// ese tipo (campos estándar visibles + preguntas propias, sin aeronave/vuelo). Todo se revalida en el servidor.
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { Field, Button } from '@skylog/ui';
-import { UAS_EVENT_OPTIONS, OTHER_EVENT_ID } from '@skylog/domain';
+import { UAS_EVENT_OPTIONS, OTHER_EVENT_ID, REPORT_SEVERITY_LEVELS, validateReportFormSubmission } from '@skylog/domain';
 import { toBogotaInput, toBogotaIso, formatBytes } from '../../(v2)/sms/_components/tracking';
 
 const MAX_FILES = 3;
@@ -20,8 +21,10 @@ const SEVERITIES = [
 export default function ReportarPage() {
   const { token } = useParams();
   const [org, setOrg] = useState(null);
+  const [fields, setFields] = useState(null);
   const [unavailable, setUnavailable] = useState(null);
   const [form, setForm] = useState({ eventId: '', eventCode: '', eventLabel: '', severity: 'incidente', occurredAt: toBogotaInput(new Date()), location: '', description: '', contact: '', confidential: false, website: '' });
+  const [customValues, setCustomValues] = useState({});
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -35,6 +38,7 @@ export default function ReportarPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Enlace no disponible');
         setOrg(data.organization);
+        setFields(data.fields || []);
       } catch (e) {
         setUnavailable(e.message);
       }
@@ -42,7 +46,20 @@ export default function ReportarPage() {
   }, [token]);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const setCustom = (id, value) => setCustomValues((c) => ({ ...c, [id]: value }));
   const totalBytes = files.reduce((s, f) => s + f.size, 0);
+
+  const preview = useMemo(
+    () =>
+      validateReportFormSubmission({
+        fieldDefs: fields || [],
+        standardValues: { event: form.eventId, severity: form.severity, occurred_at: toBogotaIso(form.occurredAt) || '', location: form.location, description: form.description, confidential: form.confidential },
+        customValues,
+        now: new Date().toISOString(),
+        severities: REPORT_SEVERITY_LEVELS,
+      }),
+    [fields, form, customValues]
+  );
 
   function addFiles(list) {
     const next = [...files];
@@ -58,6 +75,7 @@ export default function ReportarPage() {
 
   async function submit(e) {
     e.preventDefault();
+    if (!preview.ok) return setError(preview.errors.join(' '));
     setBusy(true);
     setError(null);
     try {
@@ -75,6 +93,7 @@ export default function ReportarPage() {
           location: form.location,
           contact: form.contact,
           confidential: form.confidential,
+          customFields: customValues,
         })
       );
       files.forEach((f) => fd.append('files', f));
@@ -125,7 +144,85 @@ export default function ReportarPage() {
     );
   }
 
-  if (!org) return shell(<div className="h-48 rounded-2xl bg-white animate-pulse" />);
+  if (!org || !fields) return shell(<div className="h-48 rounded-2xl bg-white animate-pulse" />);
+
+  const lbl = (f) => `${f.label}${f.required ? ' *' : ''}`;
+
+  function renderCustom(f) {
+    const v = customValues[f.id] ?? '';
+    const label = lbl(f);
+    if (f.input_type === 'boolean') {
+      return (
+        <label key={f.id} className="flex items-start gap-2 text-xs text-navy-500 mb-2 py-1">
+          <input type="checkbox" className="mt-0.5 w-5 h-5 shrink-0 accent-primary" checked={v === true} onChange={(e) => setCustom(f.id, e.target.checked)} />
+          {label}
+        </label>
+      );
+    }
+    if (f.input_type === 'select') {
+      return (
+        <Field key={f.id} as="select" label={label} value={v} onChange={(e) => setCustom(f.id, e.target.value)}>
+          <option value="">— Elige —</option>
+          {(f.options || []).map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </Field>
+      );
+    }
+    const typeAttr = f.input_type === 'number' ? 'number' : f.input_type === 'date' ? 'date' : 'text';
+    return <Field key={f.id} label={label} as={f.input_type === 'textarea' ? 'textarea' : undefined} type={f.input_type === 'textarea' ? undefined : typeAttr} value={v} onChange={(e) => setCustom(f.id, e.target.value)} />;
+  }
+
+  function renderField(f) {
+    if (f.kind === 'custom') return renderCustom(f);
+    switch (f.field_key) {
+      case 'event':
+        return (
+          <div key="event">
+            <Field as="select" label={lbl(f)} value={form.eventId} onChange={(e) => set({ eventId: e.target.value })}>
+              <option value="">— Elige el tipo de suceso —</option>
+              {UAS_EVENT_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
+              <option value={OTHER_EVENT_ID}>Otro suceso (lo describo abajo)</option>
+            </Field>
+            {form.eventId === OTHER_EVENT_ID && <Field label="¿Cómo lo llamarías?" value={form.eventLabel} onChange={(e) => set({ eventLabel: e.target.value })} />}
+          </div>
+        );
+      case 'severity':
+        return (
+          <div key="severity">
+            <p className="text-xs font-medium text-navy-400 mb-1">{lbl(f)} — ¿qué tan grave fue?</p>
+            <div className="space-y-1.5 mb-3">
+              {SEVERITIES.map(([value, label, help]) => (
+                <label key={value} className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-sm cursor-pointer ${form.severity === value ? 'border-primary bg-primary-50/50' : 'border-navy-100'}`}>
+                  <input type="radio" name="severity" className="mt-1" checked={form.severity === value} onChange={() => set({ severity: value })} />
+                  <span>
+                    <span className="font-semibold text-navy">{label}</span>
+                    <span className="block text-xs text-navy-400">{help}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      case 'occurred_at':
+        return <Field key="occurred_at" label={lbl(f)} type="datetime-local" value={form.occurredAt} onChange={(e) => set({ occurredAt: e.target.value })} />;
+      case 'location':
+        return <Field key="location" label={lbl(f)} value={form.location} onChange={(e) => set({ location: e.target.value })} />;
+      case 'description':
+        return <Field key="description" as="textarea" label={lbl(f)} className="min-h-[120px]" value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Qué pasó, cuándo en la operación y qué se hizo en el momento." required />;
+      case 'confidential':
+        return (
+          <label key="confidential" className="flex items-start gap-3 text-xs text-navy-500 mb-3 py-2">
+            <input type="checkbox" className="mt-0.5 w-5 h-5 shrink-0 accent-primary" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
+            Mantener mi contacto confidencial: solo lo verá el Gerente SMS.
+          </label>
+        );
+      default:
+        return null;
+    }
+  }
 
   return shell(
     <form onSubmit={submit} className="bg-white rounded-2xl border border-navy-100 p-5 space-y-1">
@@ -137,38 +234,7 @@ export default function ReportarPage() {
         </label>
       </div>
 
-      <Field as="select" label="¿Qué ocurrió?" value={form.eventId} onChange={(e) => set({ eventId: e.target.value })}>
-        <option value="">— Elige el tipo de suceso —</option>
-        {UAS_EVENT_OPTIONS.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
-        <option value={OTHER_EVENT_ID}>Otro suceso (lo describo abajo)</option>
-      </Field>
-      {form.eventId === OTHER_EVENT_ID && <Field label="¿Cómo lo llamarías?" value={form.eventLabel} onChange={(e) => set({ eventLabel: e.target.value })} />}
-
-      <div>
-        <p className="text-xs font-medium text-navy-400 mb-1">¿Qué tan grave fue?</p>
-        <div className="space-y-1.5 mb-3">
-          {SEVERITIES.map(([value, label, help]) => (
-            <label key={value} className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-sm cursor-pointer ${form.severity === value ? 'border-primary bg-primary-50/50' : 'border-navy-100'}`}>
-              <input type="radio" name="severity" className="mt-1" checked={form.severity === value} onChange={() => set({ severity: value })} />
-              <span>
-                <span className="font-semibold text-navy">{label}</span>
-                <span className="block text-xs text-navy-400">{help}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-        <Field label="¿Cuándo ocurrió? (hora de Colombia)" type="datetime-local" value={form.occurredAt} onChange={(e) => set({ occurredAt: e.target.value })} />
-        <Field label="¿Dónde? (opcional)" value={form.location} onChange={(e) => set({ location: e.target.value })} />
-      </div>
-
-      <Field as="textarea" label="Cuenta qué pasó" className="min-h-[120px]" value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Qué pasó, cuándo en la operación y qué se hizo en el momento." required />
+      {fields.map(renderField)}
 
       <div className="rounded-xl border border-navy-100 p-3 mb-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -189,10 +255,6 @@ export default function ReportarPage() {
       </div>
 
       <Field label="Tu contacto (opcional)" value={form.contact} onChange={(e) => set({ contact: e.target.value })} placeholder="Teléfono o correo, por si hay que pedirte más información" />
-      <label className="flex items-start gap-3 text-xs text-navy-500 mb-3 py-2">
-        <input type="checkbox" className="mt-0.5 w-5 h-5 shrink-0 accent-primary" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
-        Mantener mi contacto confidencial: solo lo verá el Gerente SMS.
-      </label>
 
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
       <Button type="submit" disabled={busy || totalBytes > MAX_TOTAL} className="w-full">

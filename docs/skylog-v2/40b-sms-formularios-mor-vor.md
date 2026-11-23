@@ -69,11 +69,15 @@ Decisiones del usuario (AskUserQuestion, 2026-11-23):
   contra la definición (`validateReportFormSubmission`) y guardan `custom_fields`. Compatible hacia atrás: sin
   filas de definición se usa el catálogo estándar. El orden nativo del formulario interno se conserva (el orden
   configurable lo honra el formulario público genérico en F4). Verif.: lint, build, test:domain 717/717.
-- **F4 — Enlaces por tipo + formularios públicos.** API `/api/sms/public-links` por tipo
-  (activar/regenerar/desactivar, QR) y su sección en `/sms/reportes`; `/reportar/{token}` resuelve el tipo por
-  el token, renderiza la definición de ese tipo (estándar + propias) y envía con ese tipo; grave→rac114; MOR
-  público conserva la compuerta de análisis; se retira el `organizations.sms_public_token` único. Verif.:
-  lint/build; prueba del flujo público.
+- **F4 — Enlaces por tipo + formularios públicos. Hecho.** API `/api/sms/public-links` por tipo
+  (activar/regenerar/desactivar) y su sección `_PublicLinks` en `/sms/reportes`; `/reportar/{token}` resuelve el
+  tipo por el token (tabla `sms_report_public_links`), renderiza la definición de ese tipo en orden (estándar
+  visibles + propias, sin aeronave/vuelo) y envía con ese tipo; `routeForPublicLink`: grave→RAC 114 por
+  cualquier enlace, MOR público conserva la compuerta de análisis (`requires_manager_analysis`). Se retiró el
+  enlace único: borrados `_PublicLink.js` y `/api/sms/public-link`; el endpoint público ya no lee
+  `organizations.sms_public_token` (la columna queda, sin uso; los 3 tokens VOR ya estaban migrados, 0 sin
+  migrar). Verif.: lint, build, test:domain 717/717; migración de tokens confirmada.
+  QR: pendiente (el enlace se copia; generar la imagen QR requeriría una dependencia).
 - **F5 — Docs + despliegue.** Matriz (U11/U12, reemplazo de U9), `70`, `00-INDICE`, bitácora; `lint`+`build`+
   `test:domain`; `git push origin main`; verificación en vivo.
 

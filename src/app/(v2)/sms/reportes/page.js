@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ReportForm from './_ReportForm';
-import PublicLink from './_PublicLink';
+import PublicLinks from './_PublicLinks';
 import FormBuilder from './_FormBuilder';
 import {
   SEVERITY_LABELS,
@@ -332,7 +332,7 @@ export default function SmsReportesPage() {
       {['gerente_sms', 'admin', 'superadmin'].includes(currentOrg?.role) && (
         <>
           <FormBuilder organizationId={organizationId} />
-          <PublicLink organizationId={organizationId} />
+          <PublicLinks organizationId={organizationId} />
         </>
       )}
 

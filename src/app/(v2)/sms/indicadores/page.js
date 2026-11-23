@@ -16,7 +16,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
-import AnnualSubmission from './_AnnualSubmission';
 import { MONTH_LABELS, DEFENSE_TYPE_LABELS } from '@/lib/safetyIndicatorStats';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
@@ -511,8 +510,6 @@ export default function IndicadoresPage() {
         <StatCard icon="add_chart" color="blue" label="Indicadores propios" value={ownCount} />
         <StatCard icon="event_available" color="violet" label="Meses con ciclos capturados" value={cycles.length} />
       </div>
-
-      {organizationId && <AnnualSubmission organizationId={organizationId} isManager={isManager} />}
 
       {/* Ciclos de vuelo del mes — denominador único */}
       <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-sky-50 to-white overflow-hidden">

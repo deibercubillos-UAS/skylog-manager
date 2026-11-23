@@ -8,7 +8,7 @@ const BOT_PROBE_REGEX = /\.(php|asp|aspx|jsp|cgi|env|git|sql|bak|sh)$|wp-(admin|
 // Prefijos de las páginas de la aplicación (grupo de rutas (v2)). Todo lo demás —landing, legales, tutoriales,
 // formularios públicos como /reportar o /invitacion— es público a propósito.
 const APP_PREFIXES = [
-  '/inicio', '/flota', '/operacion', '/organizacion', '/perfil', '/polizas', '/proveedores', '/reportes', '/retencion',
+  '/inicio', '/flota', '/operacion', '/organizacion', '/perfil', '/polizas', '/proveedores', '/reportes',
   '/sms', '/suscripcion', '/aerocivil', '/capacitacion', '/manuales', '/listas-de-chequeo', '/admin', '/verificacion', '/solicitud-pendiente',
 ];
 

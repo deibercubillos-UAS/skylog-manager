@@ -153,9 +153,8 @@ const ROWS = [
   ["AB1", "Documentación · Importar, registro de acciones y retención", "Descargar la plantilla de Excel de carga inicial", "SSSNNN"],
   ["AB2", "Documentación · Importar, registro de acciones y retención", "Importar datos desde Excel (aeronaves, baterías, tripulación, pólizas)", "SSSNNN"],
   ["AB3", "Documentación · Importar, registro de acciones y retención", "Ver y exportar el registro de acciones (quién hizo qué)", "SSSNNN"],
-  ["AB4", "Documentación · Importar, registro de acciones y retención", "Ver las custodias legales", "SSSNNN"],
-  ["AB5", "Documentación · Importar, registro de acciones y retención", "Abrir o modificar una custodia legal", "SSSNNN"],
-  ["AB6", "Documentación · Importar, registro de acciones y retención", "Liberar una custodia legal", "SSNSNN", "Hoy solo Gerente General y Gerente SMS."],
+  // AB4-AB6 (custodia legal) retirados el 2026-11-23: la sección de usuario se eliminó. La custodia y la
+  // retención de 5 años siguen vigentes a nivel de base de datos (triggers de 20261005010000), sin pantalla.
   ["AC1", "Documentación · Reportes", "Generar reportes (vuelos, flota, baterías, mantenimiento, programación, proveedores, ETA, servicio)", "SSSSNN"],
   ["AC2", "Documentación · Reportes", "Generar el reporte de tripulación (datos personales)", "SSSSNN"],
   ["AD1", "Organización", "Ver los datos de la organización, sus miembros y roles", "SSVVNV"],

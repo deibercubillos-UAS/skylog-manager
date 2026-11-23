@@ -265,15 +265,14 @@ GG y GS administran (agregar integrantes, editar actas); el Jefe de Pilotos solo
 | AA4 | Cargar, editar o eliminar un manual | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | AA5 | Publicar una nueva versión | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 
-### Documentación · Importar, registro de acciones y retención
+### Documentación · Importar y registro de acciones
 | | Función | SA | GG | JP | GS | P | PI |
 |---|---|---|---|---|---|---|---|
 | AB1 | Descargar la plantilla de Excel de carga inicial | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | AB2 | Importar datos desde Excel (aeronaves, baterías, tripulación, pólizas) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | AB3 | Ver y exportar el registro de acciones (quién hizo qué) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| AB4 | Ver las custodias legales | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| AB5 | Abrir o modificar una custodia legal | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| AB6 | Liberar una custodia legal | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+
+> **AB4–AB6 (custodia legal) retirados el 2026-11-23.** Se eliminó la sección de usuario «Retención y custodia» (página, API y menú). La custodia legal y la retención de 5 años **siguen vigentes a nivel de base de datos** (triggers de la migración `20261005010000`, 26 en producción): ningún registro bajo custodia se borra y los replays bajo custodia no se sobrescriben. Simplemente ya no hay pantalla para abrir/ver/liberar custodias; las 3 custodias existentes quedan activas.
 
 ### Documentación · Reportes
 | | Función | SA | GG | JP | GS | P | PI |
@@ -326,6 +325,5 @@ GG y GS administran (agregar integrantes, editar actas); el Jefe de Pilotos solo
 - **Pendiente (requieren construir algo nuevo):** A6 segundo factor opcional para todos · C3 recorrido de bienvenida por perfil · B5 «Ve» para el piloto (descargar sus datos) 
 - **Piloto de organización aplicado (2026-10-15):** no ve tripulación (K1), componentes (J3) ni datos de la organización (AD1) —403 en la API y pantalla oculta—, y no registra vuelos a mano (D5; importar el log del control sí). La bitácora de la organización (D1) ya la limita la RLS de `flights` a sus propios vuelos. Límite conocido: D5 distingue «manual» de «importado» por la presencia del número de serie de batería en la petición, que el cliente controla; es una barrera de interfaz y de buena fe, no una frontera fuerte. La plantilla de Excel (AB1) no se bloquea en la API: es un archivo vacío genérico; la pantalla de importación sí está oculta.
 - **Columna PI aplicada (2026-10-15):** «piloto independiente» = Gerente General + plan «piloto» + único integrante activo de su organización (`independent` en cada membresía, calculado en `resolveCurrentPerson`; el contexto entrega `independentPilot`). Advertencia: toda cuenta nueva nace en plan «piloto» (prueba de 15 días), así que una empresa recién registrada que aún no ha invitado a nadie se comporta como piloto independiente hasta que sume un integrante o pague un plan mayor.
-- **Inconsistencia a decidir:** AB6 deja a GSMS liberar una custodia legal, pero AB4/AB5 le niegan verlas y abrirlas; en la práctica no podría hacerlo desde la pantalla.
 - **Ajustes del usuario (2026-10-16, auditoría):** H1 — el Piloto sí inicia y cierra su propio período de servicio (antes 👁); AD9 — el Gerente SMS también designa cargos (antes ❌). Las rutas `/api/duty/start`, `/api/duty/end` y `/api/organizacion/designations` validan ahora esas funciones de la matriz en vez de listas de roles propias.
 - **Límites del plan Piloto (2026-10-19):** el piloto independiente (plan «piloto») ya no tiene tope de aeronaves ni de baterías (antes 1 y 3); sigue en 1 usuario. Fuente única: `src/lib/v2/planLimits.js`. Actualizados los textos de `/precios`, el FAQ de Gestión de flota y la página de operadores UAS.

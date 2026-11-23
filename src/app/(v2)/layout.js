@@ -88,7 +88,6 @@ const NAV_LINKS = [
   { name: 'Pólizas', icon: 'verified_user', href: '/polizas', group: 'Documentación', perm: 'Z1' },
   { name: 'Importar desde Excel', icon: 'upload_file', href: '/organizacion/importar', group: 'Documentación', perm: 'AB2' },
   { name: 'Registro de acciones', icon: 'history', href: '/organizacion/registro', group: 'Documentación', perm: 'AB3' },
-  { name: 'Retención y custodia', icon: 'lock_clock', href: '/retencion', group: 'Documentación', perm: 'AB4' },
   { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', perm: 'AC1' },
   { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación', perm: 'AA1' },
   // Expediente Aerocivil oculto a pedido del usuario (2026-09-30) — la página

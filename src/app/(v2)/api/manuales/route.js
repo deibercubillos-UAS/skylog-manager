@@ -68,13 +68,14 @@ export async function POST(request) {
   const ct = request.headers.get('content-type') || '';
   const isJson = ct.includes('application/json');
 
-  let organizationId, title, category, version, effectiveDate, comments, uploadedKey, declaredType, file;
+  let organizationId, title, category, categories, version, effectiveDate, comments, uploadedKey, declaredType, file;
   if (isJson) {
     let b;
     try { b = await request.json(); } catch { return Response.json({ error: 'Cuerpo inválido' }, { status: 400 }); }
     organizationId = b.organizationId;
     title = b.title;
     category = b.category;
+    categories = b.categories;
     version = b.version;
     effectiveDate = b.effectiveDate;
     comments = b.comments || '';
@@ -91,9 +92,15 @@ export async function POST(request) {
     file = form.get('file');
   }
 
+  // Un manual puede cumplir varias categorías (40-sms / pedido del usuario). `categories` es la lista; `category`
+  // (principal, primera) se conserva por compatibilidad. Valores válidos: ver manuales/_categoryMeta.js.
+  const CATEGORY_VALUES = new Set(['MO', 'SMS', 'MANTENIMIENTO', 'ORGANIZACION', 'SOP', 'OTRO']);
+  const catList = [...new Set((Array.isArray(categories) ? categories : category ? [category] : []).filter((c) => CATEGORY_VALUES.has(c)))];
+  const primaryCategory = catList[0];
+
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
   if (!title || typeof title !== 'string' || !title.trim()) return Response.json({ error: 'title es requerido' }, { status: 400 });
-  if (!category || typeof category !== 'string') return Response.json({ error: 'category es requerido' }, { status: 400 });
+  if (!catList.length) return Response.json({ error: 'Elige al menos una categoría' }, { status: 400 });
   if (!version || typeof version !== 'string' || !version.trim()) return Response.json({ error: 'version es requerido' }, { status: 400 });
   if (!effectiveDate) return Response.json({ error: 'effectiveDate es requerido' }, { status: 400 });
   if (isJson) {
@@ -115,7 +122,7 @@ export async function POST(request) {
   // archivo); si la subida/verificación falla, se revierte — mismo patrón que v1.
   const { data: manual, error: createError } = await supabase
     .from('manuales')
-    .insert({ organization_id: organizationId, title: title.trim(), category, created_by: personId })
+    .insert({ organization_id: organizationId, title: title.trim(), category: primaryCategory, categories: catList, created_by: personId })
     .select()
     .single();
   if (createError) return Response.json({ error: createError.message }, { status: 500 });

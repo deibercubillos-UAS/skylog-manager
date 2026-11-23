@@ -57,12 +57,19 @@ export async function PATCH(request, { params }) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { title, category, status } = body;
+  const { title, category, categories, status } = body;
   const patch = {};
   if (title != null) patch.title = String(title).trim();
-  if (category != null) {
+  // Varias categorías por manual: `categories` es la lista; `category` (principal) = la primera.
+  if (categories != null) {
+    const list = [...new Set((Array.isArray(categories) ? categories : []).filter((c) => CATEGORIES.has(c)))];
+    if (!list.length) return Response.json({ error: 'Elige al menos una categoría' }, { status: 400 });
+    patch.categories = list;
+    patch.category = list[0];
+  } else if (category != null) {
     if (!CATEGORIES.has(category)) return Response.json({ error: 'category inválida' }, { status: 400 });
     patch.category = category;
+    patch.categories = [category];
   }
   if (status != null) {
     if (!['active', 'archived'].includes(status)) return Response.json({ error: 'status inválido' }, { status: 400 });

@@ -66,7 +66,8 @@ function FileDropzone({ file, onChange }) {
 export default function ManualFormPanel({ open, onClose, organizationId, manual, onSaved }) {
   const isNewVersion = !!manual;
   const [title, setTitle] = useState(manual?.title || '');
-  const [category, setCategory] = useState(manual?.category || 'MO');
+  // Un manual puede cumplir varias categorías; la primera es la principal.
+  const [categories, setCategories] = useState(manual?.categories?.length ? manual.categories : manual?.category ? [manual.category] : ['MO']);
   const [version, setVersion] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
   const [comments, setComments] = useState('');
@@ -82,6 +83,10 @@ export default function ManualFormPanel({ open, onClose, organizationId, manual,
     }
     if (file.size > MAX_BYTES) {
       setError('El archivo supera el límite de 25 MB');
+      return;
+    }
+    if (!isNewVersion && !categories.length) {
+      setError('Elige al menos una categoría');
       return;
     }
     setBusy(true);
@@ -126,7 +131,7 @@ export default function ManualFormPanel({ open, onClose, organizationId, manual,
         res = await fetch('/api/manuales', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, organizationId, title, category }),
+          body: JSON.stringify({ ...payload, organizationId, title, categories }),
         });
       }
       const data = await res.json().catch(() => ({}));
@@ -140,7 +145,8 @@ export default function ManualFormPanel({ open, onClose, organizationId, manual,
     }
   }
 
-  const activeCat = CATEGORIES.find((c) => c.value === category) || CATEGORIES[0];
+  const activeCat = CATEGORIES.find((c) => c.value === (manual?.categories?.[0] || manual?.category)) || CATEGORIES[0];
+  const toggleCategory = (value) => setCategories((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
 
   return (
     <Panel open={open} onClose={onClose} eyebrow="Manuales" icon="menu_book" title={isNewVersion ? `Nueva versión — ${manual.title}` : 'Nuevo manual'}>
@@ -149,20 +155,22 @@ export default function ManualFormPanel({ open, onClose, organizationId, manual,
           <>
             <IconField icon="title" label="Título" placeholder="Ej. Manual de Operaciones" value={title} onChange={(e) => setTitle(e.target.value)} required />
             <div>
-              <span className="block text-xs font-medium text-navy-400 mb-2">Categoría</span>
+              <span className="block text-xs font-medium text-navy-400 mb-1">Categorías</span>
+              <p className="text-[11px] text-navy-400 mb-2">Marca todas las que cumple este documento (puede ser más de una — p. ej. operacional y SMS).</p>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((c) => {
-                  const selected = c.value === category;
+                  const selected = categories.includes(c.value);
                   return (
                     <button
                       key={c.value}
                       type="button"
-                      onClick={() => setCategory(c.value)}
+                      aria-pressed={selected}
+                      onClick={() => toggleCategory(c.value)}
                       className={`flex items-center gap-1.5 text-xs font-semibold rounded-full pl-2.5 pr-3 py-1.5 border transition-colors ${
                         selected ? `${c.tile} border-transparent shadow-sm` : 'bg-white border-navy-200 text-navy-500 hover:border-primary-300'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[16px]">{c.icon}</span>
+                      <span className="material-symbols-outlined text-[16px]">{selected ? 'check' : c.icon}</span>
                       {c.label}
                     </button>
                   );

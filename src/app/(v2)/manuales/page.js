@@ -16,7 +16,7 @@ import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ManualFormPanel from './_ManualFormPanel';
 import AckRosterPanel from './_AckRosterPanel';
-import { CATEGORIES } from './_categoryMeta';
+import { CATEGORIES, CATEGORY_META } from './_categoryMeta';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 function ActionButton({ icon, label, onClick, tone = 'default', disabled, className = '' }) {
@@ -136,7 +136,9 @@ export default function ManualesPage() {
     );
   }
 
-  const grouped = CATEGORIES.map((c) => ({ ...c, items: manuales.filter((m) => m.category === c.value) })).filter((g) => g.items.length);
+  // Un manual puede cumplir varias categorías: aparece bajo cada una (sus `categories`; si no las trae, su `category`).
+  const catsOf = (m) => (m.categories?.length ? m.categories : m.category ? [m.category] : []);
+  const grouped = CATEGORIES.map((c) => ({ ...c, items: manuales.filter((m) => catsOf(m).includes(c.value)) })).filter((g) => g.items.length);
   const pendingCount = manuales.filter((m) => m.current_version_id && !m.acknowledged).length;
 
   return (
@@ -215,6 +217,20 @@ export default function ManualesPage() {
                           'Sin versión publicada'
                         )}
                       </p>
+                      {catsOf(m).length > 1 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {catsOf(m).map((cv) => {
+                            const cm = CATEGORY_META[cv];
+                            if (!cm) return null;
+                            return (
+                              <span key={cv} className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${cv === g.value ? cm.tile : 'bg-white border border-navy-200 text-navy-500'}`}>
+                                <span className="material-symbols-outlined text-[12px]">{cm.icon}</span>
+                                {cm.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {m.current_version_id && (

@@ -24,7 +24,16 @@ const now = new Date();
 const CURRENT_YEAR = now.getFullYear();
 const CURRENT_MONTH = now.getMonth() + 1;
 
-function IndicatorDetail({ indicator, organizationId, isManager }) {
+function IndicatorDetail({ indicator, organizationId, isManager, onUpdated }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: indicator.name,
+    expectedImprovementPct: indicator.expected_improvement_pct ?? '',
+    active: indicator.active,
+  });
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState(null);
+
   const [monthly, setMonthly] = useState([]);
   const [monthlyForm, setMonthlyForm] = useState({ year: CURRENT_YEAR, month: CURRENT_MONTH, events: '' });
   const [monthlyBusy, setMonthlyBusy] = useState(false);
@@ -55,6 +64,35 @@ function IndicatorDetail({ indicator, organizationId, isManager }) {
     loadMonthly();
     loadActionPlans();
   }, [loadMonthly, loadActionPlans]);
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditBusy(true);
+    setEditError(null);
+    try {
+      // En un indicador oficial el nombre es inmutable (taxonomía MAUT): no se envía.
+      const payload = {
+        indicatorId: indicator.id,
+        organizationId,
+        expectedImprovementPct: editForm.expectedImprovementPct === '' ? null : Number(editForm.expectedImprovementPct),
+        active: editForm.active,
+      };
+      if (!indicator.is_official) payload.name = editForm.name;
+      const res = await fetch('/api/sms/indicators', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error guardando el indicador');
+      setEditOpen(false);
+      if (onUpdated) await onUpdated();
+    } catch (e) {
+      setEditError(e.message);
+    } finally {
+      setEditBusy(false);
+    }
+  }
 
   async function handleMonthlySubmit(e) {
     e.preventDefault();
@@ -124,6 +162,64 @@ function IndicatorDetail({ indicator, organizationId, isManager }) {
 
   return (
     <div className="mt-3 pt-4 border-t border-navy-50 space-y-5">
+      {/* Editar el indicador */}
+      {isManager && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-navy-500 uppercase tracking-wide">Editar indicador</p>
+            <button
+              type="button"
+              onClick={() => {
+                setEditError(null);
+                setEditForm({ name: indicator.name, expectedImprovementPct: indicator.expected_improvement_pct ?? '', active: indicator.active });
+                setEditOpen((v) => !v);
+              }}
+              className="flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800"
+            >
+              <span className="material-symbols-outlined text-[15px]">{editOpen ? 'close' : 'edit'}</span>
+              {editOpen ? 'Cancelar' : 'Editar'}
+            </button>
+          </div>
+          {editOpen && (
+            <form onSubmit={handleEditSubmit} className="flex flex-wrap items-end gap-2 bg-navy-50/60 rounded-xl p-2.5">
+              <Field
+                label="Nombre"
+                value={indicator.is_official ? indicator.name : editForm.name}
+                onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                className="flex-1 min-w-[220px]"
+                disabled={indicator.is_official}
+                required={!indicator.is_official}
+              />
+              <Field
+                label="Mejora esperada % (opcional)"
+                type="number"
+                value={editForm.expectedImprovementPct}
+                onChange={(e) => setEditForm((f) => ({ ...f, expectedImprovementPct: e.target.value }))}
+                className="w-40"
+              />
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-navy-600 mb-3">
+                <input
+                  type="checkbox"
+                  checked={editForm.active}
+                  onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.checked }))}
+                  className="rounded border-navy-300"
+                />
+                Activo
+              </label>
+              <Button type="submit" disabled={editBusy} className="mb-3 text-xs px-3 py-1.5">
+                {editBusy ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
+              {indicator.is_official && (
+                <p className="w-full text-[11px] text-navy-400">
+                  El nombre y la taxonomía de un indicador oficial son fijos (MAUT-1.0-22-005); solo puedes ajustar la meta y si está activo.
+                </p>
+              )}
+              {editError && <p className="w-full text-xs text-red-600">{editError}</p>}
+            </form>
+          )}
+        </div>
+      )}
+
       {/* Datos mensuales */}
       <div>
         <p className="text-xs font-bold text-navy-500 uppercase tracking-wide mb-2">Datos mensuales (eventos)</p>
@@ -470,7 +566,7 @@ export default function IndicadoresPage() {
               <p className="text-xs text-navy-400">Oficiales (MAUT-1.0-22-005) + propios de la organización</p>
             </div>
           </div>
-          {isManager && officialCount === 0 && (
+          {isManager && indicators.length === 0 && (
             <button
               type="button"
               onClick={handleSeed}
@@ -514,6 +610,9 @@ export default function IndicadoresPage() {
                             {ind.expected_improvement_pct != null && (
                               <span className="text-[10px] text-navy-400">Meta mejora: {(Number(ind.expected_improvement_pct) * 100).toFixed(0)}%</span>
                             )}
+                            {ind.active === false && (
+                              <span className="text-[10px] font-semibold text-navy-500 bg-navy-100 rounded-full px-1.5 py-0.5">Inactivo</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -521,7 +620,7 @@ export default function IndicadoresPage() {
                     </button>
                     {expanded && (
                       <div className="px-3.5 pb-3.5">
-                        <IndicatorDetail indicator={ind} organizationId={organizationId} isManager={isManager} />
+                        <IndicatorDetail indicator={ind} organizationId={organizationId} isManager={isManager} onUpdated={() => loadIndicators(organizationId)} />
                       </div>
                     )}
                   </div>

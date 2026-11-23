@@ -42,6 +42,69 @@ export async function POST(request) {
   return Response.json({ indicator: data });
 }
 
+export async function PATCH(request) {
+  const supabase = await createClientSSR();
+  const user = await getAuthUser(supabase);
+  if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
+  const { indicatorId, organizationId } = body;
+  if (!indicatorId || !organizationId) return Response.json({ error: 'indicatorId y organizationId son requeridos' }, { status: 400 });
+
+  const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
+  if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+  if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
+  if (!membershipsCanEdit(memberships, organizationId, 'R2')) {
+    return Response.json({ error: 'Solo un gestor puede editar indicadores' }, { status: 403 });
+  }
+
+  // Cargar el indicador para conocer su alcance (oficial vs propio) y confirmar la organización.
+  const { data: current, error: loadError } = await supabase
+    .from('safety_indicators')
+    .select('id, organization_id, is_official')
+    .eq('id', indicatorId)
+    .eq('organization_id', organizationId)
+    .single();
+  if (loadError || !current) return Response.json({ error: 'Indicador no encontrado' }, { status: 404 });
+
+  const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+  const updates = {};
+
+  if (has('name')) {
+    // La taxonomía oficial (MAUT-1.0-22-005) es inmutable: su nombre no se cambia.
+    if (current.is_official) return Response.json({ error: 'El nombre de un indicador oficial no se puede cambiar' }, { status: 400 });
+    const name = String(body.name || '').trim();
+    const validation = validateIndicatorDefinition(name);
+    if (!validation.valid) return Response.json({ error: validation.reason }, { status: 400 });
+    updates.name = name;
+  }
+
+  if (has('expectedImprovementPct')) {
+    const raw = body.expectedImprovementPct;
+    if (raw === null || raw === '') {
+      updates.expected_improvement_pct = null;
+    } else {
+      const num = Number(raw);
+      if (!Number.isFinite(num)) return Response.json({ error: 'La mejora esperada debe ser un número' }, { status: 400 });
+      updates.expected_improvement_pct = num;
+    }
+  }
+
+  if (has('active')) updates.active = !!body.active;
+
+  if (Object.keys(updates).length === 0) return Response.json({ error: 'No hay cambios para guardar' }, { status: 400 });
+
+  const { data, error } = await supabase
+    .from('safety_indicators')
+    .update(updates)
+    .eq('id', indicatorId)
+    .eq('organization_id', organizationId)
+    .select()
+    .single();
+  if (error) return dbError(error, 'sms/indicators');
+  return Response.json({ indicator: data });
+}
+
 export async function GET(request) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);

@@ -4,14 +4,30 @@
 // análisis lo hace el Gerente SMS. Guarda CUÁNDO ocurrió el suceso (de ahí sale el plazo del MOR), el lugar,
 // la aeronave/vuelo y hasta 5 evidencias. Si se llega desde el cierre de un vuelo (?flightId=…), viene
 // prellenado con ese vuelo.
+//
+// DINÁMICO (40b): los campos estándar y las preguntas propias se renderizan según la definición del tipo
+// (mor si quien reporta es el Gerente SMS, vor en otro caso; en edición, el tipo del reporte). Los campos
+// ocultos no se muestran; los obligatorios llevan asterisco; las preguntas propias se guardan en custom_fields.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
-import { UAS_EVENT_OPTIONS, OTHER_EVENT_ID, REPORT_SEVERITY_LEVELS, validateReportInput } from '@skylog/domain';
+import { UAS_EVENT_OPTIONS, OTHER_EVENT_ID, REPORT_SEVERITY_LEVELS, validateReportFormSubmission } from '@skylog/domain';
 import { SEVERITY_LABELS, aircraftLabel, formatBytes, toBogotaInput, toBogotaIso, fmtDateTime } from '../_components/tracking';
 
 const MAX_FILES = 5;
 const MAX_BYTES = 4 * 1024 * 1024;
 const ACCEPT = 'application/pdf,image/png,image/jpeg,image/webp';
+
+// Etiquetas de respaldo mientras carga la definición (y por si un estándar no tuviera fila).
+const FALLBACK_LABEL = {
+  event: 'Tipo de suceso',
+  severity: 'Severidad',
+  occurred_at: '¿Cuándo ocurrió? (hora de Colombia)',
+  location: 'Lugar',
+  aircraft: 'Aeronave involucrada',
+  flight: 'Vuelo relacionado',
+  description: 'Descripción del suceso',
+  confidential: 'Confidencial',
+};
 
 // Reconstruye el evento (id de la lista oficial, o "otro" con texto libre) desde lo guardado en el reporte.
 function eventFromReport(report) {
@@ -21,10 +37,14 @@ function eventFromReport(report) {
   return { eventId: OTHER_EVENT_ID, eventCode: report.event_code || '', eventLabel: report.event_label || '' };
 }
 
-export default function ReportForm({ organizationId, initialFlightId, initialReport, onCreated, onSaved, onCancel }) {
+export default function ReportForm({ organizationId, initialFlightId, initialReport, reportType, onCreated, onSaved, onCancel }) {
   const isEdit = Boolean(initialReport);
+  const type = isEdit ? (initialReport.route === 'mor' ? 'mor' : 'vor') : reportType || 'vor';
+
+  const [def, setDef] = useState(null); // definición del formulario (null = cargando)
   const [fleet, setFleet] = useState([]);
   const [flights, setFlights] = useState([]);
+  const [customValues, setCustomValues] = useState(() => (initialReport?.custom_fields && typeof initialReport.custom_fields === 'object' ? { ...initialReport.custom_fields } : {}));
   const [form, setForm] = useState(() =>
     initialReport
       ? {
@@ -57,12 +77,17 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
 
   useEffect(() => {
     (async () => {
-      const [a, f] = await Promise.all([fetch(`/api/flota/aircraft?organizationId=${organizationId}`), fetch(`/api/flights?organizationId=${organizationId}`)]);
-      const [ad, fd] = await Promise.all([a.json().catch(() => ({})), f.json().catch(() => ({}))]);
+      const [a, f, d] = await Promise.all([
+        fetch(`/api/flota/aircraft?organizationId=${organizationId}`),
+        fetch(`/api/flights?organizationId=${organizationId}`),
+        fetch(`/api/sms/report-forms?organizationId=${organizationId}&type=${type}`),
+      ]);
+      const [ad, fd, dd] = await Promise.all([a.json().catch(() => ({})), f.json().catch(() => ({})), d.json().catch(() => ({}))]);
       if (a.ok) setFleet(ad.aircraft || []);
       if (f.ok) setFlights(fd.flights || []);
+      setDef(d.ok ? dd.fields || [] : []);
     })();
-  }, [organizationId]);
+  }, [organizationId, type]);
 
   // Elegir un vuelo trae su aeronave y su hora de despegue como hora del suceso (editable). En modo edición no
   // se autollena con el vuelo ya guardado (preservar la corrección); solo cuando el usuario cambia el vuelo.
@@ -80,9 +105,39 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
   }, [flightId, flights]);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const setCustom = (id, value) => setCustomValues((c) => ({ ...c, [id]: value }));
+
+  const stdByKey = useMemo(() => {
+    const m = {};
+    for (const fld of def || []) if (fld.kind === 'standard') m[fld.field_key] = fld;
+    return m;
+  }, [def]);
+  const customDefs = useMemo(() => (def || []).filter((fld) => fld.kind === 'custom' && fld.visible), [def]);
+
+  // Mientras la definición carga (def === null) se muestra todo (visible por defecto); ya cargada se respeta.
+  const vis = (k) => (def === null ? true : stdByKey[k]?.visible ?? true);
+  const req = (k) => (def === null ? false : stdByKey[k]?.required ?? false);
+  const lbl = (k) => `${stdByKey[k]?.label || FALLBACK_LABEL[k]}${req(k) ? ' *' : ''}`;
+
   const preview = useMemo(
-    () => validateReportInput({ description: form.description, occurredAt: toBogotaIso(form.occurredAt) || undefined, now: new Date().toISOString(), severity: form.severity, severities: REPORT_SEVERITY_LEVELS }),
-    [form.description, form.occurredAt, form.severity]
+    () =>
+      validateReportFormSubmission({
+        fieldDefs: def || [],
+        standardValues: {
+          event: form.eventId,
+          severity: form.severity,
+          occurred_at: toBogotaIso(form.occurredAt) || '',
+          location: form.location,
+          aircraft: form.aircraftId,
+          flight: form.flightId,
+          description: form.description,
+          confidential: form.confidential,
+        },
+        customValues,
+        now: new Date().toISOString(),
+        severities: REPORT_SEVERITY_LEVELS,
+      }),
+    [def, form, customValues]
   );
   const isRac114 = form.severity !== 'incidente';
 
@@ -109,14 +164,15 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
       const payload = {
         severity: form.severity,
         description: form.description,
-        eventId: form.eventId || undefined,
-        eventCode: form.eventId === OTHER_EVENT_ID ? form.eventCode : undefined,
-        eventLabel: form.eventId === OTHER_EVENT_ID ? form.eventLabel : undefined,
-        occurredAt: toBogotaIso(form.occurredAt) || undefined,
-        location: form.location || undefined,
-        aircraftId: form.aircraftId || undefined,
-        flightId: form.flightId || undefined,
-        confidentialityLevel: form.confidential ? 'confidencial' : 'normal',
+        eventId: vis('event') ? form.eventId || undefined : undefined,
+        eventCode: vis('event') && form.eventId === OTHER_EVENT_ID ? form.eventCode : undefined,
+        eventLabel: vis('event') && form.eventId === OTHER_EVENT_ID ? form.eventLabel : undefined,
+        occurredAt: vis('occurred_at') ? toBogotaIso(form.occurredAt) || undefined : undefined,
+        location: vis('location') ? form.location || undefined : undefined,
+        aircraftId: vis('aircraft') ? form.aircraftId || undefined : undefined,
+        flightId: vis('flight') ? form.flightId || undefined : undefined,
+        confidentialityLevel: vis('confidential') && form.confidential ? 'confidencial' : 'normal',
+        customFields: customValues,
       };
 
       // Edición: corrige el reporte existente (PATCH). No toca evidencias (se gestionan aparte).
@@ -159,6 +215,40 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
     }
   }
 
+  function renderCustom(fld) {
+    const v = customValues[fld.id] ?? '';
+    const label = `${fld.label}${fld.required ? ' *' : ''}`;
+    if (fld.input_type === 'boolean') {
+      return (
+        <label key={fld.id} className="flex items-start gap-2 text-xs text-navy-600 mb-1">
+          <input type="checkbox" className="mt-0.5" checked={v === true} onChange={(e) => setCustom(fld.id, e.target.checked)} />
+          {label}
+        </label>
+      );
+    }
+    if (fld.input_type === 'select') {
+      return (
+        <Field key={fld.id} as="select" label={label} value={v} onChange={(e) => setCustom(fld.id, e.target.value)}>
+          <option value="">— Elige —</option>
+          {(fld.options || []).map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </Field>
+      );
+    }
+    const typeAttr = fld.input_type === 'number' ? 'number' : fld.input_type === 'date' ? 'date' : 'text';
+    return (
+      <Field
+        key={fld.id}
+        label={label}
+        as={fld.input_type === 'textarea' ? 'textarea' : undefined}
+        type={fld.input_type === 'textarea' ? undefined : typeAttr}
+        value={v}
+        onChange={(e) => setCustom(fld.id, e.target.value)}
+      />
+    );
+  }
+
   return (
     <form onSubmit={submit} className="space-y-1">
       {initialFlightId && form.flightId === initialFlightId && (
@@ -166,16 +256,18 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-        <Field as="select" label="¿Qué ocurrió? (lista oficial de eventos UAS)" value={form.eventId} onChange={(e) => set({ eventId: e.target.value })}>
-          <option value="">— Elige el evento —</option>
-          {UAS_EVENT_OPTIONS.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.code} · {o.label}
-            </option>
-          ))}
-          <option value={OTHER_EVENT_ID}>Otro suceso (describir)</option>
-        </Field>
-        <Field as="select" label="Severidad" value={form.severity} onChange={(e) => set({ severity: e.target.value })}>
+        {vis('event') && (
+          <Field as="select" label={lbl('event')} value={form.eventId} onChange={(e) => set({ eventId: e.target.value })}>
+            <option value="">— Elige el evento —</option>
+            {UAS_EVENT_OPTIONS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.code} · {o.label}
+              </option>
+            ))}
+            <option value={OTHER_EVENT_ID}>Otro suceso (describir)</option>
+          </Field>
+        )}
+        <Field as="select" label={lbl('severity')} value={form.severity} onChange={(e) => set({ severity: e.target.value })}>
           {Object.entries(SEVERITY_LABELS).map(([k, label]) => (
             <option key={k} value={k}>
               {label}
@@ -184,7 +276,7 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
         </Field>
       </div>
 
-      {form.eventId === OTHER_EVENT_ID && (
+      {vis('event') && form.eventId === OTHER_EVENT_ID && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
           <Field label="Nombre del suceso" value={form.eventLabel} onChange={(e) => set({ eventLabel: e.target.value })} placeholder="Ej. Aterrizaje forzoso por batería" />
           <Field label="Código OACI (opcional)" value={form.eventCode} onChange={(e) => set({ eventCode: e.target.value })} placeholder="Ej. UA-LOC-I" />
@@ -193,32 +285,47 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
 
       {isRac114 && <p className="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2 mb-2">Un accidente o incidente grave no se radica por MOR/VOR: el reporte queda como evidencia y se sigue el procedimiento RAC 114.</p>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-        <Field label="¿Cuándo ocurrió? (hora de Colombia)" type="datetime-local" value={form.occurredAt} onChange={(e) => set({ occurredAt: e.target.value })} />
-        <Field label="Lugar (opcional)" value={form.location} onChange={(e) => set({ location: e.target.value })} placeholder="Ej. Predio El Roble, Madrid (Cund.)" />
-      </div>
-      <p className="text-[11px] text-navy-400 -mt-2 mb-2">La fecha del suceso fija el plazo del MOR (5 días hábiles desde la ocurrencia). Sin ella, se cuenta desde que registras el reporte.</p>
+      {(vis('occurred_at') || vis('location')) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+          {vis('occurred_at') && <Field label={lbl('occurred_at')} type="datetime-local" value={form.occurredAt} onChange={(e) => set({ occurredAt: e.target.value })} />}
+          {vis('location') && <Field label={lbl('location')} value={form.location} onChange={(e) => set({ location: e.target.value })} placeholder="Ej. Predio El Roble, Madrid (Cund.)" />}
+        </div>
+      )}
+      {vis('occurred_at') && <p className="text-[11px] text-navy-400 -mt-2 mb-2">La fecha del suceso fija el plazo del MOR (5 días hábiles desde la ocurrencia). Sin ella, se cuenta desde que registras el reporte.</p>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-        <Field as="select" label="Vuelo relacionado (opcional)" value={form.flightId} onChange={(e) => set({ flightId: e.target.value })}>
-          <option value="">— Ninguno —</option>
-          {flights.map((fl) => (
-            <option key={fl.id} value={fl.id}>
-              {fmtDateTime(fl.takeoff_at)} · {aircraftLabel(fl.aircraft) || 'sin aeronave'}
-            </option>
-          ))}
-        </Field>
-        <Field as="select" label="Aeronave involucrada (opcional)" value={form.aircraftId} onChange={(e) => set({ aircraftId: e.target.value })}>
-          <option value="">— Ninguna —</option>
-          {fleet.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.model?.brand} {a.model?.model} · {a.serial_number}
-            </option>
-          ))}
-        </Field>
-      </div>
+      {(vis('flight') || vis('aircraft')) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+          {vis('flight') && (
+            <Field as="select" label={lbl('flight')} value={form.flightId} onChange={(e) => set({ flightId: e.target.value })}>
+              <option value="">— Ninguno —</option>
+              {flights.map((fl) => (
+                <option key={fl.id} value={fl.id}>
+                  {fmtDateTime(fl.takeoff_at)} · {aircraftLabel(fl.aircraft) || 'sin aeronave'}
+                </option>
+              ))}
+            </Field>
+          )}
+          {vis('aircraft') && (
+            <Field as="select" label={lbl('aircraft')} value={form.aircraftId} onChange={(e) => set({ aircraftId: e.target.value })}>
+              <option value="">— Ninguna —</option>
+              {fleet.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.model?.brand} {a.model?.model} · {a.serial_number}
+                </option>
+              ))}
+            </Field>
+          )}
+        </div>
+      )}
 
-      <Field label="Descripción del suceso" as="textarea" className="min-h-[110px]" value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Qué pasó, en qué fase del vuelo, qué se hizo en el momento…" required />
+      <Field label={lbl('description')} as="textarea" className="min-h-[110px]" value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Qué pasó, en qué fase del vuelo, qué se hizo en el momento…" required />
+
+      {customDefs.length > 0 && (
+        <div className="rounded-xl border border-navy-100 p-3 my-3 space-y-1">
+          <p className="text-xs font-bold text-navy-500 uppercase tracking-wide mb-1">Información adicional</p>
+          {customDefs.map(renderCustom)}
+        </div>
+      )}
 
       {!isEdit && (
         <div className="rounded-xl border border-navy-100 p-3 mb-3">
@@ -248,10 +355,12 @@ export default function ReportForm({ organizationId, initialFlightId, initialRep
         </div>
       )}
 
-      <label className="flex items-start gap-2 text-xs text-navy-500 mb-3">
-        <input type="checkbox" className="mt-0.5" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
-        Reportar de forma confidencial — solo el Gerente SMS verá mi identidad (RAC 219 §219.115-140)
-      </label>
+      {vis('confidential') && (
+        <label className="flex items-start gap-2 text-xs text-navy-500 mb-3">
+          <input type="checkbox" className="mt-0.5" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
+          Reportar de forma confidencial — solo el Gerente SMS verá mi identidad (RAC 219 §219.115-140)
+        </label>
+      )}
 
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
       {!preview.ok && form.description && <p className="text-xs text-red-500 mb-2">{preview.errors.join(' ')}</p>}

@@ -63,8 +63,12 @@ Decisiones del usuario (AskUserQuestion, 2026-11-23):
   F4 (un enlace sin su página pública no sirve; partirlo dejaría un enlace MOR muerto). Escritura ampliada a
   `admin` (GG) además de `gerente_sms`/`superadmin` para no quitarle al GG lo que ya hacía con el enlace VOR.
   Verif.: lint/build; 8 políticas confirmadas.
-- **F3 — Formulario interno dinámico.** `_ReportForm` renderiza desde la definición del tipo elegido + preguntas
-  propias; `POST /api/sms/reports` guarda `custom_fields` y respeta el tipo. Verif.: lint/build.
+- **F3 — Formulario interno dinámico. Hecho.** `_ReportForm` carga la definición del tipo (mor si quien reporta
+  es el Gerente SMS, vor en otro caso; en edición, el tipo del reporte), oculta los campos no visibles, usa sus
+  etiquetas, marca los obligatorios y renderiza las preguntas propias. `POST`/`PATCH /api/sms/reports` validan
+  contra la definición (`validateReportFormSubmission`) y guardan `custom_fields`. Compatible hacia atrás: sin
+  filas de definición se usa el catálogo estándar. El orden nativo del formulario interno se conserva (el orden
+  configurable lo honra el formulario público genérico en F4). Verif.: lint, build, test:domain 717/717.
 - **F4 — Enlaces por tipo + formularios públicos.** API `/api/sms/public-links` por tipo
   (activar/regenerar/desactivar, QR) y su sección en `/sms/reportes`; `/reportar/{token}` resuelve el tipo por
   el token, renderiza la definición de ese tipo (estándar + propias) y envía con ese tipo; grave→rac114; MOR

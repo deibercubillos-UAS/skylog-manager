@@ -325,7 +325,7 @@ export default function SmsReportesPage() {
 
       {showForm && (
         <SectionCard icon="edit_note" tile="bg-blue-500 text-white" wash="from-blue-50 to-white" title="Diligenciar un reporte" description="Cualquier persona de la organización puede reportar — el análisis lo hace el Gerente SMS designado.">
-          <ReportForm organizationId={organizationId} initialFlightId={initialFlightId} onCreated={handleCreated} onCancel={() => setShowForm(false)} />
+          <ReportForm organizationId={organizationId} initialFlightId={initialFlightId} reportType={isAnalyst ? 'mor' : 'vor'} onCreated={handleCreated} onCancel={() => setShowForm(false)} />
         </SectionCard>
       )}
 

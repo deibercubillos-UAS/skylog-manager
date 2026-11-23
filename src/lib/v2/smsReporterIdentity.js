@@ -7,7 +7,7 @@ import { createAdminClient } from '@/lib/supabaseServer';
 
 // Todas las columnas de `sms_reports` salvo la identidad del notificante: se usan en lugar de `*`.
 export const SMS_REPORT_COLUMNS =
-  'id, organization_id, severity, route, requires_manager_analysis, event_code, event_label, description, confidentiality_level, source, analyzed_by, analyzed_at, filed_at, iris_reference, created_at, occurred_at, location, aircraft_id, flight_id';
+  'id, organization_id, severity, route, requires_manager_analysis, event_code, event_label, description, confidentiality_level, source, analyzed_by, analyzed_at, filed_at, iris_reference, created_at, occurred_at, location, aircraft_id, flight_id, custom_fields';
 
 /**
  * Agrega `reported_by`, `reporter_contact` y `reporter: { full_name }` a filas de `sms_reports` ya leídas con la

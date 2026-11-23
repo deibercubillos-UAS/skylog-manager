@@ -20,11 +20,14 @@ import {
   classifyReportRoute,
   redactReporterIdentity,
   computeReportDeadline,
-  validateReportInput,
+  validateReportFormSubmission,
+  effectiveFormFields,
   REPORT_SEVERITY_LEVELS,
   UAS_EVENT_OPTIONS,
   OTHER_EVENT_ID,
 } from '@skylog/domain';
+
+const FORM_FIELD_COLS = 'id, kind, field_key, label, input_type, options, required, visible, locked, sort_order';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { SMS_REPORT_COLUMNS, attachReporterIdentity, ownReportIds, reporterIdOf } from '@/lib/v2/smsReporterIdentity';
 import { logAudit } from '@/lib/v2/auditLog';
@@ -47,13 +50,10 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, severity, description, eventId, eventCode, eventLabel, occurredAt, location, aircraftId, flightId, confidentialityLevel } = body;
+  const { organizationId, severity, description, eventId, eventCode, eventLabel, occurredAt, location, aircraftId, flightId, confidentialityLevel, customFields } = body;
   if (!organizationId || !severity || !description) {
     return Response.json({ error: 'organizationId, severity y description son requeridos' }, { status: 400 });
   }
-
-  const check = validateReportInput({ description, occurredAt, now: new Date().toISOString(), severity, severities: REPORT_SEVERITY_LEVELS });
-  if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
@@ -61,6 +61,19 @@ export async function POST(request) {
 
   const membership = (memberships || []).find((m) => m.organization_id === organizationId);
   if (!membership) return Response.json({ error: 'Esta cuenta no pertenece a esa organización' }, { status: 403 });
+
+  // Validar contra la definición del formulario del tipo que corresponde a quien reporta (mor si es el Gerente
+  // SMS, vor en otro caso): campos estándar visibles + obligatorios, reglas base y preguntas propias.
+  const formType = membership.role === 'gerente_sms' ? 'mor' : 'vor';
+  const { data: defRows } = await supabase.from('sms_report_form_fields').select(FORM_FIELD_COLS).eq('organization_id', organizationId).eq('report_type', formType);
+  const check = validateReportFormSubmission({
+    fieldDefs: effectiveFormFields(formType, defRows || []),
+    standardValues: { event: eventId, severity, occurred_at: occurredAt, location, aircraft: aircraftId, flight: flightId, description, confidential: confidentialityLevel === 'confidencial' },
+    customValues: customFields || {},
+    now: new Date().toISOString(),
+    severities: REPORT_SEVERITY_LEVELS,
+  });
+  if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
 
   let route;
   try {
@@ -111,6 +124,7 @@ export async function POST(request) {
       aircraft_id: finalAircraftId,
       flight_id: flightId || null,
       confidentiality_level: confidentialityLevel === 'confidencial' ? 'confidencial' : 'normal',
+      custom_fields: check.customFields,
     })
     .select(SMS_REPORT_COLUMNS)
     .single();
@@ -143,10 +157,11 @@ export async function PATCH(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { reportId, severity, description, eventId, eventCode, eventLabel, occurredAt, location, aircraftId, flightId, confidentialityLevel } = body;
+  const { reportId, severity, description, eventId, eventCode, eventLabel, occurredAt, location, aircraftId, flightId, confidentialityLevel, customFields } = body;
   if (!reportId || !severity || !description) {
     return Response.json({ error: 'reportId, severity y description son requeridos' }, { status: 400 });
   }
+  const hasCustom = Object.prototype.hasOwnProperty.call(body, 'customFields');
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
@@ -165,7 +180,17 @@ export async function PATCH(request) {
   const readOnly = readOnlyBlock(memberships, report.organization_id);
   if (readOnly) return readOnly;
 
-  const check = validateReportInput({ description, occurredAt, now: new Date().toISOString(), severity, severities: REPORT_SEVERITY_LEVELS });
+  // Validar contra la definición del tipo actual del reporte (mor/vor). Las preguntas propias solo se tocan
+  // si el cuerpo trae customFields; si no, se revalidan las ya guardadas y la columna no se modifica.
+  const formType = report.route === 'mor' ? 'mor' : 'vor';
+  const { data: defRows } = await supabase.from('sms_report_form_fields').select(FORM_FIELD_COLS).eq('organization_id', report.organization_id).eq('report_type', formType);
+  const check = validateReportFormSubmission({
+    fieldDefs: effectiveFormFields(formType, defRows || []),
+    standardValues: { event: eventId, severity, occurred_at: occurredAt, location, aircraft: aircraftId, flight: flightId, description, confidential: confidentialityLevel === 'confidencial' },
+    customValues: hasCustom ? (customFields || {}) : (report.custom_fields || {}),
+    now: new Date().toISOString(),
+    severities: REPORT_SEVERITY_LEVELS,
+  });
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
 
   // Recalcular la ruta según la nueva severidad y quién reportó. El carácter MOR/VOR original se conserva por
@@ -217,6 +242,7 @@ export async function PATCH(request) {
       aircraft_id: finalAircraftId,
       flight_id: flightId || null,
       confidentiality_level: confidentialityLevel === 'confidencial' ? 'confidencial' : 'normal',
+      ...(hasCustom ? { custom_fields: check.customFields } : {}),
     })
     .eq('id', reportId)
     .select(SMS_REPORT_COLUMNS)

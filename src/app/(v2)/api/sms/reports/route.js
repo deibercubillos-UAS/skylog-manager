@@ -11,11 +11,11 @@
 // El reporte guarda CUÁNDO ocurrió el suceso, DÓNDE y con qué aeronave/vuelo:
 // sin la fecha de ocurrencia no se puede calcular el plazo del MOR (5 días
 // hábiles desde la ocurrencia, Directiva 02-24).
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { notifyNewReport } from '@/lib/v2/smsAlerts';
-import { membershipsCanView } from '@/lib/v2/permissions';
+import { membershipsCanView, readOnlyBlock } from '@/lib/v2/permissions';
 import {
   classifyReportRoute,
   redactReporterIdentity,
@@ -26,8 +26,20 @@ import {
   OTHER_EVENT_ID,
 } from '@skylog/domain';
 import { getAuthUser } from '@/lib/v2/authUser';
-import { SMS_REPORT_COLUMNS, attachReporterIdentity, ownReportIds } from '@/lib/v2/smsReporterIdentity';
+import { SMS_REPORT_COLUMNS, attachReporterIdentity, ownReportIds, reporterIdOf } from '@/lib/v2/smsReporterIdentity';
+import { logAudit } from '@/lib/v2/auditLog';
 import { dbError } from '@/lib/v2/apiErrors';
+
+// Resuelve el evento oficial (código/etiqueta) a partir de lo enviado, igual que el alta: de la lista
+// oficial salen código y etiqueta; "otro" admite texto libre; sin evento, quedan en null.
+function resolveEvent({ eventId, eventCode, eventLabel }) {
+  const official = UAS_EVENT_OPTIONS.find((o) => o.id === eventId);
+  if (official) return { event_code: official.code, event_label: official.label };
+  if (eventId === OTHER_EVENT_ID || (!eventId && (eventCode || eventLabel))) {
+    return { event_code: eventCode?.trim()?.slice(0, 40) || null, event_label: eventLabel?.trim()?.slice(0, 200) || null };
+  }
+  return { event_code: null, event_label: null };
+}
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -119,6 +131,100 @@ export async function POST(request) {
   }
 
   return Response.json({ report: data });
+}
+
+// Corrección de un reporte por el Gerente SMS (40-sms.md §5.7): puede ajustar qué/cuándo/dónde, la
+// severidad, el vuelo/aeronave y la confidencialidad de un reporte ya diligenciado. La ruta (MOR/VOR/RAC114)
+// NO se toma del cliente: se recalcula en el servidor según la nueva severidad y quién reportó (regla S2).
+// No cambia al notificante (reported_by) ni el estado del flujo (análisis/radicación), para no borrar su rastro.
+export async function PATCH(request) {
+  const supabase = await createClientSSR();
+  const user = await getAuthUser(supabase);
+  if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
+  const { reportId, severity, description, eventId, eventCode, eventLabel, occurredAt, location, aircraftId, flightId, confidentialityLevel } = body;
+  if (!reportId || !severity || !description) {
+    return Response.json({ error: 'reportId, severity y description son requeridos' }, { status: 400 });
+  }
+
+  const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
+  if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+  if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
+
+  // Cargar el reporte (RLS deja ver los de la organización a un gestor) para conocer su organización y ruta actual.
+  const { data: report, error: reportError } = await supabase.from('sms_reports').select(SMS_REPORT_COLUMNS).eq('id', reportId).maybeSingle();
+  if (reportError) return Response.json({ error: 'Error verificando el reporte' }, { status: 500 });
+  if (!report) return Response.json({ error: 'Reporte no encontrado' }, { status: 404 });
+
+  // Solo el Gerente SMS designado (o superadmin) corrige — 40-sms.md §5.7 lo fija como el rol nominal.
+  const membership = (memberships || []).find((m) => m.organization_id === report.organization_id);
+  if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
+    return Response.json({ error: 'Solo el Gerente SMS puede corregir un reporte' }, { status: 403 });
+  }
+  const readOnly = readOnlyBlock(memberships, report.organization_id);
+  if (readOnly) return readOnly;
+
+  const check = validateReportInput({ description, occurredAt, now: new Date().toISOString(), severity, severities: REPORT_SEVERITY_LEVELS });
+  if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
+
+  // Recalcular la ruta según la nueva severidad y quién reportó. El carácter MOR/VOR original se conserva por
+  // la ruta actual (mor ⇒ lo reportó el Gerente SMS, vor ⇒ otra persona); solo si hoy es RAC114 se consulta
+  // el rol real del notificante (admin: reported_by no es legible con la sesión del usuario).
+  let reportedByRole = null;
+  if (report.route === 'mor') reportedByRole = 'gerente_sms';
+  else if (report.route === 'vor') reportedByRole = 'piloto';
+  else {
+    const rid = await reporterIdOf(reportId);
+    if (rid) {
+      const { data: rm } = await createAdminClient().from('memberships').select('role').eq('person_id', rid).eq('organization_id', report.organization_id).eq('status', 'activa').maybeSingle();
+      reportedByRole = rm?.role || null;
+    }
+  }
+  let route;
+  try {
+    route = classifyReportRoute({ severity, reportedByRole });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 400 });
+  }
+
+  const { event_code, event_label } = resolveEvent({ eventId, eventCode, eventLabel });
+
+  // Aeronave y vuelo deben ser de esta organización (misma validación que el alta).
+  let finalAircraftId = null;
+  if (flightId) {
+    const { data: flight } = await supabase.from('flights').select('id, aircraft_id').eq('id', flightId).eq('organization_id', report.organization_id).maybeSingle();
+    if (!flight) return Response.json({ error: 'El vuelo no existe en esta organización o no tienes acceso a él' }, { status: 400 });
+    finalAircraftId = flight.aircraft_id || null;
+  }
+  if (aircraftId) {
+    const { data: aircraft } = await supabase.from('aircraft').select('id').eq('id', aircraftId).eq('organization_id', report.organization_id).maybeSingle();
+    if (!aircraft) return Response.json({ error: 'La aeronave no existe en esta organización' }, { status: 400 });
+    finalAircraftId = aircraftId;
+  }
+
+  const { data, error } = await supabase
+    .from('sms_reports')
+    .update({
+      severity,
+      route: route.route,
+      requires_manager_analysis: route.requiresManagerAnalysis,
+      event_code,
+      event_label,
+      description: description.trim(),
+      occurred_at: occurredAt ? new Date(occurredAt).toISOString() : null,
+      location: location?.trim()?.slice(0, 300) || null,
+      aircraft_id: finalAircraftId,
+      flight_id: flightId || null,
+      confidentiality_level: confidentialityLevel === 'confidencial' ? 'confidencial' : 'normal',
+    })
+    .eq('id', reportId)
+    .select(SMS_REPORT_COLUMNS)
+    .single();
+  if (error) return dbError(error, 'sms/reports');
+
+  await logAudit({ organizationId: report.organization_id, action: 'update', module: 'Reportes SMS', entityLabel: `Reporte ${reportId} corregido` });
+  return Response.json({ report: data, warning: route.route === 'rac114' ? 'Reclasificado como accidente/incidente grave — se sigue el procedimiento RAC 114, no se radica por MOR/VOR.' : undefined });
 }
 
 export async function GET(request) {

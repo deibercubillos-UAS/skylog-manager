@@ -13,21 +13,43 @@ const MAX_FILES = 5;
 const MAX_BYTES = 4 * 1024 * 1024;
 const ACCEPT = 'application/pdf,image/png,image/jpeg,image/webp';
 
-export default function ReportForm({ organizationId, initialFlightId, onCreated, onCancel }) {
+// Reconstruye el evento (id de la lista oficial, o "otro" con texto libre) desde lo guardado en el reporte.
+function eventFromReport(report) {
+  if (!report?.event_code && !report?.event_label) return { eventId: '', eventCode: '', eventLabel: '' };
+  const opt = UAS_EVENT_OPTIONS.find((o) => o.code === report.event_code && o.label === report.event_label);
+  if (opt) return { eventId: opt.id, eventCode: '', eventLabel: '' };
+  return { eventId: OTHER_EVENT_ID, eventCode: report.event_code || '', eventLabel: report.event_label || '' };
+}
+
+export default function ReportForm({ organizationId, initialFlightId, initialReport, onCreated, onSaved, onCancel }) {
+  const isEdit = Boolean(initialReport);
   const [fleet, setFleet] = useState([]);
   const [flights, setFlights] = useState([]);
-  const [form, setForm] = useState({
-    eventId: '',
-    eventCode: '',
-    eventLabel: '',
-    severity: 'incidente',
-    occurredAt: toBogotaInput(new Date()),
-    location: '',
-    aircraftId: '',
-    flightId: initialFlightId || '',
-    description: '',
-    confidential: false,
-  });
+  const [form, setForm] = useState(() =>
+    initialReport
+      ? {
+          ...eventFromReport(initialReport),
+          severity: initialReport.severity || 'incidente',
+          occurredAt: initialReport.occurred_at ? toBogotaInput(new Date(initialReport.occurred_at)) : '',
+          location: initialReport.location || '',
+          aircraftId: initialReport.aircraft_id || '',
+          flightId: initialReport.flight_id || '',
+          description: initialReport.description || '',
+          confidential: initialReport.confidentiality_level === 'confidencial',
+        }
+      : {
+          eventId: '',
+          eventCode: '',
+          eventLabel: '',
+          severity: 'incidente',
+          occurredAt: toBogotaInput(new Date()),
+          location: '',
+          aircraftId: '',
+          flightId: initialFlightId || '',
+          description: '',
+          confidential: false,
+        }
+  );
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -42,12 +64,18 @@ export default function ReportForm({ organizationId, initialFlightId, onCreated,
     })();
   }, [organizationId]);
 
-  // Elegir un vuelo trae su aeronave y su hora de despegue como hora del suceso (editable).
+  // Elegir un vuelo trae su aeronave y su hora de despegue como hora del suceso (editable). En modo edición no
+  // se autollena con el vuelo ya guardado (preservar la corrección); solo cuando el usuario cambia el vuelo.
+  const skipFlightAutofill = useRef(isEdit);
   const flightId = form.flightId;
   useEffect(() => {
     if (!flightId) return;
     const fl = flights.find((x) => x.id === flightId);
     if (!fl) return;
+    if (skipFlightAutofill.current) {
+      skipFlightAutofill.current = false;
+      return;
+    }
     setForm((f) => ({ ...f, aircraftId: fl.aircraft_id || f.aircraftId, occurredAt: fl.takeoff_at ? toBogotaInput(new Date(fl.takeoff_at)) : f.occurredAt }));
   }, [flightId, flights]);
 
@@ -78,22 +106,36 @@ export default function ReportForm({ organizationId, initialFlightId, onCreated,
     setBusy(true);
     setError(null);
     try {
+      const payload = {
+        severity: form.severity,
+        description: form.description,
+        eventId: form.eventId || undefined,
+        eventCode: form.eventId === OTHER_EVENT_ID ? form.eventCode : undefined,
+        eventLabel: form.eventId === OTHER_EVENT_ID ? form.eventLabel : undefined,
+        occurredAt: toBogotaIso(form.occurredAt) || undefined,
+        location: form.location || undefined,
+        aircraftId: form.aircraftId || undefined,
+        flightId: form.flightId || undefined,
+        confidentialityLevel: form.confidential ? 'confidencial' : 'normal',
+      };
+
+      // Edición: corrige el reporte existente (PATCH). No toca evidencias (se gestionan aparte).
+      if (isEdit) {
+        const res = await fetch('/api/sms/reports', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reportId: initialReport.id, ...payload }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al guardar la corrección');
+        onSaved({ report: data.report, warning: data.warning });
+        return;
+      }
+
       const res = await fetch('/api/sms/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          severity: form.severity,
-          description: form.description,
-          eventId: form.eventId || undefined,
-          eventCode: form.eventId === OTHER_EVENT_ID ? form.eventCode : undefined,
-          eventLabel: form.eventId === OTHER_EVENT_ID ? form.eventLabel : undefined,
-          occurredAt: toBogotaIso(form.occurredAt) || undefined,
-          location: form.location || undefined,
-          aircraftId: form.aircraftId || undefined,
-          flightId: form.flightId || undefined,
-          confidentialityLevel: form.confidential ? 'confidencial' : 'normal',
-        }),
+        body: JSON.stringify({ organizationId, ...payload }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al reportar');
@@ -178,31 +220,33 @@ export default function ReportForm({ organizationId, initialFlightId, onCreated,
 
       <Field label="Descripción del suceso" as="textarea" className="min-h-[110px]" value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Qué pasó, en qué fase del vuelo, qué se hizo en el momento…" required />
 
-      <div className="rounded-xl border border-navy-100 p-3 mb-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <p className="text-xs font-semibold text-navy-500">
-            Evidencias (opcional) — {files.length}/{MAX_FILES} · PDF, PNG, JPEG o WEBP, hasta 4 MB
-          </p>
-          <button type="button" onClick={() => fileInput.current?.click()} disabled={files.length >= MAX_FILES} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 hover:bg-primary-100 disabled:opacity-40">
-            Agregar archivo
-          </button>
+      {!isEdit && (
+        <div className="rounded-xl border border-navy-100 p-3 mb-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs font-semibold text-navy-500">
+              Evidencias (opcional) — {files.length}/{MAX_FILES} · PDF, PNG, JPEG o WEBP, hasta 4 MB
+            </p>
+            <button type="button" onClick={() => fileInput.current?.click()} disabled={files.length >= MAX_FILES} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 hover:bg-primary-100 disabled:opacity-40">
+              Agregar archivo
+            </button>
+          </div>
+          <input ref={fileInput} type="file" accept={ACCEPT} multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
+          {files.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {files.map((f, i) => (
+                <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-xs text-navy-600 bg-navy-50/60 rounded-lg px-2.5 py-1.5">
+                  <span className="truncate">
+                    {f.name} <span className="text-navy-300">· {formatBytes(f.size)}</span>
+                  </span>
+                  <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-red-500 font-semibold shrink-0">
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-        <input ref={fileInput} type="file" accept={ACCEPT} multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
-        {files.length > 0 && (
-          <ul className="mt-2 space-y-1">
-            {files.map((f, i) => (
-              <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-xs text-navy-600 bg-navy-50/60 rounded-lg px-2.5 py-1.5">
-                <span className="truncate">
-                  {f.name} <span className="text-navy-300">· {formatBytes(f.size)}</span>
-                </span>
-                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-red-500 font-semibold shrink-0">
-                  Quitar
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      )}
 
       <label className="flex items-start gap-2 text-xs text-navy-500 mb-3">
         <input type="checkbox" className="mt-0.5" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
@@ -213,7 +257,7 @@ export default function ReportForm({ organizationId, initialFlightId, onCreated,
       {!preview.ok && form.description && <p className="text-xs text-red-500 mb-2">{preview.errors.join(' ')}</p>}
       <div className="flex gap-2">
         <Button type="submit" disabled={busy || !preview.ok}>
-          {busy ? 'Enviando…' : 'Enviar reporte'}
+          {busy ? 'Guardando…' : isEdit ? 'Guardar correcciones' : 'Enviar reporte'}
         </Button>
         {onCancel && (
           <button type="button" onClick={onCancel} className="px-4 py-2 rounded-xl text-sm font-semibold border border-navy-200 text-navy-600 hover:bg-navy-50">

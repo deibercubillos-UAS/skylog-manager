@@ -120,6 +120,7 @@ const ROWS = [
   ["U7", "SMS · Reportes y casos", "Analizar un reporte y radicarlo ante Aerocivil", "SNNSNN"],
   ["U8", "SMS · Reportes y casos", "Adjuntar evidencias a un reporte", "SSNSSN", "A los reportes propios; el Gerente SMS, a cualquiera."],
   ["U9", "SMS · Reportes y casos", "Gestionar el enlace público y el QR para reportar", "SSNSNN"],
+  ["U10", "SMS · Reportes y casos", "Corregir un reporte (MOR/VOR) ya diligenciado", "SNNSNN", "Solo el Gerente SMS; el servidor recalcula la ruta MOR/VOR/RAC 114 según la nueva severidad y quién reportó."],
   ["V1", "SMS · Asistente de implantación, gobernanza y mapas", "Ver el plan de implantación y su avance", "SSVSVN"],
   ["V2", "SMS · Asistente de implantación, gobernanza y mapas", "Definir y editar el plan de implantación", "SSVSNN"],
   ["V3", "SMS · Asistente de implantación, gobernanza y mapas", "Publicar la política SMS y designar al Gerente de Seguridad Operacional", "SSVSNN", "Pantalla de gobernanza, hoy oculta del menú."],

@@ -23,12 +23,13 @@ import {
 } from '../_components/tracking';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
-function ReportCard({ report, isAnalyst, onAnalyze, onFile, onOpenCase, busy }) {
+function ReportCard({ report, isAnalyst, organizationId, onAnalyze, onFile, onOpenCase, onEdited, busy }) {
   const router = useRouter();
   const [showFiles, setShowFiles] = useState(false);
   const [files, setFiles] = useState(null);
   const [irisRef, setIrisRef] = useState('');
   const [filing, setFiling] = useState(false);
+  const [editing, setEditing] = useState(false);
   const kase = report.sms_cases?.[0];
   const routeMeta = ROUTE_META[report.route] || ROUTE_META.rac114;
 
@@ -92,6 +93,9 @@ function ReportCard({ report, isAnalyst, onAnalyze, onFile, onOpenCase, busy }) 
       {isAnalyst && (
         <div className="mt-3 space-y-2">
           <div className="flex gap-2 flex-wrap">
+            <Button variant="ghost" className="text-xs px-3 py-1.5" disabled={busy} onClick={() => setEditing((v) => !v)}>
+              {editing ? 'Cancelar corrección' : 'Corregir'}
+            </Button>
             {report.route === 'mor' && !report.analyzed_at && (
               <Button variant="ghost" className="text-xs px-3 py-1.5" disabled={busy} onClick={() => onAnalyze(report.id)}>
                 Analizar (filtraje MOR)
@@ -119,6 +123,20 @@ function ReportCard({ report, isAnalyst, onAnalyze, onFile, onOpenCase, busy }) 
               <Button className="text-xs px-3 py-2" disabled={busy} onClick={async () => { await onFile(report.id, irisRef); setFiling(false); setIrisRef(''); }}>
                 Confirmar radicación
               </Button>
+            </div>
+          )}
+          {editing && (
+            <div className="mt-2 pt-3 border-t border-navy-100">
+              <p className="text-xs font-bold text-navy-500 uppercase tracking-wide mb-2">Corregir el reporte</p>
+              <ReportForm
+                organizationId={organizationId}
+                initialReport={report}
+                onSaved={() => {
+                  setEditing(false);
+                  onEdited();
+                }}
+                onCancel={() => setEditing(false)}
+              />
             </div>
           )}
         </div>
@@ -318,7 +336,7 @@ export default function SmsReportesPage() {
         ) : (
           <div className="space-y-3">
             {reports.map((r) => (
-              <ReportCard key={r.id} report={r} isAnalyst={isAnalyst} onAnalyze={analyzeReport} onFile={fileReport} onOpenCase={openCase} busy={busy} />
+              <ReportCard key={r.id} report={r} isAnalyst={isAnalyst} organizationId={organizationId} onAnalyze={analyzeReport} onFile={fileReport} onOpenCase={openCase} onEdited={loadReports} busy={busy} />
             ))}
           </div>
         )}

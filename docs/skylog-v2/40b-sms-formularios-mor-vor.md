@@ -57,15 +57,19 @@ Decisiones del usuario (AskUserQuestion, 2026-11-23):
 - **F1 — Dominio.** Catálogo de campos estándar (clave, etiqueta, tipo, `locked`), `defaultFormFields(type)`,
   `validateSubmission(definition, payload)` (visible/obligatorio/tipos/opciones), reglas de ruta con tipo por
   enlace (grave→rac114; MOR→análisis). Pruebas (`test:domain`).
-- **F2 — API + UI de configuración (GSMS).** `GET/PUT /api/sms/report-forms?type=` (definición por tipo:
-  reordenar, ocultar, obligatorio, etiqueta, agregar/quitar preguntas propias) y `/api/sms/public-links` por
-  tipo (activar/regenerar/desactivar, QR). Pantalla en `/sms/reportes`: dos pestañas (MOR/VOR), configurador +
-  su enlace. Verif.: lint/build; prueba manual.
+- **F2 — API + UI de configuración de campos (GSMS/GG).** `GET/PUT /api/sms/report-forms?type=` (definición por
+  tipo: reordenar, ocultar, obligatorio, etiqueta, agregar/quitar preguntas propias) y pantalla en
+  `/sms/reportes`: dos pestañas (MOR/VOR) con el configurador. **Hecho.** La gestión de enlaces se movió a la
+  F4 (un enlace sin su página pública no sirve; partirlo dejaría un enlace MOR muerto). Escritura ampliada a
+  `admin` (GG) además de `gerente_sms`/`superadmin` para no quitarle al GG lo que ya hacía con el enlace VOR.
+  Verif.: lint/build; 8 políticas confirmadas.
 - **F3 — Formulario interno dinámico.** `_ReportForm` renderiza desde la definición del tipo elegido + preguntas
   propias; `POST /api/sms/reports` guarda `custom_fields` y respeta el tipo. Verif.: lint/build.
-- **F4 — Formularios públicos por enlace.** `/reportar/{token}` resuelve el tipo por el token, renderiza la
-  definición de ese tipo (estándar + propias) y envía con ese tipo; grave→rac114; MOR público conserva la
-  compuerta de análisis. Verif.: lint/build; prueba del flujo público.
+- **F4 — Enlaces por tipo + formularios públicos.** API `/api/sms/public-links` por tipo
+  (activar/regenerar/desactivar, QR) y su sección en `/sms/reportes`; `/reportar/{token}` resuelve el tipo por
+  el token, renderiza la definición de ese tipo (estándar + propias) y envía con ese tipo; grave→rac114; MOR
+  público conserva la compuerta de análisis; se retira el `organizations.sms_public_token` único. Verif.:
+  lint/build; prueba del flujo público.
 - **F5 — Docs + despliegue.** Matriz (U11/U12, reemplazo de U9), `70`, `00-INDICE`, bitácora; `lint`+`build`+
   `test:domain`; `git push origin main`; verificación en vivo.
 

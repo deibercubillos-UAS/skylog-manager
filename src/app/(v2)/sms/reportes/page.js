@@ -11,6 +11,7 @@ import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHer
 import { Button } from '@skylog/ui';
 import ReportForm from './_ReportForm';
 import PublicLink from './_PublicLink';
+import FormBuilder from './_FormBuilder';
 import {
   SEVERITY_LABELS,
   ROUTE_META,
@@ -328,7 +329,12 @@ export default function SmsReportesPage() {
         </SectionCard>
       )}
 
-      {['gerente_sms', 'admin', 'superadmin'].includes(currentOrg?.role) && <PublicLink organizationId={organizationId} />}
+      {['gerente_sms', 'admin', 'superadmin'].includes(currentOrg?.role) && (
+        <>
+          <FormBuilder organizationId={organizationId} />
+          <PublicLink organizationId={organizationId} />
+        </>
+      )}
 
       <SectionCard icon="inbox" tile="bg-violet-500 text-white" wash="from-violet-50 to-white" title={isAnalyst ? 'Bandeja de reportes' : 'Mis reportes'} description={`${reports.length} reporte(s)`}>
         {reports.length === 0 ? (

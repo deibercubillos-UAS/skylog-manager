@@ -78,7 +78,7 @@ export default function QuestionsConfigPanel({ open, onClose, organizationId, on
   }, {});
 
   return (
-    <Panel open={open} onClose={onClose} title="Configurar catálogo GAP">
+    <Panel open={open} onClose={onClose} eyebrow="SMS · Mejora continua" icon="quiz" title="Configurar catálogo GAP">
       {loading ? (
         <p className="text-sm text-navy-400">Cargando…</p>
       ) : (

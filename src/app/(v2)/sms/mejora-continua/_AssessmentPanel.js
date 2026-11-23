@@ -76,6 +76,8 @@ export default function AssessmentPanel({ open, onClose, organizationId, assessm
     <Panel
       open={open}
       onClose={onClose}
+      eyebrow="SMS · Mejora continua"
+      icon="checklist"
       title={assessment ? `Evaluación — ${assessment.title || new Date(`${assessment.assessment_date}T00:00:00`).toLocaleDateString('es-CO')}` : 'Evaluación GAP'}
       footer={
         <div className="flex items-center justify-between gap-3">

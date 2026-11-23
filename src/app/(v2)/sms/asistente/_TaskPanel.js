@@ -88,7 +88,7 @@ export default function TaskPanel({ open, onClose, organizationId, phase, elemen
   }
 
   return (
-    <Panel open={open} onClose={onClose} title={element ? element.label : 'Tarea personalizada'}>
+    <Panel open={open} onClose={onClose} eyebrow="SMS · Asistente" icon="assignment" title={element ? element.label : 'Tarea personalizada'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {!element && (
           <div>

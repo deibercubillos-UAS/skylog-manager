@@ -54,7 +54,7 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
   }
 
   return (
-    <Panel open={open} onClose={onClose} title={objective ? 'Editar objetivo SMS' : 'Nuevo objetivo SMS'}>
+    <Panel open={open} onClose={onClose} eyebrow="SMS · Objetivos" icon="target" title={objective ? 'Editar objetivo SMS' : 'Nuevo objetivo SMS'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="text-xs font-medium text-navy-400 block mb-1">Objetivo (SMART)</label>

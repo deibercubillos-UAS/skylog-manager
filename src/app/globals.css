@@ -100,6 +100,17 @@ body {
   animation: step-fade-in 0.35s ease-out both;
 }
 
+/* Panel (ventana lateral / hoja inferior) — @skylog/ui/Panel. Entrada suave:
+   desde abajo en móvil (hoja), deslizando desde la derecha en escritorio. */
+@keyframes panel-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+.panel-overlay { animation: panel-overlay-in 0.18s ease-out both; }
+
+@keyframes panel-sheet-up { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes panel-sheet-right { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
+.panel-sheet { animation: panel-sheet-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (min-width: 768px) { .panel-sheet { animation: panel-sheet-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; } }
+@media (prefers-reduced-motion: reduce) { .panel-overlay, .panel-sheet { animation: none; } }
+
 /* Mejora foco visible para accesibilidad (cumple WCAG y suma puntos en Lighthouse SEO) */
 :focus-visible {
   outline: 2px solid var(--color-primary);

@@ -110,7 +110,7 @@ export default function ManualFormPanel({ open, onClose, organizationId, manual,
   const activeCat = CATEGORIES.find((c) => c.value === category) || CATEGORIES[0];
 
   return (
-    <Panel open={open} onClose={onClose} title={isNewVersion ? `Nueva versión — ${manual.title}` : 'Nuevo manual'}>
+    <Panel open={open} onClose={onClose} eyebrow="Manuales" icon="menu_book" title={isNewVersion ? `Nueva versión — ${manual.title}` : 'Nuevo manual'}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {!isNewVersion && (
           <>

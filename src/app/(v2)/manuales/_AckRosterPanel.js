@@ -41,7 +41,7 @@ export default function AckRosterPanel({ open, onClose, manualId }) {
   const barColor = pct === 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <Panel open={open} onClose={onClose} title={data ? `Seguimiento — ${data.title}` : 'Seguimiento de lectura'}>
+    <Panel open={open} onClose={onClose} eyebrow="Manuales" icon="how_to_reg" title={data ? `Seguimiento — ${data.title}` : 'Seguimiento de lectura'}>
       {error && (
         <p className="flex items-center gap-1.5 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
           <span className="material-symbols-outlined text-[16px]">error</span>

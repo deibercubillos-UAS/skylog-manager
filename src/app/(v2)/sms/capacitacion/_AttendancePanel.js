@@ -65,7 +65,7 @@ export default function AttendancePanel({ open, onClose, session, roster }) {
   }, {});
 
   return (
-    <Panel open={open} onClose={onClose} title={session ? `Asistencia — ${session.topic}` : 'Asistencia'}>
+    <Panel open={open} onClose={onClose} eyebrow="SMS · Capacitación" icon="fact_check" title={session ? `Asistencia — ${session.topic}` : 'Asistencia'}>
       {session && (
         <div className="space-y-5">
           <form onSubmit={handleSubmit} className="space-y-3 bg-navy-50/60 rounded-2xl p-4">

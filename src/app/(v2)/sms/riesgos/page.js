@@ -77,6 +77,7 @@ function RiskMatrixPanel({ organizationId, isManager }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [missing, setMissing] = useState(null);
+  const [editing, setEditing] = useState(false); // una matriz ya guardada queda en modo vista hasta pulsar "Editar"
 
   const load = useCallback(async () => {
     if (!organizationId) return;
@@ -134,6 +135,7 @@ function RiskMatrixPanel({ organizationId, isManager }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error guardando la matriz');
       setMatrix(data.riskMatrix);
+      setEditing(false); // guardada → vuelve a modo vista
       if (!data.completeness?.complete) setMissing(data.completeness?.missing || []);
     } catch (e) {
       setError(e.message);
@@ -143,6 +145,21 @@ function RiskMatrixPanel({ organizationId, isManager }) {
   }
 
   const hasLevels = probabilityLevels.length > 0 && severityLevels.length > 0;
+  // Modo edición: solo el gestor, y solo si pulsó "Editar" o aún no hay matriz guardada
+  // (primera configuración). Una vez guardada, queda en modo VISTA (solo lectura).
+  const editMode = isManager && (editing || !matrix);
+
+  // Cancelar edición: descarta los cambios y vuelve a lo guardado (modo vista).
+  function cancelEdit() {
+    if (matrix) {
+      setProbabilityLevels(matrix.probability_levels || []);
+      setSeverityLevels(matrix.severity_levels || []);
+      setTolerability(matrix.tolerability || []);
+    }
+    setError(null);
+    setMissing(null);
+    setEditing(false);
+  }
 
   return (
     <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-red-50 to-white overflow-hidden">
@@ -154,6 +171,18 @@ function RiskMatrixPanel({ organizationId, isManager }) {
           <p className="text-sm font-bold text-navy">Matriz de riesgo</p>
           <p className="text-xs text-navy-400">Configurable por tu organización — niveles de probabilidad/severidad y tolerabilidad de cada combinación</p>
         </div>
+        {isManager && matrix && !editing && (
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+              <span className="material-symbols-outlined text-[13px]">check_circle</span>
+              Registrada
+            </span>
+            <Button onClick={() => setEditing(true)} className="text-xs px-3 py-1.5">
+              <span className="material-symbols-outlined text-[16px] align-middle mr-1">edit</span>
+              Editar
+            </Button>
+          </div>
+        )}
       </div>
 
       {!matrix && !hasLevels && (
@@ -177,7 +206,7 @@ function RiskMatrixPanel({ organizationId, isManager }) {
         </div>
       )}
 
-      {isManager && hasLevels && (
+      {editMode && hasLevels && (
         <div className="px-4 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <LevelListEditor label="Niveles de probabilidad" levels={probabilityLevels} onChange={setProbabilityLevels} />
@@ -215,11 +244,11 @@ function RiskMatrixPanel({ organizationId, isManager }) {
                         <td key={s.code} className="p-1">
                           <button
                             type="button"
-                            disabled={!isManager}
+                            disabled={!editMode}
                             onClick={() => cycleCellZone(p.code, s.code)}
                             title={zone ? ZONE_STYLES[zone]?.label : 'Sin definir'}
                             className={`size-10 flex items-center justify-center rounded-lg text-[11px] font-black transition-all ${style} ${
-                              isManager ? 'cursor-pointer hover:scale-105' : 'cursor-default'
+                              editMode ? 'cursor-pointer hover:scale-105' : 'cursor-default'
                             }`}
                           >
                             {p.code}
@@ -242,15 +271,20 @@ function RiskMatrixPanel({ organizationId, isManager }) {
               </div>
             ))}
           </div>
-          {isManager && <p className="text-center text-[10px] text-navy-300 pt-2">Clic en una celda para cambiar su zona de tolerabilidad</p>}
+          {editMode && <p className="text-center text-[10px] text-navy-300 pt-2">Clic en una celda para cambiar su zona de tolerabilidad</p>}
 
-          {isManager && (
+          {editMode && (
             <div className="pt-3 flex items-center gap-3">
               {error && <p className="text-xs text-red-600">{error}</p>}
               {missing && missing.length > 0 && <p className="text-xs text-amber-600">Faltan {missing.length} combinación(es) por definir.</p>}
-              <Button onClick={handleSave} disabled={busy} className="text-xs px-3 py-1.5 ml-auto">
-                {busy ? 'Guardando…' : 'Guardar matriz'}
-              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                {matrix && (
+                  <Button variant="ghost" onClick={cancelEdit} disabled={busy} className="text-xs px-3 py-1.5">Cancelar</Button>
+                )}
+                <Button onClick={handleSave} disabled={busy} className="text-xs px-3 py-1.5">
+                  {busy ? 'Guardando…' : 'Guardar matriz'}
+                </Button>
+              </div>
             </div>
           )}
         </div>

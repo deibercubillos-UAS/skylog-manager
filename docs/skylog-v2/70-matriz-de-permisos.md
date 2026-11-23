@@ -204,7 +204,15 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 | U6 | Agregar y marcar acciones correctivas de un caso | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | U7 | Analizar un reporte y radicarlo ante Aerocivil | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | U8 | Adjuntar evidencias a un reporte | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ |
-| U9 | Gestionar el enlace público y el QR para reportar | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| U9 | Gestionar los enlaces públicos de reporte (uno por tipo: VOR y MOR) | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| U10 | Corregir un reporte (MOR/VOR) ya diligenciado | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| U11 | Personalizar el formulario MOR y el VOR (campos estándar y preguntas propias) | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+
+> **Formularios MOR/VOR configurables + enlaces por tipo (40b, 2026-11-23).** Por tipo (MOR y VOR) se puede
+> ocultar/obligar/ordenar/renombrar los campos estándar y agregar preguntas propias (U11); descripción y
+> severidad quedan bloqueadas. Hay un enlace público por tipo (U9): el enlace por el que entra define si el
+> reporte es MOR o VOR; un suceso grave va por RAC 114 por cualquier enlace y un MOR público conserva la
+> compuerta de análisis del Gerente SMS. Ver [`40b-sms-formularios-mor-vor.md`](40b-sms-formularios-mor-vor.md).
 
 ### SMS · Asistente de implantación, gobernanza y mapas
 | | Función | SA | GG | JP | GS | P | PI |

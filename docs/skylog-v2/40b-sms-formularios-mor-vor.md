@@ -78,8 +78,10 @@ Decisiones del usuario (AskUserQuestion, 2026-11-23):
   `organizations.sms_public_token` (la columna queda, sin uso; los 3 tokens VOR ya estaban migrados, 0 sin
   migrar). Verif.: lint, build, test:domain 717/717; migración de tokens confirmada.
   QR: pendiente (el enlace se copia; generar la imagen QR requeriría una dependencia).
-- **F5 — Docs + despliegue.** Matriz (U11/U12, reemplazo de U9), `70`, `00-INDICE`, bitácora; `lint`+`build`+
-  `test:domain`; `git push origin main`; verificación en vivo.
+- **F5 — Docs. Hecho.** Matriz: `U9` relabelado (enlaces por tipo) + **U11** (personalizar el formulario),
+  ambos `SSNSNN`; `U10` (corregir) añadido también a la tabla del `70`. Registrado `40b` en `00-INDICE` y la
+  decisión 237 en `51-bitacora`. (No se usó U12: un solo código, U9, cubre los dos enlaces.) `test:domain`
+  717/717.
 
 ## Riesgos / notas
 

@@ -10,6 +10,7 @@ export * from './operationCalendar.js';
 export * from './dutyCompliance.js';
 export * from './riskAnalysis.js';
 export * from './smsReporting.js';
+export * from './smsReportForms.js';
 export * from './internalRiskMatrix.js';
 export * from './safetyIndicators.js';
 export * from './smsTrainingSchedule.js';

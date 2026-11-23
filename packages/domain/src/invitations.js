@@ -2,7 +2,9 @@
 // (regla Q2): quién puede invitar a qué rol, validación del correo y estado de una invitación.
 
 export const INVITE_ROLES = ['piloto', 'jefe_pilotos', 'gerente_sms', 'admin'];
-export const INVITE_ROLE_LABELS = { piloto: 'Piloto', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', admin: 'Gerente General' };
+// `comite` NO está en INVITE_ROLES a propósito: no se ofrece en la invitación general ni al unirse por NIT.
+// Lo gestiona el flujo de comités (40a-sms-comites-srb-sag.md); esta etiqueta es solo para el correo y la pantalla de aceptación.
+export const INVITE_ROLE_LABELS = { piloto: 'Piloto', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', admin: 'Gerente General', comite: 'Integrante de comité SMS' };
 export const INVITATION_TTL_DAYS = 7;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

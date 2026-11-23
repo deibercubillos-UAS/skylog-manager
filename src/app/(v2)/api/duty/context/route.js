@@ -38,7 +38,7 @@ export async function GET() {
 
   // Las tres consultas son independientes: en paralelo (antes iban una tras otra).
   const orgIds = memberships.map((m) => m.organization_id);
-  const [{ data: person }, { data: orgs, error: orgsError }, { data: partnerRows }] = await Promise.all([
+  const [{ data: person }, { data: orgs, error: orgsError }, { data: partnerRows }, committeeRes] = await Promise.all([
     // fullName — el shell de nav lo necesita para el menú de cuenta (avatar/nombre).
     supabase.from('people').select('full_name').eq('id', personId).maybeSingle(),
     orgIds.length
@@ -46,9 +46,19 @@ export async function GET() {
       : Promise.resolve({ data: [], error: null }),
     // ¿Es miembro de un socio ACTIVO (escuela/asesor)? Habilita el acceso al panel /socio.
     supabase.from('partner_members').select('partner:partners(status)').eq('person_id', personId),
+    // Comités SMS (SRB/SAG) a los que pertenece — habilita el acceso a esas secciones aunque
+    // el rol no lo dé por matriz (40a-sms-comites-srb-sag.md). RLS deja ver la propia pertenencia.
+    supabase.from('sms_committee_members').select('organization_id, committee').eq('person_id', personId),
   ]);
   mark('resto');
   if (orgsError) return Response.json({ error: 'Error consultando organizaciones' }, { status: 500 });
+
+  // Mapa organización → comités. Blindado: si la tabla aún no existe (migración sin aplicar)
+  // o la consulta falla, se degrada a sin comités en vez de romper el contexto de sesión.
+  const committeesByOrg = {};
+  for (const row of committeeRes?.data || []) {
+    (committeesByOrg[row.organization_id] ||= []).push(row.committee);
+  }
 
   const organizations = memberships.map((m) => {
     const org = orgs.find((o) => o.id === m.organization_id);
@@ -59,6 +69,8 @@ export async function GET() {
       // Nivel ('edit' | 'view' | 'none') de cada función de la matriz de permisos para este rol.
       permissions: permissionsForRole(m.role, { independentPilot: !!m.independent, readOnly: !!m.readOnly }),
       independentPilot: !!m.independent,
+      // Comités SMS (SRB/SAG) a los que pertenece la persona en esta organización.
+      committees: committeesByOrg[m.organization_id] || [],
       // Plan vencido hace más de 7 días: la organización está en solo lectura hasta que pague (subscriptionAccess.js).
       readOnly: !!m.readOnly,
       name: org?.company_name || m.organization_id,

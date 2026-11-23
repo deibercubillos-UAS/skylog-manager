@@ -31,8 +31,10 @@ export function limitsForSubscription(sub) {
 // Mismo criterio real de v1: el Gerente General (admin) NO cuenta contra
 // el límite de "Pilotos" — es el dueño/representante legal, no tripulación
 // operativa. superadmin tampoco (no es un miembro real de la operación).
+// `comite`: integrante solo-comité (SRB/SAG) invitado por correo — asesor,
+// proveedor u observador externo; tampoco es tripulación (40a-sms-comites-srb-sag.md).
 export function crewCountsForLimit(role) {
-  return role !== 'admin' && role !== 'superadmin';
+  return role !== 'admin' && role !== 'superadmin' && role !== 'comite';
 }
 
 // Precios reales vigentes en producción (main, `src/lib/planLimits.js`,

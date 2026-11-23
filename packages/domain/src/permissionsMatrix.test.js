@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PERMISSION_MATRIX, permissionLevel, canEdit, canView, membershipsCanEdit } from './permissionsMatrix.js';
+import { PERMISSION_MATRIX, permissionLevel, canEdit, canView, membershipsCanEdit, permissionsForRole, canAccessCommittee } from './permissionsMatrix.js';
 
 describe('matriz de permisos (decisión del usuario 2026-10-15)', () => {
   it('ids únicos y 6 roles definidos en cada función', () => {
@@ -65,5 +65,35 @@ describe('piloto independiente (columna PI)', () => {
     const ms = [{ organization_id: 'o', role: 'admin', independent: false }];
     expect(membershipsCanEdit(ms, 'o', 'O2')).toBe(true);
     expect(membershipsCanEdit(ms, 'o', 'Y2')).toBe(true);
+  });
+});
+
+describe('comités SMS (SRB V7 / SAG V8) — 40a-sms-comites-srb-sag.md', () => {
+  it('GG y GS administran los comités (V7/V8 = edit); el Jefe de Pilotos solo ve; el piloto no entra por rol', () => {
+    for (const code of ['V7', 'V8']) {
+      expect(canEdit('admin', code)).toBe(true); // Gerente General
+      expect(canEdit('gerente_sms', code)).toBe(true); // Gerente SMS
+      expect(permissionLevel('jefe_pilotos', code)).toBe('view');
+      expect(permissionLevel('piloto', code)).toBe('none');
+    }
+  });
+
+  it('el rol `comite` (integrante solo-comité) no tiene ningún permiso de la matriz', () => {
+    const perms = permissionsForRole('comite');
+    expect(Object.values(perms).every((lvl) => lvl === 'none')).toBe(true);
+  });
+
+  it('canAccessCommittee: gestores y Jefe de Pilotos entran por rol; los demás solo por pertenencia', () => {
+    expect(canAccessCommittee({ role: 'admin', committee: 'srb' })).toBe(true);
+    expect(canAccessCommittee({ role: 'gerente_sms', committee: 'sag' })).toBe(true);
+    expect(canAccessCommittee({ role: 'jefe_pilotos', committee: 'srb' })).toBe(true);
+    // Piloto designado a un comité entra solo a ese comité:
+    expect(canAccessCommittee({ role: 'piloto', committees: ['sag'], committee: 'sag' })).toBe(true);
+    expect(canAccessCommittee({ role: 'piloto', committees: ['sag'], committee: 'srb' })).toBe(false);
+    // Integrante solo-comité:
+    expect(canAccessCommittee({ role: 'comite', committees: ['srb'], committee: 'srb' })).toBe(true);
+    expect(canAccessCommittee({ role: 'comite', committees: ['srb'], committee: 'sag' })).toBe(false);
+    // Sin pertenencia ni rol de acceso:
+    expect(canAccessCommittee({ role: 'piloto', committees: [], committee: 'srb' })).toBe(false);
   });
 });

@@ -53,7 +53,8 @@ export async function POST(request, { params }) {
   if (state !== 'usable') return Response.json({ error: INVITATION_STATE_MESSAGES[state] }, { status: state === 'inexistente' ? 404 : 410 });
 
   // Plan y cargo único: el estado de la organización puede haber cambiado desde que se envió la invitación.
-  if (inv.role !== 'admin') {
+  // `comite` (integrante solo-comité) no cuenta contra el plan ni ocupa un cargo único, así que se omite.
+  if (inv.role !== 'admin' && inv.role !== 'comite') {
     const ctx = await loadJoinContextByOrgId(admin, inv.organization);
     const decision = decideJoin(ctx, inv.role);
     if (!decision.ok) return Response.json({ error: decision.message, reason: decision.reason }, { status: 409 });
@@ -100,12 +101,22 @@ export async function POST(request, { params }) {
     createdHere = true;
   }
 
-  const { error } = await admin.rpc('v2_accept_invitation', { p: { token, auth_user_id: authUserId, full_name: fullName, phone } });
+  const { data: joinRes, error } = await admin.rpc('v2_accept_invitation', { p: { token, auth_user_id: authUserId, full_name: fullName, phone } });
   if (error) {
     if (createdHere) await admin.auth.admin.deleteUser(authUserId); // sin cuentas a medias
     const known = joinErrorMessage(error.message) || (/invitación|venció/i.test(error.message) ? { status: 410, error: error.message } : null);
     if (!known) console.error('[invitaciones] v2_accept_invitation falló:', error.message);
     return Response.json({ error: known?.error || 'No se pudo aceptar la invitación. Intenta de nuevo.' }, { status: known?.status || 500 });
+  }
+
+  // Integrante de comité SMS (40a-sms-comites-srb-sag.md): además de la membresía `comite`, se le crea la
+  // pertenencia al comité al que se le invitó. Si falla, no se revierte la cuenta (ya es miembro válido);
+  // un gestor puede reagregarlo desde la sección del comité.
+  if (inv.role === 'comite' && inv.committee && joinRes?.person_id) {
+    const { error: cmError } = await admin
+      .from('sms_committee_members')
+      .insert({ organization_id: inv.organization.id, committee: inv.committee, person_id: joinRes.person_id, role_in_committee: 'invitado', added_by: inv.invited_by || null });
+    if (cmError && cmError.code !== '23505') console.error('[invitaciones] no se pudo crear la pertenencia al comité:', cmError.message);
   }
 
   await notifyJoin(admin, { organizationId: inv.organization.id, companyName: inv.organization.company_name, fullName, email: inv.email, role: inv.role, via: 'invitacion' });

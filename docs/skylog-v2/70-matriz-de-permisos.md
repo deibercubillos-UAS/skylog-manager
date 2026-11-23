@@ -216,6 +216,14 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 | V5 | Crear sesiones de capacitación SMS y registrar asistencia | ✅ | ✅ | 👁 | ✅ | ❌ | ❌ |
 | V6 | Ver los mapas de restricción | ✅ | ✅ | 👁 | ✅ | 👁 | ❌ |
 
+### SMS · Comités (SRB / SAG)
+| | Función | SA | GG | JP | GS | P | PI |
+|---|---|---|---|---|---|---|---|
+| V7 | Comité de Revisión de Seguridad Operacional (SRB): integrantes y actas | ✅ | ✅ | 👁 | ✅ | ❌ | ❌ |
+| V8 | Grupo de Acción de Seguridad Operacional (SAG): integrantes y actas | ✅ | ✅ | 👁 | ✅ | ❌ | ❌ |
+
+GG y GS administran (agregar integrantes, editar actas); el Jefe de Pilotos solo ve. Los demás integrantes (pilotos designados, proveedor, asesores) entran a **su** sección por **pertenencia** al comité (`sms_committee_members`), no por su rol. Un integrante solo-comité entra con el rol de membresía `comite`: sin permisos de la matriz (menú vacío salvo su comité) y sin contar contra el cupo de pilotos del plan. Ver [`40a-sms-comites-srb-sag.md`](40a-sms-comites-srb-sag.md).
+
 ### Documentación · Capacitación
 | | Función | SA | GG | JP | GS | P | PI |
 |---|---|---|---|---|---|---|---|

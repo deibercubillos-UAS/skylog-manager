@@ -78,6 +78,10 @@ const NAV_LINKS = [
   // { name: 'Capacitación SMS', icon: 'event_repeat', href: '/sms/capacitacion', group: 'SMS' },
   { name: 'Asistente de implantación', icon: 'checklist', href: '/sms/asistente', group: 'SMS', perm: 'V1' },
   { name: 'Mapas', icon: 'map', href: '/sms/mapas', group: 'SMS', perm: 'V6' },
+  // Comités de seguridad operacional (40a-sms-comites-srb-sag.md). `committee`: además del
+  // permiso de rol (V7/V8), el enlace y la pantalla se habilitan si la persona pertenece al comité.
+  { name: 'Comité SRB', icon: 'gavel', href: '/sms/srb', group: 'SMS', perm: 'V7', committee: 'srb' },
+  { name: 'Comité SAG', icon: 'diversity_3', href: '/sms/sag', group: 'SMS', perm: 'V8', committee: 'sag' },
   { name: 'Capacitación', icon: 'school', href: '/capacitacion', group: 'Documentación', perm: 'W1' },
   { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación', perm: 'X1' },
   { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', perm: 'Y1' },
@@ -204,6 +208,18 @@ export default function V2Layout({ children }) {
       .catch(() => {});
   }, []);
 
+  // Integrante solo-comité (rol `comite`): su casa es la sección de su comité. Se le lleva ahí
+  // desde cualquier otra pantalla de la app, salvo su propio perfil (40a-sms-comites-srb-sag.md).
+  useEffect(() => {
+    if (!context || !organizationId) return;
+    const org = context.organizations?.find((o) => o.id === organizationId);
+    if (org?.role !== 'comite') return;
+    const homes = (org.committees || []).map((c) => `/sms/${c}`);
+    const allowed = [...homes, '/perfil'];
+    const ok = allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
+    if (!ok && homes[0]) window.location.href = homes[0];
+  }, [context, organizationId, pathname]);
+
   useEffect(() => {
     setSidebarOpen(false);
     setAccountMenuOpen(false);
@@ -243,13 +259,24 @@ export default function V2Layout({ children }) {
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const permissions = currentOrg?.permissions || {};
   const isManager = permissions['C6'] === 'edit'; // enviar anuncios
+  // Comités SMS (SRB/SAG) de la persona en la organización activa (40a-sms-comites-srb-sag.md).
+  const committees = currentOrg?.committees || [];
+  const inCommittee = (c) => !!c && committees.includes(c);
+  // Integrante solo-comité: su rol no da permisos de la matriz; solo ve la sección de su comité.
+  const isCommitteeOnly = currentOrg?.role === 'comite';
   // Pantalla actual según el menú (la coincidencia más larga): si el rol no tiene ni el permiso de verla, no se muestra
   // el contenido aunque se escriba la dirección a mano (el menú solo oculta el enlace).
   const currentLink = NAV_LINKS.filter((l) => pathname === l.href || pathname.startsWith(l.href + '/')).sort((a, b) => b.href.length - a.href.length)[0];
   const hiddenGate = pathname === '/sms' ? { perm: 'V1' } : HIDDEN_SCREEN_GATES.find((g) => pathname === g.href || pathname.startsWith(g.href + '/'));
   const gatePerm = currentLink?.perm || hiddenGate?.perm;
-  const screenBlocked = !!currentOrg && !!gatePerm && (permissions[gatePerm] || 'none') === 'none';
-  const linkVisible = (l) => !l.perm || (permissions[l.perm] || 'none') !== 'none';
+  // La pantalla se bloquea si el rol no tiene el permiso, SALVO que sea una sección de comité y la persona pertenezca a él.
+  const screenBlocked = !!currentOrg && !!gatePerm && (permissions[gatePerm] || 'none') === 'none' && !inCommittee(currentLink?.committee);
+  // Un enlace es visible si el rol tiene el permiso o si la persona pertenece a ese comité. El integrante solo-comité
+  // solo ve los enlaces de su(s) comité(s): nada más del sistema.
+  const linkVisible = (l) =>
+    isCommitteeOnly
+      ? inCommittee(l.committee)
+      : (!l.perm || (permissions[l.perm] || 'none') !== 'none') || inCommittee(l.committee);
   const isSuperadmin = !!context?.organizations?.some((o) => o.role === 'superadmin');
   const role = currentOrg?.role;
   const displayRole = ROLE_LABELS[role] || role || '—';

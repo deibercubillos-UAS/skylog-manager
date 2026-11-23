@@ -126,6 +126,8 @@ const ROWS = [
   ["V4", "SMS · Asistente de implantación, gobernanza y mapas", "Ver el cronograma de capacitación SMS", "SSVSVN"],
   ["V5", "SMS · Asistente de implantación, gobernanza y mapas", "Crear sesiones de capacitación SMS y registrar asistencia", "SSVSNN"],
   ["V6", "SMS · Asistente de implantación, gobernanza y mapas", "Ver los mapas de restricción", "SSVSVN"],
+  ["V7", "SMS · Comités (SRB / SAG)", "Comité de Revisión de Seguridad Operacional (SRB): integrantes y actas", "SSVSNN", "GG y GS administran (agregar integrantes, editar actas); el Jefe de Pilotos solo ve. Otros integrantes entran por pertenencia al comité, no por su rol."],
+  ["V8", "SMS · Comités (SRB / SAG)", "Grupo de Acción de Seguridad Operacional (SAG): integrantes y actas", "SSVSNN", "GG y GS administran; el Jefe de Pilotos solo ve. Otros integrantes (pilotos designados, proveedor, asesores) entran por pertenencia al comité."],
   ["W1", "Documentación · Capacitación", "Ver evaluaciones y material de apoyo", "SSSSVN"],
   ["W2", "Documentación · Capacitación", "Presentar un examen", "SSSSSN"],
   ["W3", "Documentación · Capacitación", "Ver mi propio cumplimiento", "SSSSSN"],
@@ -210,6 +212,19 @@ export function membershipsCanEdit(memberships, organizationId, id) {
 }
 export function membershipsCanView(memberships, organizationId, id) {
   return (memberships || []).some((m) => m.organization_id === organizationId && canView(m.role, id, { independentPilot: !!m.independent }));
+}
+
+/**
+ * ¿Puede una persona VER la sección de un comité SMS (SRB/SAG)?
+ * Acceso por rol: los gestores (GG, GS) y el Jefe de Pilotos participan en ambos comités
+ * (matriz V7/V8). Cualquier otro (piloto designado, integrante solo-comité `comite`,
+ * proveedor, asesor) entra solo si pertenece a ese comité. La ADMINISTRACIÓN (agregar
+ * integrantes, editar actas) es aparte: se valida con membershipsCanEdit(.., 'V7'|'V8'),
+ * que solo es cierto para GG y GS.
+ */
+export function canAccessCommittee({ role, committees = [], committee } = {}) {
+  if (['admin', 'superadmin', 'gerente_sms', 'jefe_pilotos'].includes(role)) return true;
+  return Array.isArray(committees) && committees.includes(committee);
 }
 
 /** { id: 'edit' | 'view' | 'none' } para un rol de membresía (lo que el cliente usa para mostrar u ocultar). */

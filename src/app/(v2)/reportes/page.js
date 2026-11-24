@@ -18,6 +18,7 @@ import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
 import { resolveReportFormat } from '@skylog/domain';
 import {
   generateUasBookPdf, generatePilotSummaryPdf,
+  generateFlightLogPdf,
   generateMaintenanceBookPdf,
   generateBatteryReportPdf,
   generateCrewReportPdf,
@@ -32,6 +33,7 @@ import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient
 
 const REPORT_DEFS = [
   { key: 'bitacora_piloto', title: 'Bitácora de Vuelo del Piloto UAS', description: 'Resumen por piloto: horas totales, por aeronave y por tipo de visión (VLOS, EVLOS, BVLOS).', icon: 'assignment_ind', tile: 'bg-cyan-500 text-white', wash: 'from-cyan-50 to-white', needsPeriod: true, needsPilot: true },
+  { key: 'vuelos', title: 'Bitácora de Vuelo por Aeronave', description: 'Formato de Libro de Vuelo, una hoja por cada vuelo de la aeronave elegida (vacío = toda la flota).', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'uas', title: 'Libro de UAS', description: 'Totales acumulados de cada aeronave: vuelos, horas, ciclos y mantenimiento. Una hoja por drone.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsAircraft: true },
   { key: 'mantenimiento', title: 'Libro de Mantenimiento', description: 'Una hoja por registro de cada aeronave: información de falla y solución.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'baterias', title: 'Control de Baterías', description: 'Una hoja por batería: ciclos, condición y registro de uso.', icon: 'battery_full', tile: 'bg-emerald-500 text-white', wash: 'from-emerald-50 to-white', needsBattery: true },
@@ -169,6 +171,13 @@ export default function ReportesPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando pilotos');
         await generatePilotSummaryPdf(data.pilots, { orgName, logoUrl, format: fmt, periodLabel, org: data.org });
+      } else if (def.key === 'vuelos') {
+        const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
+        const res = await fetch(`/api/reportes/vuelos?${qs}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error consultando los vuelos');
+        if (!data.flights?.length) throw new Error('No hay vuelos en ese periodo para la aeronave seleccionada.');
+        await generateFlightLogPdf(data.flights, { orgName, logoUrl, periodLabel, format: fmt, extra: data });
       } else if (def.key === 'uas') {
         const qs = new URLSearchParams({ organizationId, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/uas?${qs}`);

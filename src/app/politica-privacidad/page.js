@@ -34,7 +34,7 @@ export default function PoliticaPrivacidadPage() {
       eyebrow="Legal"
       title="Política de Privacidad"
       description="Cómo tratamos los datos personales de quienes usan bitafly.com y la plataforma Bitafly, y cómo puede ejercer sus derechos como titular de la información."
-      updated="13 de julio de 2026"
+      updated="24 de noviembre de 2026"
       toc={TOC}
     >
       <p>
@@ -62,6 +62,7 @@ export default function PoliticaPrivacidadPage() {
         <li><strong>Datos de organización:</strong> razón social, NIT, dirección, representante legal y datos de registro ante la Aeronáutica Civil (N.º de explotador, N.º de operador UAS) de la empresa que usted representa o a la que pertenece.</li>
         <li><strong>Expediente de tripulante:</strong> número de cédula, licencia/CIPU, certificado médico y su vigencia, diploma UAS, examen teórico y contacto de emergencia, cuando usted o su organización los cargan para llevar el expediente de piloto exigido por la RAC 100.</li>
         <li><strong>Datos operativos de vuelo:</strong> bitácora de vuelos, ubicación de las operaciones, análisis y evaluaciones de riesgo, reportes de seguridad operacional (SMS, VOR/MOR) y demás información propia de la operación de aeronaves no tripuladas.</li>
+        <li><strong>Ubicación precisa del dispositivo (opcional):</strong> en la aplicación móvil, la función de meteorología puede solicitar acceso a la ubicación (GPS) de su dispositivo para mostrarle el clima del punto donde se encuentra. El permiso se pide cuando usted usa esa función y puede negarlo o revocarlo en cualquier momento desde los ajustes del dispositivo; en ese caso la función opera ingresando el lugar manualmente. Las coordenadas se usan únicamente para la consulta puntual del clima (ver proveedor <strong>Open-Meteo</strong> en el apartado 4) y no se conservan como un dato de ubicación propio.</li>
         <li><strong>Datos de facturación:</strong> los pagos de suscripción se procesan a través de nuestra pasarela de pagos Wompi. <strong>Bitafly no almacena números de tarjeta ni datos financieros sensibles</strong> — esa información es tratada directamente por Wompi bajo su propia política de privacidad.</li>
         <li><strong>Datos técnicos:</strong> dirección IP, tipo de navegador y de dispositivo, y datos de uso del Sitio recolectados mediante cookies y tecnologías similares (ver <a href="/politica-cookies">Política de Cookies</a>).</li>
       </ul>
@@ -89,6 +90,7 @@ export default function PoliticaPrivacidadPage() {
         <li><strong>Cloudflare (R2)</strong> — almacenamiento de archivos y documentos adjuntos (fotos, certificados, adjuntos de mantenimiento, replays de vuelo).</li>
         <li><strong>Wompi</strong> — procesamiento de pagos y suscripciones.</li>
         <li><strong>Resend</strong> — envío de correos electrónicos transaccionales y de notificación.</li>
+        <li><strong>Open-Meteo</strong> — servicio de pronóstico del clima. Cuando usted consulta la meteorología de un punto, se le envían las coordenadas (ingresadas por usted o, con su permiso, la ubicación de su dispositivo) para devolver el pronóstico correspondiente.</li>
       </ul>
       <p>
         Algunos de estos proveedores procesan o almacenan información en servidores ubicados fuera

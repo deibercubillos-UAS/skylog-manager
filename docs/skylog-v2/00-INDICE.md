@@ -78,6 +78,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`72-plan-pruebas-completas.md`](72-plan-pruebas-completas.md) · [`73-resultados-pruebas.md`](73-resultados-pruebas.md) | **Pruebas completas desde la página** (web y celular) con las cuentas QA — plan por fases y resultados (2026-10-16) | 80 + 90 | 🔄 |
 | [`60-auditoria-codigo.md`](60-auditoria-codigo.md) | **Auditoría del código de V2** (2026-10-07) — qué está bien, qué no y qué falta, con evidencia | 150 | ✅ |
 | [`61-analisis-completo-2026-11-17.md`](61-analisis-completo-2026-11-17.md) | **Análisis completo de la aplicación** (fallas, seguridad, lo que estaba a medias) con el estado de cada hallazgo |
+| [`77-publicacion-google-play.md`](77-publicacion-google-play.md) | **Publicación en Google Play** — ficha de la tienda, Seguridad de los Datos y pasos de subida (AAB firmado del sabor `play`) | 120 | 🔄 |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 

@@ -59,6 +59,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Geolocalización del WebView: botón "usar mi ubicación" en meteorología.
+         Capacitor concede el permiso de geolocalización al WebView, pero Android no
+         entrega la posición si la app no tiene el permiso en runtime (A6+). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- Lectura de logs DJI (FlightRecord) en almacenamiento externo público (F3.6).
          A11+ requiere acceso a todos los archivos; en <=A12 basta READ_EXTERNAL_STORAGE. -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"

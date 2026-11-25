@@ -118,7 +118,9 @@ export default function PoliticaPrivacidadPage() {
         obligaciones legales, contables, regulatorias (incluida la normativa RAC 100, que exige
         conservar registros de operación) o para atender eventuales requerimientos de autoridades
         competentes. Una vez cumplidas esas finalidades, los datos se eliminan o anonimizan de
-        forma segura, salvo que exista una obligación legal de conservarlos por más tiempo.
+        forma segura, salvo que exista una obligación legal de conservarlos por más tiempo. Si desea
+        cerrar su cuenta y eliminar sus datos personales, consulte{' '}
+        <a href="/eliminar-cuenta">Eliminar mi cuenta</a>.
       </p>
 
       <h2 id="menores">7. Datos de menores de edad</h2>

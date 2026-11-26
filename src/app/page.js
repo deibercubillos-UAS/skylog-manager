@@ -1,4 +1,5 @@
 ﻿import HomeClient from './HomeClient';
+import AppLaunchRedirect from './_AppLaunchRedirect';
 
 // Home real — Server Component. El diseño visual e interactivo vive en
 // HomeClient.js (mismo patrón *Client.js ya usado en las 23 páginas públicas
@@ -356,6 +357,8 @@ export default function LandingPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
+      {/* Solo en la app de Google Play: redirige al dashboard o a la bienvenida (no-op en web) */}
+      <AppLaunchRedirect />
       <HomeClient />
     </>
   );

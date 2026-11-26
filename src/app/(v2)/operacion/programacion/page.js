@@ -27,6 +27,9 @@ import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient
 const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), { ssr: false });
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+// Para el encabezado del día en la vista móvil. JS getDay(): 0=Domingo … 6=Sábado; getMonth(): 0=enero.
+const DIA_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const LINE_OF_SIGHT = [
   { key: 'VLOS', label: 'VLOS', hint: 'Visual directo' },
   { key: 'EVLOS', label: 'EVLOS', hint: 'Visual extendido' },
@@ -108,6 +111,7 @@ export default function ProgramacionPage() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [selectedKey, setSelectedKey] = useState(() => dateKey(new Date())); // día activo en la vista móvil
   const [geoType, setGeoType] = useState('polygon');
   const [zoneGeo, setZoneGeo] = useState(null); // { points, radius }
   const [mapOpen, setMapOpen] = useState(false);
@@ -308,6 +312,159 @@ export default function ProgramacionPage() {
     }
     return map;
   }, [missions]);
+
+  // Vista móvil: un solo día a la vez. Si el día elegido no cae en la semana visible (tras navegar),
+  // se cae a hoy, luego al primer día con misiones, y si no, al primer día de la semana.
+  const selectedDay =
+    weekDays.find((d) => dateKey(d) === selectedKey) ||
+    weekDays.find((d) => dateKey(d) === dateKey(new Date())) ||
+    weekDays.find((d) => (missionsByDay[dateKey(d)] || []).length > 0) ||
+    weekDays[0];
+  const selectedDayMissions = missionsByDay[dateKey(selectedDay)] || [];
+
+  // Chip de misión (colapsado → una línea; expandido → detalle). Reutilizado por la grilla de
+  // escritorio y por la vista de un solo día en celular, para que no se dupliquen ni se desincronicen.
+  const renderMission = (m) => {
+    const isExpanded = expandedId === m.id;
+    const isCancelled = m.status === 'cancelada';
+    return (
+      <div
+        key={m.id}
+        className={`rounded-xl border-l-[3px] text-xs transition-colors ${
+          isCancelled ? 'border-navy-200 bg-navy-50 text-navy-300' : 'border-primary bg-primary-50/60 text-navy hover:bg-primary-50'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setExpandedId(isExpanded ? null : m.id)}
+          className={`w-full flex items-center gap-1.5 px-2.5 py-2.5 text-left ${isCancelled ? 'line-through' : ''}`}
+        >
+          <span className="font-mono font-semibold shrink-0">{formatTime24(m.scheduled_at)}</span>
+          {m.line_of_sight && (
+            <span className="text-[9px] font-black text-navy-500 bg-navy-100 rounded px-1 shrink-0">{m.line_of_sight}</span>
+          )}
+          {m.zone_geo && (
+            <span className="material-symbols-outlined text-[12px] text-primary-600 shrink-0" title="Zona con geometría marcada">
+              map
+            </span>
+          )}
+          {!isCancelled && m.qualificationWarnings?.length > 0 && (
+            <span className="material-symbols-outlined text-[13px] text-amber-600 shrink-0" title={m.qualificationWarnings.join(' ')}>
+              warning
+            </span>
+          )}
+          <span className="truncate flex-1 font-medium">{m.name || 'Sin nombre'}</span>
+          <span className="material-symbols-outlined text-[14px] text-navy-300 shrink-0">
+            {isExpanded ? 'expand_less' : 'expand_more'}
+          </span>
+        </button>
+
+        {isExpanded && (
+          <div className="px-2.5 pb-2.5 -mt-0.5 space-y-0.5">
+            {editingId === m.id ? (
+              <div className="flex items-center gap-1 mb-1">
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename(m.id);
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
+                  className="w-full text-xs border border-navy-200 rounded px-1 py-0.5"
+                />
+                <button type="button" onClick={() => handleRename(m.id)} className="text-primary-600 shrink-0">
+                  <span className="material-symbols-outlined text-sm">check</span>
+                </button>
+              </div>
+            ) : (
+              isManager && m.status === 'programada' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(m.id);
+                    setEditName(m.name || '');
+                  }}
+                  className="text-[10px] text-navy-400 hover:text-navy-600 flex items-center gap-0.5 mb-1"
+                >
+                  <span className="material-symbols-outlined text-[12px]">edit</span>
+                  Editar nombre
+                </button>
+              )
+            )}
+
+            {(m.status === 'despachada' || m.status === 'cerrada') && (
+              <p className={`font-semibold ${m.status === 'cerrada' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {m.status === 'cerrada' ? 'Cerrada — vuelo registrado' : 'Despachada — falta registrar el vuelo'}
+              </p>
+            )}
+            <p className="truncate">
+              <span className="text-navy-300">PIC:</span> {m.pic?.full_name || '—'}
+            </p>
+            {!isCancelled && m.qualificationWarnings?.map((w) => (
+              <p key={w} className="text-amber-700 bg-amber-50 rounded px-1.5 py-1 my-0.5">⚠ {w}</p>
+            ))}
+            {m.observer?.full_name && (
+              <p className="truncate text-navy-400">
+                <span className="text-navy-300">Observador:</span> {m.observer.full_name}
+              </p>
+            )}
+            {m.aircraft?.serial_number && (
+              <p className="truncate text-navy-400">
+                <span className="text-navy-300">Aeronave:</span> {m.aircraft.model?.brand} {m.aircraft.model?.model} — {m.aircraft.serial_number}
+              </p>
+            )}
+            {m.altitude_agl_m != null && (
+              <p className="truncate text-navy-400">
+                <span className="text-navy-300">AGL:</span> {m.altitude_agl_m} m
+              </p>
+            )}
+            <p className="truncate text-navy-400">
+              <span className="text-navy-300">Zona:</span> {m.zone}
+            </p>
+            {m.flight_order && (
+              <p className="text-navy-400 mt-0.5">
+                <span className="text-navy-300">Orden de vuelo:</span>{' '}
+                <span className="inline-flex items-center rounded bg-navy px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">{m.flight_order}</span>
+              </p>
+            )}
+            {m.notes?.trim() && <p className="truncate text-navy-400 mt-0.5">{m.notes}</p>}
+
+            <div className="flex items-center gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => downloadMissionPdf(m, { orgName: currentOrg?.name, logoUrl: currentOrg?.logoUrl })}
+                className="text-navy-400 hover:text-navy-600"
+                title="Descargar PDF"
+              >
+                <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+              </button>
+              {m.zone_geo && (
+                <button
+                  type="button"
+                  onClick={() => downloadMissionKmz(m)}
+                  className="text-navy-400 hover:text-navy-600"
+                  title="Descargar KMZ"
+                >
+                  <span className="material-symbols-outlined text-[15px]">map</span>
+                </button>
+              )}
+              {isManager && m.status === 'programada' && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => handleCancel(m.id)}
+                  className="text-[10px] text-red-600 hover:underline no-underline ml-auto"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const activeCount = missions.filter((m) => m.status !== 'cancelada').length;
   const uniquePics = new Set(missions.filter((m) => m.status !== 'cancelada').map((m) => m.pic_person_id)).size;
@@ -645,7 +802,8 @@ export default function ProgramacionPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
+        {/* Escritorio: grilla de 7 columnas (una por día), cada una con scroll interno. */}
+        <div className="hidden sm:grid sm:grid-cols-7 gap-2">
           {weekDays.map((day, i) => {
             const isToday = dateKey(day) === dateKey(new Date());
             const dayMissions = missionsByDay[dateKey(day)] || [];
@@ -664,156 +822,50 @@ export default function ProgramacionPage() {
                     <span className="text-[10px] font-black text-white bg-primary rounded-full w-4 h-4 flex items-center justify-center">{dayMissions.length}</span>
                   )}
                 </div>
-
-                {/* Scroll interno por día — evita que la fila crezca sin
-                    control cuando hay varias misiones el mismo día; cada
-                    misión colapsa a una línea y se expande al hacer clic. */}
                 <div className="space-y-1 overflow-y-auto max-h-[360px] pr-0.5">
-                  {dayMissions.map((m) => {
-                    const isExpanded = expandedId === m.id;
-                    const isCancelled = m.status === 'cancelada';
-                    return (
-                      <div
-                        key={m.id}
-                        className={`rounded-xl border-l-[3px] text-xs transition-colors ${
-                          isCancelled ? 'border-navy-200 bg-navy-50 text-navy-300' : 'border-primary bg-primary-50/60 text-navy hover:bg-primary-50'
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                          className={`w-full flex items-center gap-1 px-2 py-1.5 text-left ${isCancelled ? 'line-through' : ''}`}
-                        >
-                          <span className="font-mono font-semibold shrink-0">{formatTime24(m.scheduled_at)}</span>
-                          {m.line_of_sight && (
-                            <span className="text-[9px] font-black text-navy-500 bg-navy-100 rounded px-1 shrink-0">{m.line_of_sight}</span>
-                          )}
-                          {m.zone_geo && (
-                            <span className="material-symbols-outlined text-[12px] text-primary-600 shrink-0" title="Zona con geometría marcada">
-                              map
-                            </span>
-                          )}
-                          {!isCancelled && m.qualificationWarnings?.length > 0 && (
-                            <span className="material-symbols-outlined text-[13px] text-amber-600 shrink-0" title={m.qualificationWarnings.join(' ')}>
-                              warning
-                            </span>
-                          )}
-                          <span className="truncate flex-1 font-medium">{m.name || 'Sin nombre'}</span>
-                          <span className="material-symbols-outlined text-[14px] text-navy-300 shrink-0">
-                            {isExpanded ? 'expand_less' : 'expand_more'}
-                          </span>
-                        </button>
-
-                        {isExpanded && (
-                          <div className="px-2 pb-2 -mt-0.5">
-                            {editingId === m.id ? (
-                              <div className="flex items-center gap-1 mb-1">
-                                <input
-                                  autoFocus
-                                  value={editName}
-                                  onChange={(e) => setEditName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRename(m.id);
-                                    if (e.key === 'Escape') setEditingId(null);
-                                  }}
-                                  className="w-full text-xs border border-navy-200 rounded px-1 py-0.5"
-                                />
-                                <button type="button" onClick={() => handleRename(m.id)} className="text-primary-600 shrink-0">
-                                  <span className="material-symbols-outlined text-sm">check</span>
-                                </button>
-                              </div>
-                            ) : (
-                              isManager && m.status === 'programada' && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingId(m.id);
-                                    setEditName(m.name || '');
-                                  }}
-                                  className="text-[10px] text-navy-400 hover:text-navy-600 flex items-center gap-0.5 mb-1"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">edit</span>
-                                  Editar nombre
-                                </button>
-                              )
-                            )}
-
-                            {(m.status === 'despachada' || m.status === 'cerrada') && (
-                              <p className={`font-semibold ${m.status === 'cerrada' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                {m.status === 'cerrada' ? 'Cerrada — vuelo registrado' : 'Despachada — falta registrar el vuelo'}
-                              </p>
-                            )}
-                            <p className="truncate">
-                              <span className="text-navy-300">PIC:</span> {m.pic?.full_name || '—'}
-                            </p>
-                            {!isCancelled && m.qualificationWarnings?.map((w) => (
-                              <p key={w} className="text-amber-700 bg-amber-50 rounded px-1.5 py-1 my-0.5">⚠ {w}</p>
-                            ))}
-                            {m.observer?.full_name && (
-                              <p className="truncate text-navy-400">
-                                <span className="text-navy-300">Observador:</span> {m.observer.full_name}
-                              </p>
-                            )}
-                            {m.aircraft?.serial_number && (
-                              <p className="truncate text-navy-400">
-                                <span className="text-navy-300">Aeronave:</span> {m.aircraft.model?.brand} {m.aircraft.model?.model} — {m.aircraft.serial_number}
-                              </p>
-                            )}
-                            {m.altitude_agl_m != null && (
-                              <p className="truncate text-navy-400">
-                                <span className="text-navy-300">AGL:</span> {m.altitude_agl_m} m
-                              </p>
-                            )}
-                            <p className="truncate text-navy-400">
-                              <span className="text-navy-300">Zona:</span> {m.zone}
-                            </p>
-                            {m.flight_order && (
-                              <p className="text-navy-400 mt-0.5">
-                                <span className="text-navy-300">Orden de vuelo:</span>{' '}
-                                <span className="inline-flex items-center rounded bg-navy px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">{m.flight_order}</span>
-                              </p>
-                            )}
-                            {m.notes?.trim() && <p className="truncate text-navy-400 mt-0.5">{m.notes}</p>}
-
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <button
-                                type="button"
-                                onClick={() => downloadMissionPdf(m, { orgName: currentOrg?.name, logoUrl: currentOrg?.logoUrl })}
-                                className="text-navy-400 hover:text-navy-600"
-                                title="Descargar PDF"
-                              >
-                                <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
-                              </button>
-                              {m.zone_geo && (
-                                <button
-                                  type="button"
-                                  onClick={() => downloadMissionKmz(m)}
-                                  className="text-navy-400 hover:text-navy-600"
-                                  title="Descargar KMZ"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">map</span>
-                                </button>
-                              )}
-                              {isManager && m.status === 'programada' && (
-                                <button
-                                  type="button"
-                                  disabled={busy}
-                                  onClick={() => handleCancel(m.id)}
-                                  className="text-[10px] text-red-600 hover:underline no-underline ml-auto"
-                                >
-                                  Cancelar
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {dayMissions.map(renderMission)}
                 </div>
               </div>
             );
           })}
+        </div>
+
+        {/* Celular: tira de 7 días (con contador) + el día elegido a lo ancho. Así, aunque haya
+            varias misiones el mismo día, caben completas y se navega la semana sin apilar 7 tarjetas. */}
+        <div className="sm:hidden">
+          <div className="grid grid-cols-7 gap-1">
+            {weekDays.map((day, i) => {
+              const isToday = dateKey(day) === dateKey(new Date());
+              const isSel = dateKey(day) === dateKey(selectedDay);
+              const count = (missionsByDay[dateKey(day)] || []).length;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setSelectedKey(dateKey(day))}
+                  className={`flex flex-col items-center gap-0.5 rounded-xl py-2 border transition-colors ${
+                    isSel ? 'border-primary bg-primary text-white' : isToday ? 'border-primary/40 text-primary-600' : 'border-navy-100 text-navy-400'
+                  }`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-wide">{DAY_LABELS[i]}</span>
+                  <span className="text-sm font-black leading-none">{day.getDate()}</span>
+                  <span className={`h-1.5 w-1.5 rounded-full ${count > 0 ? (isSel ? 'bg-white' : 'bg-primary') : 'bg-transparent'}`} />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-black uppercase tracking-widest text-navy-400">
+              {DIA_LARGO[selectedDay.getDay()]} {String(selectedDay.getDate()).padStart(2, '0')} de {MES_LARGO[selectedDay.getMonth()]}
+              {dateKey(selectedDay) === dateKey(new Date()) && <span className="ml-1 text-primary-600">· Hoy</span>}
+            </p>
+            {selectedDayMissions.length === 0 ? (
+              <p className="py-8 text-center text-sm text-navy-300">Sin misiones programadas este día.</p>
+            ) : (
+              selectedDayMissions.map(renderMission)
+            )}
+          </div>
         </div>
       </div>
     </div>

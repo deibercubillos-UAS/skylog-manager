@@ -28,6 +28,7 @@
 // tarjetas de color, ya no PageHero/KPIStrip planos de @skylog/ui.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
@@ -1164,6 +1165,7 @@ function FolderImportCard({ onFiles, analyzing }) {
   const [reading, setReading] = useState(null);     // { current, total } mientras lee los .txt nuevos
   const [err, setErr] = useState(null);
   const [lastScan, setLastScan] = useState(null);   // { total, nuevos } del último escaneo
+  const [showHelp, setShowHelp] = useState(false);  // modal de ayuda del botón flotante
   const scanningRef = useRef(false);                // evita escaneos solapados (montaje + resume)
   // onFiles (handleAnalyzeFiles) cambia de identidad en cada render; en una ref para que autoScan
   // sea estable y los effects no se re-disparen en bucle.
@@ -1310,6 +1312,95 @@ function FolderImportCard({ onFiles, analyzing }) {
           )}
         </div>
       )}
+
+      {/* Botón de ayuda flotante: siempre visible en la app para explicar cómo elegir la carpeta de
+          sincronización. Fijo arriba de la barra inferior y respetando el área segura del teléfono. */}
+      <button
+        type="button"
+        onClick={() => setShowHelp(true)}
+        aria-label="Cómo conectar la carpeta de vuelos"
+        className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[300] flex items-center gap-2 rounded-full bg-primary text-white shadow-lg shadow-primary/30 pl-3 pr-4 py-3 active:scale-95 transition-transform"
+      >
+        <span className="material-symbols-outlined text-xl">help</span>
+        <span className="text-xs font-black uppercase tracking-wide">Ayuda</span>
+      </button>
+
+      <FolderHelpSheet
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        connected={connected}
+        onConnect={() => { setShowHelp(false); connectFolder(); }}
+      />
     </div>
+  );
+}
+
+// Hoja de ayuda (bottom-sheet) con los pasos para elegir la carpeta FlightRecord del control/celular.
+// Se muestra desde el botón flotante «Ayuda». Portal al body para que no la recorte ninguna tarjeta.
+function FolderHelpSheet({ open, onClose, connected, onConnect }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open || typeof document === 'undefined') return null;
+
+  const pasos = [
+    { icon: 'usb', t: 'Conecta el control o celular', d: 'Donde vuelas con DJI Pilot 2 / DJI Fly. Puede ser este mismo dispositivo.' },
+    { icon: 'touch_app', t: 'Toca «Conectar carpeta de vuelos»', d: 'Se abre el selector de carpetas de Android.' },
+    { icon: 'folder_open', t: 'Entra a la carpeta FlightRecord', d: 'Ruta habitual: Android › data › dji.go.v5 › files › FlightRecord. Ahí DJI guarda los .txt de cada vuelo.' },
+    { icon: 'check_circle', t: 'Toca «Usar esta carpeta» y «Permitir»', d: 'Solo se pide una vez. BitaFly recuerda la carpeta.' },
+    { icon: 'autorenew', t: 'Listo: se revisa sola', d: 'Cada vez que abras BitaFly busca logs nuevos y te los deja abajo, listos para confirmar vuelo por vuelo.' },
+  ];
+
+  return createPortal(
+    <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center bg-navy/50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label="Ayuda: conectar la carpeta de vuelos" onClick={onClose}>
+      <div className="bg-white w-full sm:max-w-md max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="size-9 shrink-0 flex items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+              <span className="material-symbols-outlined">cloud_sync</span>
+            </span>
+            <div>
+              <h3 className="text-base font-black text-navy leading-tight">Conectar la carpeta de vuelos</h3>
+              <p className="text-xs text-navy-400">Para que BitaFly importe tus vuelos solo.</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="size-9 shrink-0 flex items-center justify-center rounded-lg text-navy-300 hover:text-navy" aria-label="Cerrar">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <ol className="mt-4 space-y-3">
+          {pasos.map((p, i) => (
+            <li key={p.icon} className="flex gap-3">
+              <span className="relative shrink-0 size-8 flex items-center justify-center rounded-full bg-navy-50 text-navy-500">
+                <span className="material-symbols-outlined text-lg">{p.icon}</span>
+                <span className="absolute -top-1 -left-1 size-4 flex items-center justify-center rounded-full bg-primary text-white text-[10px] font-black">{i + 1}</span>
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-navy">{p.t}</p>
+                <p className="text-xs text-navy-500 leading-snug">{p.d}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <p className="mt-4 text-xs text-navy-500 bg-navy-50/60 border border-navy-100 rounded-xl px-3 py-2">
+          Solo se importan vuelos hechos con drones <b>registrados en tu Flota</b>. Si un log aparece como «dron fuera de tu flota», registra ese dron en <b>Flota &amp; Equipo</b> con su número de serie.
+        </p>
+
+        <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button type="button" onClick={onClose} className="min-h-[44px] px-4 rounded-xl border border-navy-200 text-sm font-bold text-navy-600">Entendido</button>
+          {!connected && (
+            <button type="button" onClick={onConnect} className="min-h-[44px] px-4 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-wide">
+              Conectar ahora
+            </button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

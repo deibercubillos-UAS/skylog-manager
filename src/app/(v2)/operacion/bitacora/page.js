@@ -29,7 +29,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
-import dynamic from 'next/dynamic';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import FlightReplayViewer from '../../_components/FlightReplayViewer';
@@ -48,7 +47,6 @@ import {
 import FlightEditDialog from './_FlightEditDialog';
 import ZoneReportDialog from './_ZoneReportDialog';
 // Leaflet toca `window` al importar; como en programación, se carga sin SSR.
-const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), { ssr: false });
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -116,13 +114,10 @@ export default function BitacoraPage() {
   // Importación por carpeta — solo app nativa Android (en web es no-op); se decide tras montar
   // para no desalinear la hidratación con el render del servidor.
   const [nativeFolder, setNativeFolder] = useState(false);
-  // Salida de zona — la zona de operación se define una vez para todo el lote de importación (los
-  // vuelos importados sí traen traza GPS, así que se puede evaluar si el dron salió). `importZone` es
-  // { geoType, points, radius }. Tras confirmar un vuelo, si salió de la zona se abre el reporte de
-  // motivos del piloto. El banner de pendientes y el enlace `?vuelo=` llevan al mismo diálogo.
-  const [importZone, setImportZone] = useState(null);
-  const [zoneGeoType, setZoneGeoType] = useState('polygon');
-  const [showZonePicker, setShowZonePicker] = useState(false);
+  // Salida de zona: la zona de operación NO se define en la Bitácora — se toma de las coordenadas
+  // dejadas en la Programación (missions.zone_geo), que el vuelo hereda al despachar. Aquí solo se
+  // reacciona a la evaluación ya hecha: si un vuelo salió de su zona, se abre el reporte de motivos
+  // del piloto. El banner de pendientes y el enlace `?vuelo=` llevan al mismo diálogo.
   const [zoneReportFlight, setZoneReportFlight] = useState(null); // vuelo para el diálogo de motivos
   const [zoneParamHandled, setZoneParamHandled] = useState(false); // ?vuelo= ya atendido (abrir una sola vez)
 
@@ -332,7 +327,8 @@ export default function BitacoraPage() {
           batterySerial: row.batterySerial || null,
           batteryCycles: row.batteryCycles ?? null,
           replayTrack: row.replayTrack || null,
-          zoneGeo: importZone,
+          // La zona de operación se toma de la Programación (no se define en la Bitácora).
+          zoneGeo: null,
           importToken: row.importToken || null,
         }),
       });
@@ -476,44 +472,14 @@ export default function BitacoraPage() {
 
         {showImport && (
           <div className="p-5 border-t border-navy-50 space-y-4">
-            {/* Zona de operación del lote — opcional. Si se define, cada vuelo importado se evalúa
-                contra ella (sale/no sale) con la traza GPS del log. Vale para todo el lote. */}
-            <div className="rounded-2xl border border-navy-100 p-4 bg-cyan-50/30">
-              <p className="text-xs font-black uppercase text-navy tracking-wide flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base text-cyan-600">my_location</span>
-                Zona de operación <span className="text-navy-300 font-semibold normal-case">(opcional)</span>
-              </p>
-              <p className="text-[11px] text-navy-400 mt-1">
-                Si defines la zona, cada vuelo importado se revisa: si el dron salió, se te pedirá el motivo y se avisará al Gerente SMS.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                  value={zoneGeoType}
-                  onChange={(e) => { setZoneGeoType(e.target.value); setImportZone(null); }}
-                  className="rounded-xl border border-navy-200 px-2.5 py-2 text-sm bg-white"
-                  aria-label="Tipo de zona"
-                >
-                  <option value="polygon">Polígono (área)</option>
-                  <option value="circle">Círculo (radio)</option>
-                  <option value="linear">Pasillo (línea)</option>
-                </select>
-                <Button variant="ghost" onClick={() => setShowZonePicker(true)}>
-                  {importZone ? 'Editar zona en el mapa' : 'Definir zona en el mapa'}
-                </Button>
-                {importZone && (
-                  <span className="inline-flex items-center gap-2 text-xs font-bold text-cyan-800 bg-cyan-100 border border-cyan-200 rounded-lg px-2.5 py-1">
-                    <span className="material-symbols-outlined text-sm">check_circle</span>
-                    Zona definida ({importZone.points?.length || 0} punto{(importZone.points?.length || 0) === 1 ? '' : 's'})
-                    <button type="button" onClick={() => setImportZone(null)} className="text-cyan-700 hover:text-red-600" aria-label="Quitar zona">✕</button>
-                  </span>
-                )}
-              </div>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* App nativa: importación por carpeta AUTOMÁTICA (va primero, es la vía principal). */}
               {nativeFolder && <FolderImportCard onFiles={handleAnalyzeFiles} analyzing={analyzing} />}
-              {/* Carga manual — RC / RC2, sin app compañera que sincronice sola. En nativo queda como respaldo. */}
-              <div className="rounded-2xl border border-navy-100 p-4 bg-navy-50/20">
+              {/* Carga manual — RC / RC2: SOLO en web de escritorio. En la app (Android) la vía es la
+                  carpeta automática; en celular (Android/iPhone) no se muestra la carga manual —
+                  los .txt se sacan del control desde un computador. */}
+              {!nativeFolder && (
+              <div className="hidden lg:block rounded-2xl border border-navy-100 p-4 bg-navy-50/20">
                 <p className="text-xs font-black uppercase text-navy tracking-wide flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-primary-600">sd_card</span>
                   Carga manual — control RC / RC2
@@ -549,6 +515,7 @@ export default function BitacoraPage() {
                   />
                 </label>
               </div>
+              )}
 
               {/* En web/iPhone no hay acceso a carpeta: aviso de que esa vía vive en la app móvil de Android. */}
               {!nativeFolder && (
@@ -838,8 +805,10 @@ export default function BitacoraPage() {
           />
         )}
 
+        {/* Registrar vuelo (captura manual) — SOLO web de escritorio. En el celular (Android/iPhone)
+            los vuelos entran por la carpeta/control, no se escriben a mano (`hidden lg:block`). */}
         {canManualFlight && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow p-5 h-fit">
+        <form onSubmit={handleSubmit} className="hidden lg:block bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow p-5 h-fit">
           <div className="flex items-center gap-3 border-b border-navy-50 pb-4 mb-4">
             <span className="flex size-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
               <span className="material-symbols-outlined">add</span>
@@ -949,18 +918,6 @@ export default function BitacoraPage() {
           flightLabel={`${formatDate(replayFlight.takeoff_at)} · ${replayFlight.pilot?.full_name || 'Vuelo'}`}
           takeoffAt={replayFlight.takeoff_at}
           onClose={() => setReplayFlight(null)}
-        />
-      )}
-
-      {showZonePicker && (
-        <MapPickerModal
-          type={zoneGeoType}
-          points={importZone?.points || []}
-          onSave={({ points, radius }) => {
-            setImportZone({ geoType: zoneGeoType, points, radius });
-            setShowZonePicker(false);
-          }}
-          onClose={() => setShowZonePicker(false)}
         />
       )}
 

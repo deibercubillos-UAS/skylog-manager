@@ -120,6 +120,12 @@ export default function ProgramacionPage() {
   const [kmzError, setKmzError] = useState(null);
   const [kmzBusy, setKmzBusy] = useState(false);
   const kmzInputRef = useRef(null);
+  const formRef = useRef(null);
+  // Abre el formulario y lo trae a la vista (lo usa el botón flotante «+» de móvil).
+  const openNewMission = () => {
+    setShowForm(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['E2'] === 'edit';
@@ -515,7 +521,14 @@ export default function ProgramacionPage() {
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
       {showForm && isManager && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm p-5 space-y-5">
+        <form ref={formRef} onSubmit={handleSubmit} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm p-5 space-y-5 scroll-mt-4">
+          {/* Encabezado solo móvil: título + cerrar (en escritorio el cierre está en el botón del hero). */}
+          <div className="sm:hidden flex items-center justify-between -mb-1">
+            <p className="text-base font-black text-navy">Nueva misión</p>
+            <button type="button" onClick={() => setShowForm(false)} className="size-9 flex items-center justify-center rounded-lg text-navy-400 hover:text-navy" aria-label="Cerrar">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
           {/* Datos de la misión */}
           <div>
             <div className="flex items-center gap-2.5 mb-3">
@@ -868,6 +881,21 @@ export default function ProgramacionPage() {
           </div>
         </div>
       </div>
+
+      {/* Botón flotante «+» — entrada inconfundible para programar desde el celular (solo gestor).
+          Solo móvil (en escritorio está el botón «Nueva misión» del encabezado) y oculto si el
+          formulario ya está abierto. Fijo arriba de la barra inferior y respetando el área segura. */}
+      {isManager && !showForm && (
+        <button
+          type="button"
+          onClick={openNewMission}
+          aria-label="Nueva misión"
+          className="sm:hidden fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[300] flex items-center gap-2 rounded-full bg-primary text-white shadow-lg shadow-primary/30 pl-4 pr-5 py-3.5 active:scale-95 transition-transform"
+        >
+          <span className="material-symbols-outlined text-xl">add</span>
+          <span className="text-sm font-black uppercase tracking-wide">Nueva misión</span>
+        </button>
+      )}
     </div>
   );
 }

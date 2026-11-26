@@ -143,14 +143,38 @@ const BOTTOM_NAV_CENTER = { name: 'Despacho', icon: 'rocket_launch', href: '/ope
 // Reportes no navega directo: abre un selector (MOR / VOR) y recién ahí lleva al
 // formulario correspondiente (/sms/reportes?tipo=…). `perm: U2` = puede reportar.
 const BOTTOM_NAV_RIGHT = [
-  { name: 'Reportes', icon: 'warning', action: 'report', activeHref: '/sms/reportes', perm: 'U2' },
+  { name: 'Reportes', icon: 'warning', action: 'report', activeHref: '/reportar', perm: 'U2' },
   { name: 'Meteorología', icon: 'partly_cloudy_day', href: '/operacion/meteorologia' },
 ];
+
+// Tipos de reporte del selector. Cada uno lleva al enlace público configurado
+// (/reportar/<token>); el estado activo/inactivo lo resuelve /api/sms/report-links.
+const REPORT_TYPES = [
+  {
+    key: 'mor',
+    title: 'MOR — Reporte obligatorio',
+    desc: 'Mandatory Occurrence Report. Sucesos de notificación obligatoria ante la Aerocivil.',
+    icon: 'priority_high',
+    onCls: 'border-red-200 bg-red-50',
+    tileCls: 'bg-red-500',
+  },
+  {
+    key: 'vor',
+    title: 'VOR — Reporte voluntario',
+    desc: 'Voluntary Occurrence Report. Peligros y observaciones, de forma voluntaria y confidencial.',
+    icon: 'volunteer_activism',
+    onCls: 'border-sky-200 bg-sky-50',
+    tileCls: 'bg-sky-500',
+  },
+];
+const REPORT_TYPE_SHORT = { mor: 'MOR', vor: 'VOR' };
 
 export default function V2Layout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [reportPickerOpen, setReportPickerOpen] = useState(false); // selector MOR/VOR de la barra inferior
+  const [reportLinks, setReportLinks] = useState(null); // { mor:{token}|null, vor:{token}|null } — null mientras carga
+  const [reportLinksError, setReportLinksError] = useState(false);
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -318,6 +342,29 @@ export default function V2Layout({ children }) {
     supabase.auth.signOut().then(() => {
       window.location.href = '/login';
     });
+  }
+
+  // Abre el selector MOR/VOR y consulta qué enlaces públicos están activos (para redirigir al formulario correcto).
+  function openReportPicker() {
+    setReportPickerOpen(true);
+    setReportLinks(null);
+    setReportLinksError(false);
+    if (!organizationId) {
+      setReportLinksError(true);
+      return;
+    }
+    fetch(`/api/sms/report-links?organizationId=${organizationId}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('fetch'))))
+      .then((d) => setReportLinks(d.links || { mor: null, vor: null }))
+      .catch(() => setReportLinksError(true));
+  }
+
+  // Navega al formulario público del tipo pedido, si tiene enlace activo.
+  function goReport(type) {
+    const link = reportLinks?.[type];
+    if (!link) return;
+    setReportPickerOpen(false);
+    router.push(`/reportar/${link.token}`);
   }
 
   return (
@@ -592,34 +639,93 @@ export default function V2Layout({ children }) {
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-navy-200" />
             <p className="text-sm font-black text-navy uppercase tracking-wide">Nuevo reporte de seguridad</p>
             <p className="text-xs text-navy-400 mt-0.5 mb-4">Elige qué tipo de reporte quieres diligenciar.</p>
-            <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => { setReportPickerOpen(false); router.push('/sms/reportes?tipo=mor'); }}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-red-200 bg-red-50 text-left active:scale-95 transition-all"
-              >
-                <span className="flex items-center justify-center size-11 rounded-xl bg-red-500 text-white shrink-0">
-                  <span className="material-symbols-outlined">priority_high</span>
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-black text-navy">MOR — Reporte obligatorio</span>
-                  <span className="block text-xs text-navy-500">Mandatory Occurrence Report. Sucesos de notificación obligatoria ante la Aerocivil.</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setReportPickerOpen(false); router.push('/sms/reportes?tipo=vor'); }}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-sky-200 bg-sky-50 text-left active:scale-95 transition-all"
-              >
-                <span className="flex items-center justify-center size-11 rounded-xl bg-sky-500 text-white shrink-0">
-                  <span className="material-symbols-outlined">volunteer_activism</span>
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-black text-navy">VOR — Reporte voluntario</span>
-                  <span className="block text-xs text-navy-500">Voluntary Occurrence Report. Peligros y observaciones, de forma voluntaria y confidencial.</span>
-                </span>
-              </button>
-            </div>
+
+            {reportLinksError ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-lg">error</span> No se pudo verificar los formularios.
+                </p>
+                <button type="button" onClick={openReportPicker} className="mt-3 text-xs font-black text-amber-800 underline">Reintentar</button>
+              </div>
+            ) : reportLinks === null ? (
+              <div className="space-y-2.5">
+                <div className="h-[72px] rounded-2xl bg-navy-50 animate-pulse" />
+                <div className="h-[72px] rounded-2xl bg-navy-50 animate-pulse" />
+              </div>
+            ) : (() => {
+              const activeTypes = REPORT_TYPES.map((t) => t.key).filter((k) => reportLinks[k]);
+              if (activeTypes.length === 0) {
+                const canConfig = ['gerente_sms', 'admin', 'superadmin'].includes(role);
+                return (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-lg">info</span> Aún no hay un formulario de reporte publicado.
+                    </p>
+                    <p className="mt-1 text-xs text-amber-700">
+                      {canConfig
+                        ? 'Actívalo en «Reportes y casos» → Enlaces públicos y vuelve a intentarlo.'
+                        : 'Pídele al Gerente SMS que active el formulario MOR o VOR de tu organización.'}
+                    </p>
+                    {canConfig && (
+                      <button
+                        type="button"
+                        onClick={() => { setReportPickerOpen(false); router.push('/sms/reportes'); }}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black active:scale-95 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-base">settings</span> Ir a configurar
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-2.5">
+                  {REPORT_TYPES.map((t) => {
+                    const active = !!reportLinks[t.key];
+                    if (active) {
+                      return (
+                        <button
+                          key={t.key}
+                          type="button"
+                          onClick={() => goReport(t.key)}
+                          className={`w-full flex items-center gap-3 p-4 rounded-2xl border text-left active:scale-95 transition-all ${t.onCls}`}
+                        >
+                          <span className={`flex items-center justify-center size-11 rounded-xl text-white shrink-0 ${t.tileCls}`}>
+                            <span className="material-symbols-outlined">{t.icon}</span>
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-black text-navy">{t.title}</span>
+                            <span className="block text-xs text-navy-500">{t.desc}</span>
+                          </span>
+                          <span className="material-symbols-outlined text-navy-300 shrink-0">chevron_right</span>
+                        </button>
+                      );
+                    }
+                    // Inactivo: informa y recomienda el tipo activo.
+                    const rec = activeTypes[0];
+                    return (
+                      <button
+                        key={t.key}
+                        type="button"
+                        onClick={() => goReport(rec)}
+                        className="w-full flex items-center gap-3 p-4 rounded-2xl border border-navy-100 bg-navy-50 text-left active:scale-95 transition-all"
+                      >
+                        <span className="flex items-center justify-center size-11 rounded-xl bg-navy-200 text-navy-500 shrink-0">
+                          <span className="material-symbols-outlined">block</span>
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-black text-navy-500">{t.title}</span>
+                          <span className="block text-xs text-navy-400">
+                            No está configurado. Abre el formulario <b>{REPORT_TYPE_SHORT[rec]}</b>, que sí está activo.
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             <button
               type="button"
               onClick={() => setReportPickerOpen(false)}
@@ -658,7 +764,7 @@ export default function V2Layout({ children }) {
                     icon={l.icon}
                     label={l.name}
                     active={pathname.startsWith(l.activeHref)}
-                    onClick={() => setReportPickerOpen(true)}
+                    onClick={openReportPicker}
                   />
                 ) : (
                   <BottomNavItem key={l.href} href={l.href} icon={l.icon} label={l.name} active={pathname.startsWith(l.href)} />

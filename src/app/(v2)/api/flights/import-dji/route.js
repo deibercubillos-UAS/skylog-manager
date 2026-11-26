@@ -54,7 +54,7 @@ export async function POST(request) {
   const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
-  const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId, organizationIds } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
 
@@ -67,6 +67,20 @@ export async function POST(request) {
   const files = form.getAll('files').filter((f) => f && typeof f !== 'string');
   const batch = checkDjiImportBatch(files.map((f) => f.size));
   if (!batch.ok) return Response.json({ error: batch.error }, { status: batch.status });
+
+  // Cruce por serial: solo se importan vuelos de la flota de ESTA organización. Se carga la flota una
+  // vez y se cruza el serial del dron que trae cada log (ver abajo). La verificación de propiedad
+  // definitiva la hace POST /api/flights con el serial firmado; aquí se precalcula para la pantalla.
+  const organizationId = form.get('organizationId');
+  if (!organizationId || !organizationIds.includes(organizationId)) {
+    return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
+  }
+  const { data: fleet } = await supabase
+    .from('aircraft')
+    .select('id, serial_number, model:model_id(brand, model)')
+    .eq('organization_id', organizationId);
+  const normSerial = (s) => (typeof s === 'string' ? s.trim().toUpperCase() : '');
+  const fleetBySerial = new Map((fleet || []).filter((a) => a.serial_number).map((a) => [normSerial(a.serial_number), a]));
 
   // Cada log gasta una llamada a DJI con la llave compartida: el ritmo se cuenta por archivo y por persona
   // (en memoria, por instancia: frena la ráfaga; el tope por petición de arriba es el que no depende de la instancia).
@@ -101,17 +115,33 @@ export async function POST(request) {
       const batteryCycles = parsed._meta?.ciclos_bateria ?? null;
       const complete = !!(landingAt && totalTime);
 
+      // Serial del dron del log y su cruce con la flota de la organización:
+      //   matched   → el dron está registrado: se autoasigna esa aeronave.
+      //   unknown   → el log trae serial pero no está en la flota: NO es de la empresa (se bloqueará al confirmar).
+      //   no_serial → el log no trae serial (algunos modelos de consumo): no se puede verificar, se asigna a mano.
+      const aircraftSerial = parsed._meta?.serial_aeronave_full || parsed.serial_aeronave || null;
+      const matchedAircraft = aircraftSerial ? fleetBySerial.get(normSerial(aircraftSerial)) || null : null;
+      const fleetMatch = !aircraftSerial ? 'no_serial' : matchedAircraft ? 'matched' : 'unknown';
+      const aircraftLabel = matchedAircraft
+        ? `${matchedAircraft.model?.brand || ''} ${matchedAircraft.model?.model || ''} — ${matchedAircraft.serial_number}`.trim()
+        : null;
+
       results.push({
         fileName: file.name,
         takeoffAt,
         landingAt,
         totalTime,
         aircraftModel: parsed._meta?.modelo_aeronave || null,
+        aircraftSerial,
+        aircraftId: matchedAircraft?.id || null,
+        aircraftLabel,
+        fleetMatch,
         batterySerial,
         batteryCycles,
         replayTrack,
-        // Firma de lo leído del log: /api/flights solo trata el vuelo como importado si estos datos no cambiaron.
-        importToken: complete ? signFlightImport({ personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles }) : null,
+        // Firma de lo leído del log (incluye el serial del dron): /api/flights solo trata el vuelo como
+        // importado si estos datos no cambiaron, y exige que el serial sea de la flota de la organización.
+        importToken: complete ? signFlightImport({ personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles, aircraftSerial }) : null,
         error: complete ? null : 'Log incompleto — revisa despegue/aterrizaje antes de confirmar',
       });
     } catch (e) {

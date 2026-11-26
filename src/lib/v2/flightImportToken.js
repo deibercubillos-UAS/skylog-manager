@@ -12,8 +12,10 @@ function key() {
   return crypto.createHmac('sha256', secret).update('bitafly:flight-import:v1').digest();
 }
 
-const canonical = ({ personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles }, exp) =>
-  JSON.stringify([personId, String(takeoffAt), String(landingAt), Number(totalTime), batterySerial || null, batteryCycles == null ? null : Number(batteryCycles), exp]);
+// `aircraftSerial` (el serial del dron leído del log) va firmado para que /api/flights pueda exigir que
+// el vuelo importado corresponda a una aeronave de la flota de la organización, sin confiar en el cliente.
+const canonical = ({ personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles, aircraftSerial }, exp) =>
+  JSON.stringify([personId, String(takeoffAt), String(landingAt), Number(totalTime), batterySerial || null, batteryCycles == null ? null : Number(batteryCycles), aircraftSerial || null, exp]);
 
 /** Token para el vuelo que el servidor acaba de leer del log, ligado a la persona que lo importó. */
 export function signFlightImport(fields, now = Date.now()) {

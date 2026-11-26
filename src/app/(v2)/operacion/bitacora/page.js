@@ -238,7 +238,9 @@ export default function BitacoraPage() {
     if (!files.length) return;
     setAnalyzing(true);
     setImportError(null);
-    const pending = (r) => ({ ...r, visualCondition: 'VLOS', missionType: '', flightOrder: '', aircraftId: '', confirmed: false });
+    // Preasigna la aeronave cruzada por serial (r.aircraftId viene de import-dji) y conserva el resultado
+    // del cruce (fleetMatch/aircraftSerial/aircraftLabel) para avisar o bloquear en la fila.
+    const pending = (r) => ({ ...r, visualCondition: 'VLOS', missionType: '', flightOrder: '', aircraftId: r.aircraftId || '', confirmed: false });
     const mb = (n) => (n / 1024 / 1024).toFixed(1).replace('.', ',');
     // Un log por petición: Vercel rechaza peticiones de más de 4,5 MB antes de que lleguen al servidor, y un lote grande
     // también puede pasar del tiempo máximo. Así, si un log falla, los demás siguen y cada fila dice qué pasó con el suyo.
@@ -252,6 +254,7 @@ export default function BitacoraPage() {
       try {
         const fd = new FormData();
         fd.append('files', file);
+        fd.append('organizationId', organizationId); // cruce por serial contra la flota de esta organización
         const res = await fetch('/api/flights/import-dji', { method: 'POST', body: fd });
         // Si Vercel corta la petición (tamaño o tiempo) responde texto, no JSON: se traduce a un mensaje claro.
         const data = await res.json().catch(() => null);
@@ -324,6 +327,8 @@ export default function BitacoraPage() {
           missionType: row.missionType || null,
           flightOrder: row.flightOrder || null,
           aircraftId: row.aircraftId || null,
+          // Serial del dron leído del log: el servidor exige que sea de la flota de la organización.
+          aircraftSerial: row.aircraftSerial || null,
           batterySerial: row.batterySerial || null,
           batteryCycles: row.batteryCycles ?? null,
           replayTrack: row.replayTrack || null,
@@ -612,20 +617,34 @@ export default function BitacoraPage() {
                               />
                             </td>
                             <td className="px-4 py-2">
-                              <select
-                                value={row.aircraftId}
-                                onChange={(e) => updateImportRow(idx, { aircraftId: e.target.value })}
-                                className="text-xs border border-navy-200 rounded-lg px-1.5 py-1 max-w-[130px]"
-                              >
-                                <option value="">Sin asignar</option>
-                                {fleet
-                                  .filter((a) => a.operational_status !== 'fuera_de_servicio')
-                                  .map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                      {a.model?.brand} {a.model?.model} — {a.serial_number}
-                                    </option>
-                                  ))}
-                              </select>
+                              {row.fleetMatch === 'matched' ? (
+                                // Autoasignada por serial: el dron del log está en la flota. No editable.
+                                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs max-w-[150px]" title={`Dron de tu flota · serial del log: ${row.aircraftSerial}`}>
+                                  <span className="material-symbols-outlined text-sm shrink-0">verified</span>
+                                  <span className="truncate">{row.aircraftLabel}</span>
+                                </span>
+                              ) : row.fleetMatch === 'unknown' ? (
+                                <span className="inline-flex items-center gap-1 text-red-600 font-semibold text-xs" title={`Serial del log: ${row.aircraftSerial}`}>
+                                  <span className="material-symbols-outlined text-sm shrink-0">error</span>
+                                  Fuera de tu flota
+                                </span>
+                              ) : (
+                                // El log no trae serial: se asigna a mano.
+                                <select
+                                  value={row.aircraftId}
+                                  onChange={(e) => updateImportRow(idx, { aircraftId: e.target.value })}
+                                  className="text-xs border border-navy-200 rounded-lg px-1.5 py-1 max-w-[130px]"
+                                >
+                                  <option value="">Sin asignar</option>
+                                  {fleet
+                                    .filter((a) => a.operational_status !== 'fuera_de_servicio')
+                                    .map((a) => (
+                                      <option key={a.id} value={a.id}>
+                                        {a.model?.brand} {a.model?.model} — {a.serial_number}
+                                      </option>
+                                    ))}
+                                </select>
+                              )}
                             </td>
                             <td className="px-4 py-2 text-xs whitespace-nowrap">
                               {row.batterySerial ? (
@@ -652,14 +671,20 @@ export default function BitacoraPage() {
                         )}
                         <td className="px-4 py-2 text-right whitespace-nowrap">
                           {!row.error && (
-                            <button
-                              type="button"
-                              disabled={confirmingIdx === idx}
-                              onClick={() => handleConfirmImportRow(idx)}
-                              className="text-xs font-bold uppercase text-primary-700 bg-primary-50 border border-primary-100 rounded-lg px-2.5 py-1 hover:bg-primary-100 transition-colors disabled:opacity-50"
-                            >
-                              {confirmingIdx === idx ? 'Guardando…' : 'Confirmar'}
-                            </button>
+                            row.fleetMatch === 'unknown' ? (
+                              <span className="text-[11px] font-bold text-red-600" title={`El dron del log (serial ${row.aircraftSerial}) no está en tu flota. Regístralo en Flota & Equipo para importar sus vuelos.`}>
+                                No es de tu flota
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={confirmingIdx === idx}
+                                onClick={() => handleConfirmImportRow(idx)}
+                                className="text-xs font-bold uppercase text-primary-700 bg-primary-50 border border-primary-100 rounded-lg px-2.5 py-1 hover:bg-primary-100 transition-colors disabled:opacity-50"
+                              >
+                                {confirmingIdx === idx ? 'Guardando…' : 'Confirmar'}
+                              </button>
+                            )
                           )}
                           <button
                             type="button"
@@ -1075,25 +1100,45 @@ function ImportRowCard({ row, fleet, confirming, onChange, onConfirm, onDiscard 
             Tipo de misión
             <input value={row.missionType} onChange={(e) => onChange({ missionType: e.target.value })} placeholder="Opcional" className={`mt-1 ${inputCls}`} />
           </label>
-          <label className="block text-xs font-bold text-navy-400">
-            Aeronave
-            <select value={row.aircraftId} onChange={(e) => onChange({ aircraftId: e.target.value })} className={`mt-1 ${inputCls}`}>
-              <option value="">Sin asignar</option>
-              {fleet
-                .filter((a) => a.operational_status !== 'fuera_de_servicio')
-                .map((a) => (
-                  <option key={a.id} value={a.id}>{a.model?.brand} {a.model?.model} — {a.serial_number}</option>
-                ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            disabled={confirming}
-            onClick={onConfirm}
-            className="w-full min-h-[48px] rounded-xl bg-primary text-white text-sm font-black uppercase tracking-wide disabled:opacity-50"
-          >
-            {confirming ? 'Guardando…' : 'Confirmar vuelo'}
-          </button>
+          {row.fleetMatch === 'matched' ? (
+            // Autoasignada por serial: el dron del log está en la flota. No editable.
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+              <p className="text-xs font-bold uppercase text-emerald-700 flex items-center gap-1">
+                <span className="material-symbols-outlined text-base">verified</span> Aeronave de tu flota
+              </p>
+              <p className="text-sm font-semibold text-emerald-800">{row.aircraftLabel}</p>
+            </div>
+          ) : row.fleetMatch === 'unknown' ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-xs font-bold uppercase text-red-700 flex items-center gap-1">
+                <span className="material-symbols-outlined text-base">error</span> Dron fuera de tu flota
+              </p>
+              <p className="text-sm text-red-700">Este vuelo se hizo con un dron (serial <span className="font-mono">{row.aircraftSerial}</span>) que no está registrado en tu organización. Regístralo en Flota &amp; Equipo para poder importar sus vuelos.</p>
+            </div>
+          ) : (
+            // El log no trae serial: se asigna a mano.
+            <label className="block text-xs font-bold text-navy-400">
+              Aeronave
+              <select value={row.aircraftId} onChange={(e) => onChange({ aircraftId: e.target.value })} className={`mt-1 ${inputCls}`}>
+                <option value="">Sin asignar</option>
+                {fleet
+                  .filter((a) => a.operational_status !== 'fuera_de_servicio')
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>{a.model?.brand} {a.model?.model} — {a.serial_number}</option>
+                  ))}
+              </select>
+            </label>
+          )}
+          {row.fleetMatch !== 'unknown' && (
+            <button
+              type="button"
+              disabled={confirming}
+              onClick={onConfirm}
+              className="w-full min-h-[48px] rounded-xl bg-primary text-white text-sm font-black uppercase tracking-wide disabled:opacity-50"
+            >
+              {confirming ? 'Guardando…' : 'Confirmar vuelo'}
+            </button>
+          )}
         </>
       )}
     </div>

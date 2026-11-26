@@ -114,7 +114,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, flightOrder, aircraftId, batterySerial, batteryCycles, replayTrack, zoneGeo, location, notes, externalRef, flightRules, alerts, importToken } = body;
+  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, flightOrder, aircraftId, aircraftSerial, batterySerial, batteryCycles, replayTrack, zoneGeo, location, notes, externalRef, flightRules, alerts, importToken } = body;
 
   if (!organizationId || !takeoffAt || !landingAt || !totalTime) {
     return Response.json({ error: 'organizationId, takeoffAt, landingAt y totalTime son requeridos' }, { status: 400 });
@@ -145,9 +145,29 @@ export async function POST(request) {
   }
   // D4/D5: «importado» solo si los datos vienen firmados por /api/flights/import-dji para esta persona (no basta mandar
   // una serie de batería); todo lo demás es carga manual, que el Piloto no tiene (auditoría 2026-10-16).
-  const imported = verifyFlightImport(importToken, { personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles });
+  const imported = verifyFlightImport(importToken, { personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles, aircraftSerial });
   if (!membershipsCanEdit(memberships, organizationId, imported ? 'D4' : 'D5')) {
     return Response.json({ error: imported ? 'Tu rol no puede importar vuelos' : 'Tu rol no puede registrar un vuelo a mano; importa el registro del control' }, { status: 403 });
+  }
+
+  // Cruce por serial — solo se importan vuelos de la flota de ESTA organización. El serial del dron va
+  // firmado en el token (no se confía en el cliente). Si el log trae serial y NO está en la flota, se
+  // bloquea: no es un vuelo de la empresa. El hardware manda: se asigna la aeronave cuyo serial coincide
+  // (no la que el cliente haya elegido). Si el log no trae serial (algunos modelos de consumo), se
+  // permite con la aeronave que el gestor asigne — no se puede verificar la propiedad por hardware.
+  let resolvedAircraftId = aircraftId;
+  if (imported && typeof aircraftSerial === 'string' && aircraftSerial.trim()) {
+    const normSerial = (s) => (typeof s === 'string' ? s.trim().toUpperCase() : '');
+    const { data: orgFleet, error: fleetError } = await supabase
+      .from('aircraft')
+      .select('id, serial_number')
+      .eq('organization_id', organizationId);
+    if (fleetError) return Response.json({ error: 'Error verificando la aeronave del log' }, { status: 500 });
+    const own = (orgFleet || []).find((a) => normSerial(a.serial_number) === normSerial(aircraftSerial));
+    if (!own) {
+      return Response.json({ error: `El dron de este log (serial ${aircraftSerial.trim()}) no está registrado en la flota de tu organización. Regístralo en Flota & Equipo antes de importar sus vuelos.` }, { status: 409 });
+    }
+    resolvedAircraftId = own.id;
   }
 
   // La Bitácora (formulario y logs DJI) manda la hora de Colombia SIN zona («2026-11-12T10:00:00»). Guardada así, Postgres
@@ -172,11 +192,11 @@ export async function POST(request) {
 
   const limits = evaluateFlightLimits(recentFlights, { personId, takeoffAt: takeoffInstant, totalTime: Number(totalTime), lineOfSight: visualCondition || 'VLOS' });
 
-  if (aircraftId) {
+  if (resolvedAircraftId) {
     const { data: aircraftRow, error: aircraftError } = await supabase
       .from('aircraft')
       .select('id')
-      .eq('id', aircraftId)
+      .eq('id', resolvedAircraftId)
       .eq('organization_id', organizationId)
       .maybeSingle();
     if (aircraftError) return Response.json({ error: 'Error verificando la aeronave' }, { status: 500 });
@@ -205,7 +225,7 @@ export async function POST(request) {
     .insert({
       organization_id: organizationId,
       pilot_person_id: personId,
-      aircraft_id: aircraftId || null,
+      aircraft_id: resolvedAircraftId || null,
       takeoff_at: takeoffInstant,
       landing_at: landingInstant,
       total_time: totalTime,
@@ -232,8 +252,8 @@ export async function POST(request) {
 
   // ② derivado — nunca read-calculate-write: el total de horas de la
   // aeronave se actualiza vía RPC, mismo patrón ya probado en v1.
-  if (aircraftId) {
-    const { error: rpcError } = await admin.rpc('increment_aircraft_hours', { p_id: aircraftId, p_hours: Number(totalTime) });
+  if (resolvedAircraftId) {
+    const { error: rpcError } = await admin.rpc('increment_aircraft_hours', { p_id: resolvedAircraftId, p_hours: Number(totalTime) });
     if (rpcError) console.error('[flights] increment_aircraft_hours falló:', rpcError.message);
   }
 

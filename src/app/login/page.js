@@ -88,7 +88,7 @@ export default function LoginPage() {
           {/* Logo móvil — logo real de BitaFly, mismo patrón que header/footer */}
           <Link href="/" className="inline-flex items-center gap-2 mb-10 lg:hidden">
             <Image src="/logo.png" alt="" width={32} height={28} className="h-7 w-auto" priority />
-            <span className="text-xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
+            <span className="font-brand italic text-xl font-black text-navy tracking-tight">Bitafly</span>
           </Link>
 
           <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Iniciar sesión</h1>

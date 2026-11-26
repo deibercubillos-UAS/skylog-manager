@@ -40,6 +40,8 @@ const config = {
         // Esto vincula la variable de layout.js con Tailwind
         sans:   ['var(--font-public-sans)', 'sans-serif'],
         lexend: ['var(--font-lexend)', 'var(--font-public-sans)', 'sans-serif'],
+        // Tipografía de marca: wordmark "BitaFly" (Exo 2 italic). Ver layout.js.
+        brand:  ['var(--font-brand)', 'var(--font-lexend)', 'sans-serif'],
       },
     },
   },

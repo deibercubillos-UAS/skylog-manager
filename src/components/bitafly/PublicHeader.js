@@ -141,7 +141,7 @@ export default function PublicHeader() {
             className="h-8 w-auto transition-transform duration-200 group-hover:scale-105"
             priority
           />
-          <span className="font-black text-navy tracking-tight">BitaFly</span>
+          <span className="font-brand italic font-black text-navy tracking-tight">BitaFly</span>
         </a>
 
         <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label="Navegación principal">

@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Public_Sans, Lexend } from "next/font/google";
+import { Public_Sans, Lexend, Exo_2 } from "next/font/google";
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 import Script from 'next/script';
@@ -30,6 +30,19 @@ const lexend = Lexend({
   // Lexend solo se usa debajo del pliegue (Pricing, Features, registro).
   // No precargarla libera ancho de banda crítico para Public Sans (la fuente
   // del H1 del hero = elemento LCP en móvil), mejorando FCP/LCP en 4G lento.
+  preload: false,
+});
+
+// Tipografía de MARCA: el logotipo "BitaFly" se escribe siempre en Exo 2 italic
+// (aerodinámica, fluida, aire aeronáutico/drones). Registrada como --font-brand
+// y expuesta en Tailwind como `font-brand`. Se usa solo en el wordmark, no en texto
+// corrido, así que no se precarga (no es crítica para el LCP).
+const exo2 = Exo_2({
+  subsets: ["latin"],
+  variable: "--font-brand",
+  display: "swap",
+  weight: ['700', '800'],
+  style: ['italic'],
   preload: false,
 });
 
@@ -152,7 +165,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es-CO" className={`${publicSans.variable} ${lexend.variable} scroll-smooth`}>
+    <html lang="es-CO" className={`${publicSans.variable} ${lexend.variable} ${exo2.variable} scroll-smooth`}>
       <head>
         {/*
           Material Symbols auto-alojado: precarga del woff2 (mismo origen).

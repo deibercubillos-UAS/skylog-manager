@@ -128,7 +128,7 @@ export default function RegistroPage() {
         <div className={`max-w-lg w-full mx-auto transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
           <Link href="/" className="inline-flex items-center gap-2 mb-8 lg:hidden">
             <Image src="/logo.png" alt="" width={32} height={28} className="h-7 w-auto" priority />
-            <span className="text-xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
+            <span className="font-brand italic text-xl font-black text-navy tracking-tight">Bitafly</span>
           </Link>
 
           <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Crear cuenta</h1>

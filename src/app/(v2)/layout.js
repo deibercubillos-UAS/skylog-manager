@@ -390,7 +390,7 @@ export default function V2Layout({ children }) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-black text-white leading-none tracking-tight">BitaFly</p>
+            <p className="font-brand italic text-sm font-black text-white leading-none tracking-tight">BitaFly</p>
             <p className="text-xs text-primary-300 font-bold mt-0.5 truncate">{currentOrg?.name || 'Mi organización'}</p>
           </div>
         </Link>

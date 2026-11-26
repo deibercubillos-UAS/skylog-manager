@@ -654,7 +654,7 @@ export default function HomeClient() {
               className="h-8 w-auto"
               priority
             />
-            <span className="font-black text-navy tracking-tight">BitaFly</span>
+            <span className="font-brand italic font-black text-navy tracking-tight">BitaFly</span>
           </div>
 
           <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label="Navegación principal">
@@ -1049,7 +1049,7 @@ export default function HomeClient() {
                 style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
                 className="h-7 w-auto"
               />
-              <span className="font-black text-white tracking-tight">BitaFly</span>
+              <span className="font-brand italic font-black text-white tracking-tight">BitaFly</span>
             </div>
             <p className="text-xs text-navy-300 mt-3 max-w-[220px] leading-relaxed">
               Bitácora digital RAC 100 para operadores UAS en Colombia.

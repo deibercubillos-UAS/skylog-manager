@@ -20,6 +20,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1073.0",
     "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/splash-screen": "^8.0.2",
     "@next/third-parties": "^16.2.4",
     "@react-three/fiber": "9.8.2",
     "@supabase/ssr": "^0.10.2",

@@ -103,6 +103,7 @@ export default function ProgramacionPage() {
     zone: '',
     notes: '',
     altitudeAgl: '',
+    flightOrder: '',
   });
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -207,12 +208,13 @@ export default function ProgramacionPage() {
           lineOfSight: form.lineOfSight,
           requiredAdditions: form.requiredAdditions,
           altitudeAglM: form.altitudeAgl ? Number(form.altitudeAgl) : null,
+          flightOrder: form.flightOrder || null,
           zoneGeo: zoneGeo ? { geoType, points: zoneGeo.points, radius: zoneGeo.radius } : null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error programando la misión');
-      setForm({ name: '', picPersonId: '', observerPersonId: '', aircraftId: '', date: '', time: '', lineOfSight: 'VLOS', requiredAdditions: [], zone: '', notes: '', altitudeAgl: '' });
+      setForm({ name: '', picPersonId: '', observerPersonId: '', aircraftId: '', date: '', time: '', lineOfSight: 'VLOS', requiredAdditions: [], zone: '', notes: '', altitudeAgl: '', flightOrder: '' });
       setShowObserver(false);
       setZoneGeo(null);
       setGeoType('polygon');
@@ -370,6 +372,12 @@ export default function ProgramacionPage() {
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Ej. Inspección línea 220kV — tramo 4"
                 required
+              />
+              <Field
+                label="Orden de vuelo (opcional)"
+                value={form.flightOrder}
+                onChange={(e) => setForm((f) => ({ ...f, flightOrder: e.target.value }))}
+                placeholder="Código del cliente — ej. OV-2026-014"
               />
               <Field as="select" label="Piloto asignado (PIC)" value={form.picPersonId} onChange={(e) => setForm((f) => ({ ...f, picPersonId: e.target.value }))} required>
                 <option value="">Selecciona…</option>
@@ -754,6 +762,12 @@ export default function ProgramacionPage() {
                             <p className="truncate text-navy-400">
                               <span className="text-navy-300">Zona:</span> {m.zone}
                             </p>
+                            {m.flight_order && (
+                              <p className="text-navy-400 mt-0.5">
+                                <span className="text-navy-300">Orden de vuelo:</span>{' '}
+                                <span className="inline-flex items-center rounded bg-navy px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">{m.flight_order}</span>
+                              </p>
+                            )}
                             {m.notes?.trim() && <p className="truncate text-navy-400 mt-0.5">{m.notes}</p>}
 
                             <div className="flex items-center gap-2 mt-1.5">

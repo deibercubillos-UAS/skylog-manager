@@ -77,7 +77,7 @@ export async function GET(request) {
   const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
   const { data: flights, error } = await supabase
     .from('flights')
-    .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, zone_report_status, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
+    .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, flight_order, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, zone_report_status, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
     .eq('organization_id', organizationId)
     .order('takeoff_at', { ascending: false })
     .order('id')
@@ -114,7 +114,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack, zoneGeo, location, notes, externalRef, flightRules, alerts, importToken } = body;
+  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, flightOrder, aircraftId, batterySerial, batteryCycles, replayTrack, zoneGeo, location, notes, externalRef, flightRules, alerts, importToken } = body;
 
   if (!organizationId || !takeoffAt || !landingAt || !totalTime) {
     return Response.json({ error: 'organizationId, takeoffAt, landingAt y totalTime son requeridos' }, { status: 400 });
@@ -211,6 +211,9 @@ export async function POST(request) {
       total_time: totalTime,
       visual_condition: visualCondition || null,
       mission_type: missionType || null,
+      // Orden de vuelo: código del cliente. En carga manual/importación lo ingresa el gestor;
+      // cuando el vuelo nace de una misión, se hereda de missions.flight_order (flujo de despacho).
+      flight_order: typeof flightOrder === 'string' && flightOrder.trim() ? flightOrder.trim().slice(0, 60) : null,
       replay_track: validReplayTrack,
       zone_geo: validZoneGeo,
       location: typeof location === 'string' && location.trim() ? location.trim().slice(0, 300) : null,

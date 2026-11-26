@@ -40,6 +40,7 @@ import {
   isFolderImportAvailable,
   checkFolderPermission,
   pickFlightFolder,
+  hasFlightFolder,
   clearFlightFolder,
   listFolderFlightFiles,
   readFolderFlightFile,
@@ -98,7 +99,7 @@ export default function BitacoraPage() {
   const [showVoided, setShowVoided] = useState(false);
   const canManageFlights = context?.organizations?.find((o) => o.id === organizationId)?.permissions?.D6 === 'edit';
   const canManualFlight = context?.organizations?.find((o) => o.id === organizationId)?.permissions?.D5 === 'edit';
-  const [form, setForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '', location: '', notes: '' });
+  const [form, setForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', flightOrder: '', aircraftId: '', location: '', notes: '' });
 
   // Importar vuelos — carga MANUAL de logs DJI .txt, la vía real para
   // controles RC / RC2 (sin app compañera que pueda sincronizar solos). Solo
@@ -218,6 +219,7 @@ export default function BitacoraPage() {
           totalTime: Number(form.totalTime),
           visualCondition: form.visualCondition,
           missionType: form.missionType || null,
+          flightOrder: form.flightOrder || null,
           aircraftId: form.aircraftId || null,
           location: form.location || null,
           notes: form.notes || null,
@@ -227,7 +229,7 @@ export default function BitacoraPage() {
       if (!res.ok) throw new Error(data.error || 'Error registrando el vuelo');
       // El vuelo SIEMPRE se registra; si excede un límite de §100.540 se avisa, no se rechaza.
       setDutyNotice(data.dutyWarnings || []);
-      setForm({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '', location: '', notes: '' });
+      setForm({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', flightOrder: '', aircraftId: '', location: '', notes: '' });
       await loadFlights(organizationId);
     } catch (e) {
       setError(e.message);
@@ -241,7 +243,7 @@ export default function BitacoraPage() {
     if (!files.length) return;
     setAnalyzing(true);
     setImportError(null);
-    const pending = (r) => ({ ...r, visualCondition: 'VLOS', missionType: '', aircraftId: '', confirmed: false });
+    const pending = (r) => ({ ...r, visualCondition: 'VLOS', missionType: '', flightOrder: '', aircraftId: '', confirmed: false });
     const mb = (n) => (n / 1024 / 1024).toFixed(1).replace('.', ',');
     // Un log por petición: Vercel rechaza peticiones de más de 4,5 MB antes de que lleguen al servidor, y un lote grande
     // también puede pasar del tiempo máximo. Así, si un log falla, los demás siguen y cada fila dice qué pasó con el suyo.
@@ -297,7 +299,13 @@ export default function BitacoraPage() {
     return () => { cancelled = true; off(); };
   }, []);
 
-  useEffect(() => { setNativeFolder(isFolderImportAvailable()); }, []);
+  // App nativa Android: la importación por carpeta es AUTOMÁTICA (auto-escaneo al abrir),
+  // así que el panel va siempre abierto y sin el botón/colapsable manual (decisión usuario 2026-11-26).
+  useEffect(() => {
+    const native = isFolderImportAvailable();
+    setNativeFolder(native);
+    if (native) setShowImport(true);
+  }, []);
 
   function updateImportRow(idx, patch) {
     setImportRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -319,6 +327,7 @@ export default function BitacoraPage() {
           totalTime: row.totalTime,
           visualCondition: row.visualCondition,
           missionType: row.missionType || null,
+          flightOrder: row.flightOrder || null,
           aircraftId: row.aircraftId || null,
           batterySerial: row.batterySerial || null,
           batteryCycles: row.batteryCycles ?? null,
@@ -401,7 +410,6 @@ export default function BitacoraPage() {
         eyebrow="Operación"
         title="Bitácora"
         description="Registro de vuelos y horas de operación."
-        metric={{ value: totalHours.toFixed(1) + 'h', label: 'Horas totales' }}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -446,17 +454,25 @@ export default function BitacoraPage() {
       )}
 
       <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowImport((v) => !v)}
-          className="w-full px-6 py-3.5 flex items-center justify-between gap-2 bg-navy-50/30 hover:bg-navy-50/60 transition-colors"
-        >
-          <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest flex items-center gap-2">
-            <span className="material-symbols-outlined text-base text-primary-500">upload_file</span>
-            Importar vuelos desde el control
-          </h3>
-          <span className="material-symbols-outlined text-navy-300">{showImport ? 'expand_less' : 'expand_more'}</span>
-        </button>
+        {nativeFolder ? (
+          // App nativa: sin botón — la importación por carpeta es automática al abrir.
+          <div className="w-full px-6 py-3.5 flex items-center gap-2 bg-navy-50/30">
+            <span className="material-symbols-outlined text-base text-primary-500">folder_open</span>
+            <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Importación de vuelos</h3>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowImport((v) => !v)}
+            className="w-full px-6 py-3.5 flex items-center justify-between gap-2 bg-navy-50/30 hover:bg-navy-50/60 transition-colors"
+          >
+            <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-primary-500">upload_file</span>
+              Importar vuelos desde el control
+            </h3>
+            <span className="material-symbols-outlined text-navy-300">{showImport ? 'expand_less' : 'expand_more'}</span>
+          </button>
+        )}
 
         {showImport && (
           <div className="p-5 border-t border-navy-50 space-y-4">
@@ -494,7 +510,9 @@ export default function BitacoraPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Carga manual — RC / RC2, sin app compañera que sincronice sola */}
+              {/* App nativa: importación por carpeta AUTOMÁTICA (va primero, es la vía principal). */}
+              {nativeFolder && <FolderImportCard onFiles={handleAnalyzeFiles} analyzing={analyzing} />}
+              {/* Carga manual — RC / RC2, sin app compañera que sincronice sola. En nativo queda como respaldo. */}
               <div className="rounded-2xl border border-navy-100 p-4 bg-navy-50/20">
                 <p className="text-xs font-black uppercase text-navy tracking-wide flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-primary-600">sd_card</span>
@@ -532,11 +550,8 @@ export default function BitacoraPage() {
                 </label>
               </div>
 
-              {/* Segunda vía según plataforma: app nativa → elegir la carpeta del control y subir en
-                  lote; web → aviso de que esa vía vive en la app móvil de Android. */}
-              {nativeFolder ? (
-                <FolderImportCard onFiles={handleAnalyzeFiles} analyzing={analyzing} />
-              ) : (
+              {/* En web/iPhone no hay acceso a carpeta: aviso de que esa vía vive en la app móvil de Android. */}
+              {!nativeFolder && (
                 <div className="rounded-2xl border border-dashed border-navy-200 p-4 bg-navy-50/10 opacity-70">
                   <p className="text-xs font-black uppercase text-navy-400 tracking-wide flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-base">folder_open</span>
@@ -581,6 +596,7 @@ export default function BitacoraPage() {
                       <th className="px-4 py-2">Aterrizaje</th>
                       <th className="px-4 py-2">Duración</th>
                       <th className="px-4 py-2">Condición</th>
+                      <th className="px-4 py-2">Orden de vuelo</th>
                       <th className="px-4 py-2">Tipo de misión</th>
                       <th className="px-4 py-2">Aeronave</th>
                       <th className="px-4 py-2">Batería (auto)</th>
@@ -595,7 +611,7 @@ export default function BitacoraPage() {
                           {row.fileName}
                         </td>
                         {row.error ? (
-                          <td colSpan={8} className="px-4 py-2 text-xs text-red-600">{row.error}</td>
+                          <td colSpan={9} className="px-4 py-2 text-xs text-red-600">{row.error}</td>
                         ) : (
                           <>
                             <td className="px-4 py-2 text-xs font-mono text-navy-600 whitespace-nowrap">{row.takeoffAt?.slice(0, 16).replace('T', ' ')}</td>
@@ -611,6 +627,14 @@ export default function BitacoraPage() {
                                   <option key={c} value={c}>{c}</option>
                                 ))}
                               </select>
+                            </td>
+                            <td className="px-4 py-2">
+                              <input
+                                value={row.flightOrder}
+                                onChange={(e) => updateImportRow(idx, { flightOrder: e.target.value })}
+                                placeholder="OV-2026-014"
+                                className="text-xs font-mono border border-navy-200 rounded-lg px-1.5 py-1 w-28"
+                              />
                             </td>
                             <td className="px-4 py-2">
                               <input
@@ -729,101 +753,73 @@ export default function BitacoraPage() {
                 </div>
               )}
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-navy-50/50 text-xs font-black text-navy-300 uppercase tracking-widest">
-                    <th className="px-6 py-2.5">Fecha</th>
-                    <th className="px-6 py-2.5">Piloto</th>
-                    <th className="px-6 py-2.5">Despegue</th>
-                    <th className="px-6 py-2.5">Aterrizaje</th>
-                    <th className="px-6 py-2.5">Duración</th>
-                    <th className="px-6 py-2.5">Condición</th>
-                    <th className="px-6 py-2.5">Aeronave</th>
-                    <th className="px-6 py-2.5">Tipo de misión</th>
-                    <th className="px-6 py-2.5">Replay</th>
-                    <th className="px-6 py-2.5">Libro de Vuelo</th>
-                    {canManageFlights && <th className="px-6 py-2.5">Corregir</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-navy-50">
-                  {visibleFlights.length === 0 && (
-                    <tr>
-                      <td colSpan={canManageFlights ? 11 : 10} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
-                        <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">flight_takeoff</span>
-                        <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin vuelos registrados todavía</p>
-                      </td>
-                    </tr>
-                  )}
-                  {visibleFlights.map((f) => (
-                    <tr key={f.id} className="hover:bg-navy-50/40 transition-colors">
-                      <td className="px-6 py-2.5 text-xs font-bold text-navy-500 whitespace-nowrap">{formatDate(f.takeoff_at)}</td>
-                      <td className="px-6 py-2.5 text-xs font-bold text-navy whitespace-nowrap">{f.pilot?.full_name || '—'}</td>
-                      <td className="px-6 py-2.5 text-xs font-bold text-navy-500 font-mono whitespace-nowrap">{formatTime24(f.takeoff_at)}</td>
-                      <td className="px-6 py-2.5 text-xs font-bold text-navy-500 font-mono whitespace-nowrap">{formatTime24(f.landing_at)}</td>
-                      <td className="px-6 py-2.5 text-xs font-black text-navy-700 tabular-nums whitespace-nowrap">{Number(f.total_time).toFixed(1)}h</td>
-                      <td className="px-6 py-2.5 whitespace-nowrap">
-                        <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase border border-blue-100">
+            {visibleFlights.length === 0 ? (
+              <div className="py-16 text-center opacity-40">
+                <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">flight_takeoff</span>
+                <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin vuelos registrados todavía</p>
+              </div>
+            ) : (
+              // Filas de 2 líneas (sin scroll horizontal): la info secundaria baja a la 2.ª línea en gris.
+              <ul className="divide-y divide-navy-50">
+                {visibleFlights.map((f) => (
+                  <li key={f.id} className="px-4 sm:px-6 py-3.5 hover:bg-navy-50/40 transition-colors">
+                    {/* línea 1 — orden de vuelo + fecha; a la derecha: duración, condición y acciones */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                      {f.flight_order ? (
+                        <span className="inline-flex items-center rounded-md bg-navy text-white font-mono font-bold text-[11px] tracking-wide px-2 py-1">{f.flight_order}</span>
+                      ) : (
+                        <span className="text-navy-300 text-xs">—</span>
+                      )}
+                      <span className="text-sm font-semibold text-navy-600">{formatDate(f.takeoff_at)}</span>
+                      <span className="ml-auto flex items-center gap-2">
+                        <span className="text-sm font-black tabular-nums text-navy-700">{Number(f.total_time).toFixed(1)} h</span>
+                        <span className="inline-flex items-center rounded-full border border-navy-100 bg-navy-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-navy-500">
                           {f.visual_condition || '—'}
                         </span>
                         {f.weather?.payload?.current && (
                           <span
-                            className="material-symbols-outlined text-base align-middle ml-1.5 text-sky-500"
+                            className="material-symbols-outlined text-base text-sky-500"
                             title={`Clima al despachar: ${f.weather.payload.current.temperature_2m} °C · viento ${f.weather.payload.current.wind_speed_10m} km/h · rachas ${f.weather.payload.current.wind_gusts_10m} km/h${f.weather.payload.visibility_m != null ? ` · visibilidad ${f.weather.payload.visibility_m} m` : ''}`}
                             aria-label="Clima archivado con este vuelo"
                           >
                             cloud
                           </span>
                         )}
-                      </td>
-                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">
-                        {f.aircraft ? `${f.aircraft.model?.brand} ${f.aircraft.model?.model} — ${f.aircraft.serial_number}` : '—'}
-                      </td>
-                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap" title={f.notes || undefined}>
-                        {f.mission_type || '—'}
-                        {f.location && <span className="block text-[11px] font-normal text-navy-400 max-w-[220px] truncate">{f.location}</span>}
-                      </td>
-                      <td className="px-6 py-2.5 whitespace-nowrap">
-                        {f.has_replay ? (
-                          <button
-                            type="button"
-                            onClick={() => setReplayFlight(f)}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 rounded-full px-2.5 py-1 hover:bg-primary-100 transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-sm">route</span>
-                            Ver
+                        <span className="flex items-center gap-1">
+                          {f.has_replay && (
+                            <button type="button" onClick={() => setReplayFlight(f)} title="Ver replay" aria-label="Ver replay" className="flex size-8 items-center justify-center rounded-lg border border-primary-100 bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors">
+                              <span className="material-symbols-outlined text-base">route</span>
+                            </button>
+                          )}
+                          <button type="button" disabled={bookBusy === f.id} onClick={() => downloadBook(f.id)} title="Libro de vuelo (PDF)" aria-label="Libro de vuelo (PDF)" className="flex size-8 items-center justify-center rounded-lg border border-navy-100 bg-navy-50 text-navy-600 hover:bg-navy-100 transition-colors disabled:opacity-50">
+                            <span className={`material-symbols-outlined text-base ${bookBusy === f.id ? 'animate-spin' : ''}`}>{bookBusy === f.id ? 'progress_activity' : 'picture_as_pdf'}</span>
                           </button>
-                        ) : (
-                          <span className="text-navy-300 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-2.5 whitespace-nowrap">
-                        <button
-                          type="button"
-                          disabled={bookBusy === f.id}
-                          onClick={() => downloadBook(f.id)}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-2.5 py-1 hover:bg-navy-100 transition-colors disabled:opacity-50"
-                        >
-                          <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                          {bookBusy === f.id ? '…' : 'PDF'}
-                        </button>
-
-                      </td>
-                      {canManageFlights && (
-                        <td className="px-6 py-2.5 whitespace-nowrap">
-                          <button type="button" onClick={() => setFlightAction({ flight: f, mode: 'edit' })} className="size-9 inline-flex items-center justify-center rounded-lg text-navy-400 hover:bg-navy-50 hover:text-primary-700" title="Editar vuelo" aria-label="Editar vuelo">
-                            <span className="material-symbols-outlined text-lg">edit</span>
-                          </button>
-                          <button type="button" onClick={() => setFlightAction({ flight: f, mode: 'void' })} className="size-9 inline-flex items-center justify-center rounded-lg text-navy-400 hover:bg-red-50 hover:text-red-600" title="Anular vuelo" aria-label="Anular vuelo">
-                            <span className="material-symbols-outlined text-lg">block</span>
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          {canManageFlights && (
+                            <>
+                              <button type="button" onClick={() => setFlightAction({ flight: f, mode: 'edit' })} title="Editar vuelo" aria-label="Editar vuelo" className="flex size-8 items-center justify-center rounded-lg text-navy-400 hover:bg-navy-50 hover:text-primary-700">
+                                <span className="material-symbols-outlined text-base">edit</span>
+                              </button>
+                              <button type="button" onClick={() => setFlightAction({ flight: f, mode: 'void' })} title="Anular vuelo" aria-label="Anular vuelo" className="flex size-8 items-center justify-center rounded-lg text-navy-400 hover:bg-red-50 hover:text-red-600">
+                                <span className="material-symbols-outlined text-base">block</span>
+                              </button>
+                            </>
+                          )}
+                        </span>
+                      </span>
+                    </div>
+                    {/* línea 2 — piloto · horario · aeronave · tipo de misión / lugar (gris) */}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-navy-400" title={f.notes || undefined}>
+                      <span className="font-bold text-navy-600">{f.pilot?.full_name || '—'}</span>
+                      <span className="text-navy-200">·</span>
+                      <span className="font-mono">{formatTime24(f.takeoff_at)}–{formatTime24(f.landing_at)}</span>
+                      {f.aircraft && (<><span className="text-navy-200">·</span><span>{f.aircraft.model?.brand} {f.aircraft.model?.model} — {f.aircraft.serial_number}</span></>)}
+                      {f.mission_type && (<><span className="text-navy-200">·</span><span>{f.mission_type}</span></>)}
+                      {f.location && (<><span className="text-navy-200">·</span><span className="truncate max-w-[220px]">{f.location}</span></>)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
             {hasMore && (
               <div className="px-6 py-3 border-t border-navy-50 text-center">
                 <button type="button" onClick={loadMoreFlights} disabled={loadingMore} className="min-h-[44px] px-5 rounded-xl border border-navy-200 text-xs font-bold uppercase tracking-wide text-navy-600 hover:bg-navy-50 disabled:opacity-50">
@@ -844,10 +840,15 @@ export default function BitacoraPage() {
 
         {canManualFlight && (
         <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow p-5 h-fit">
-          <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-primary" />
-            Nuevo vuelo
-          </p>
+          <div className="flex items-center gap-3 border-b border-navy-50 pb-4 mb-4">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+              <span className="material-symbols-outlined">add</span>
+            </span>
+            <div>
+              <p className="text-sm font-bold text-navy">Registrar vuelo</p>
+              <p className="text-xs text-navy-400">Captura manual</p>
+            </div>
+          </div>
 
           <Field
             label="Despegue"
@@ -879,6 +880,13 @@ export default function BitacoraPage() {
               </option>
             ))}
           </Field>
+          <Field
+            label="Orden de vuelo (opcional)"
+            value={form.flightOrder}
+            onChange={(e) => setForm((f) => ({ ...f, flightOrder: e.target.value }))}
+            placeholder="Código del cliente — ej. OV-2026-014"
+            className="border-primary-200 bg-primary-50/40 font-mono"
+          />
           <Field
             label="Tipo de misión (opcional)"
             value={form.missionType}
@@ -1019,61 +1027,45 @@ function LibroDeVueloPanel({ fleet, flights, aircraftId, onAircraftChange, onOpe
               <p className="text-lg font-black text-navy tabular-nums">{flightsHours.toFixed(1)}h</p>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-navy-50/50 text-xs font-black text-navy-300 uppercase tracking-widest">
-                  <th className="px-6 py-2.5">Fecha</th>
-                  <th className="px-6 py-2.5">PIC</th>
-                  <th className="px-6 py-2.5">Despegue</th>
-                  <th className="px-6 py-2.5">Aterrizaje</th>
-                  <th className="px-6 py-2.5">Duración</th>
-                  <th className="px-6 py-2.5">Condición</th>
-                  <th className="px-6 py-2.5">Tipo de misión</th>
-                  <th className="px-6 py-2.5">Replay</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-navy-50">
-                {aircraftFlights.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
-                      <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">menu_book</span>
-                      <p className="text-xs font-black uppercase tracking-widest text-navy-500">Esta aeronave no tiene vuelos registrados todavía</p>
-                    </td>
-                  </tr>
-                )}
-                {aircraftFlights.map((f) => (
-                  <tr key={f.id} className="hover:bg-navy-50/40 transition-colors">
-                    <td className="px-6 py-2.5 text-xs font-bold text-navy-500 whitespace-nowrap">{formatDate(f.takeoff_at)}</td>
-                    <td className="px-6 py-2.5 text-xs font-bold text-navy whitespace-nowrap">{f.pilot?.full_name || '—'}</td>
-                    <td className="px-6 py-2.5 text-xs font-bold text-navy-500 font-mono whitespace-nowrap">{formatTime24(f.takeoff_at)}</td>
-                    <td className="px-6 py-2.5 text-xs font-bold text-navy-500 font-mono whitespace-nowrap">{formatTime24(f.landing_at)}</td>
-                    <td className="px-6 py-2.5 text-xs font-black text-navy-700 tabular-nums whitespace-nowrap">{Number(f.total_time).toFixed(1)}h</td>
-                    <td className="px-6 py-2.5 whitespace-nowrap">
-                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase border border-blue-100">
+          {aircraftFlights.length === 0 ? (
+            <div className="py-16 text-center opacity-40">
+              <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">menu_book</span>
+              <p className="text-xs font-black uppercase tracking-widest text-navy-500">Esta aeronave no tiene vuelos registrados todavía</p>
+            </div>
+          ) : (
+            // Filas de 2 líneas (sin scroll horizontal). Aquí la aeronave es fija (la seleccionada).
+            <ul className="divide-y divide-navy-50">
+              {aircraftFlights.map((f) => (
+                <li key={f.id} className="px-4 sm:px-6 py-3.5 hover:bg-navy-50/40 transition-colors">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    {f.flight_order ? (
+                      <span className="inline-flex items-center rounded-md bg-navy text-white font-mono font-bold text-[11px] tracking-wide px-2 py-1">{f.flight_order}</span>
+                    ) : (
+                      <span className="text-navy-300 text-xs">—</span>
+                    )}
+                    <span className="text-sm font-semibold text-navy-600">{formatDate(f.takeoff_at)}</span>
+                    <span className="ml-auto flex items-center gap-2">
+                      <span className="text-sm font-black tabular-nums text-navy-700">{Number(f.total_time).toFixed(1)} h</span>
+                      <span className="inline-flex items-center rounded-full border border-navy-100 bg-navy-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-navy-500">
                         {f.visual_condition || '—'}
                       </span>
-                    </td>
-                    <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{f.mission_type || '—'}</td>
-                    <td className="px-6 py-2.5 whitespace-nowrap">
-                      {f.has_replay ? (
-                        <button
-                          type="button"
-                          onClick={() => onOpenReplay(f)}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 rounded-full px-2.5 py-1 hover:bg-primary-100 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-sm">route</span>
-                          Ver
+                      {f.has_replay && (
+                        <button type="button" onClick={() => onOpenReplay(f)} title="Ver replay" aria-label="Ver replay" className="flex size-8 items-center justify-center rounded-lg border border-primary-100 bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors">
+                          <span className="material-symbols-outlined text-base">route</span>
                         </button>
-                      ) : (
-                        <span className="text-navy-300 text-xs">—</span>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-navy-400">
+                    <span className="font-bold text-navy-600">{f.pilot?.full_name || '—'}</span>
+                    <span className="text-navy-200">·</span>
+                    <span className="font-mono">{formatTime24(f.takeoff_at)}–{formatTime24(f.landing_at)}</span>
+                    {f.mission_type && (<><span className="text-navy-200">·</span><span>{f.mission_type}</span></>)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </div>
@@ -1119,6 +1111,10 @@ function ImportRowCard({ row, fleet, confirming, onChange, onConfirm, onDiscard 
             </select>
           </label>
           <label className="block text-xs font-bold text-navy-400">
+            Orden de vuelo
+            <input value={row.flightOrder} onChange={(e) => onChange({ flightOrder: e.target.value })} placeholder="Código del cliente — OV-2026-014" className={`mt-1 font-mono ${inputCls}`} />
+          </label>
+          <label className="block text-xs font-bold text-navy-400">
             Tipo de misión
             <input value={row.missionType} onChange={(e) => onChange({ missionType: e.target.value })} placeholder="Opcional" className={`mt-1 ${inputCls}`} />
           </label>
@@ -1147,114 +1143,146 @@ function ImportRowCard({ row, fleet, confirming, onChange, onConfirm, onDiscard 
   );
 }
 
-// Importación por carpeta — SOLO app nativa Android (en web este componente no se monta). El piloto
-// elige UNA vez la carpeta FlightRecord del control/celular (selector del sistema, SAF) o ya tiene
-// acceso a todos los archivos; BitaFly lista los .txt y sube los que el piloto marque al MISMO análisis
-// (handleAnalyzeFiles → /api/flights/import-dji) y a la confirmación §100.540. Es la vía que sirve a
-// DJI Pilot 2 (Matrice, enterprise) —logs en almacenamiento público— y para cargar en lote, sin USB y
-// sin el "Compartir" uno por uno. No reactiva ningún auto-sync de fondo: cada vuelo se confirma a mano.
-function FolderImportCard({ onFiles, analyzing }) {
-  const [perm, setPerm] = useState(null);        // { granted, allFiles, folder }
-  const [files, setFiles] = useState(null);      // null = sin buscar; [] = buscado y vacío
-  const [selected, setSelected] = useState(() => new Set());
-  const [scanning, setScanning] = useState(false);
-  const [reading, setReading] = useState(null);  // { current, total } mientras se leen los .txt
-  const [err, setErr] = useState(null);
+// Importación por carpeta — SOLO app nativa Android (en web este componente no se monta), AUTOMÁTICA.
+// El piloto elige UNA vez la carpeta FlightRecord del control/celular (selector del sistema, SAF); desde
+// ahí, al montar y al volver a la app, BitaFly escanea sola y mete los .txt NUEVOS al MISMO análisis
+// (handleAnalyzeFiles → /api/flights/import-dji), listos para confirmar (§100.540 por vuelo: nada se
+// guarda sin confirmar). Sirve a DJI Pilot 2 (Matrice, enterprise), con logs en almacenamiento público.
+// NO reactiva el worker de fondo (parqueado): la automatización es solo del ESCANEO, no del guardado.
+// Clave de "logs ya vistos" del auto-escaneo: evita volver a meter al análisis un .txt que ya se
+// procesó (confirmado o descartado) en otra sesión o al volver a la app. Por nombre + fecha/tamaño.
+const FOLDER_SEEN_KEY = 'bf_folder_seen_v1';
+const folderFileKey = (f) => `${f.name || ''}|${f.mtime || f.size || ''}`;
+function loadFolderSeen() { try { return new Set(JSON.parse(localStorage.getItem(FOLDER_SEEN_KEY) || '[]')); } catch { return new Set(); } }
+function saveFolderSeen(set) { try { localStorage.setItem(FOLDER_SEEN_KEY, JSON.stringify([...set].slice(-800))); } catch { /* no-op */ } }
 
-  useEffect(() => { checkFolderPermission().then(setPerm); }, []);
+function FolderImportCard({ onFiles, analyzing }) {
+  const [perm, setPerm] = useState(null);           // { granted, allFiles, folder }
+  const [scanning, setScanning] = useState(false);
+  const [reading, setReading] = useState(null);     // { current, total } mientras lee los .txt nuevos
+  const [err, setErr] = useState(null);
+  const [lastScan, setLastScan] = useState(null);   // { total, nuevos } del último escaneo
+  const scanningRef = useRef(false);                // evita escaneos solapados (montaje + resume)
+  // onFiles (handleAnalyzeFiles) cambia de identidad en cada render; en una ref para que autoScan
+  // sea estable y los effects no se re-disparen en bucle.
+  const onFilesRef = useRef(onFiles);
+  onFilesRef.current = onFiles;
 
   const connected = !!(perm?.folder || perm?.allFiles);
   const busy = scanning || !!reading || analyzing;
 
-  const scan = useCallback(async () => {
+  // Escaneo automático: lista la carpeta, lee los .txt no vistos y los manda al análisis (listos para
+  // confirmar). `force` (al elegir/cambiar carpeta o "Buscar ahora") reconsidera también los ya vistos.
+  const autoScan = useCallback(async (force = false) => {
+    if (scanningRef.current) return;
+    scanningRef.current = true;
     setScanning(true);
     setErr(null);
     try {
       const found = await listFolderFlightFiles();
       found.sort((a, b) => (b.mtime || 0) - (a.mtime || 0)); // más reciente primero
-      setFiles(found);
-      setSelected(new Set());
+      const seen = loadFolderSeen();
+      const nuevos = force ? found : found.filter((f) => !seen.has(folderFileKey(f)));
+      if (nuevos.length) {
+        const out = [];
+        setReading({ current: 0, total: nuevos.length });
+        for (let i = 0; i < nuevos.length; i++) {
+          setReading({ current: i + 1, total: nuevos.length });
+          const file = await readFolderFlightFile(nuevos[i].path); // secuencial: no carga todo a memoria
+          if (file) out.push(file);
+          seen.add(folderFileKey(nuevos[i]));
+        }
+        setReading(null);
+        saveFolderSeen(seen);
+        if (out.length) onFilesRef.current(out); // reusa el análisis + confirmación por vuelo
+      }
+      setLastScan({ total: found.length, nuevos: nuevos.length });
+    } catch {
+      setErr('No se pudo leer la carpeta. Vuelve a elegirla con «Cambiar».');
     } finally {
+      setReading(null);
       setScanning(false);
+      scanningRef.current = false;
     }
   }, []);
+
+  // Al montar: ¿hay carpeta ya elegida? Si sí, escanea solo.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const p = await checkFolderPermission();
+      if (!alive) return;
+      setPerm(p);
+      if (p?.folder || p?.allFiles) autoScan(false);
+    })();
+    return () => { alive = false; };
+  }, [autoScan]);
+
+  // Al VOLVER a la app (o a la pestaña): re-escanea para traer los logs nuevos sin tocar un botón.
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') autoScan(false); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [autoScan]);
 
   async function connectFolder() {
     setErr(null);
     const res = await pickFlightFolder();
     if (!res.picked) { setErr('No se eligió ninguna carpeta.'); return; }
     setPerm(await checkFolderPermission());
-    await scan();
+    await autoScan(true);
   }
 
   async function changeFolder() {
     await clearFlightFolder();
-    setFiles(null);
-    setSelected(new Set());
+    setPerm(await checkFolderPermission());
     await connectFolder();
   }
 
-  function toggle(path) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path); else next.add(path);
-      return next;
-    });
-  }
-  function toggleAll() {
-    setSelected((prev) => (prev.size === (files?.length || 0) ? new Set() : new Set((files || []).map((f) => f.path))));
-  }
-
-  async function importSelected() {
-    const paths = (files || []).filter((f) => selected.has(f.path)).map((f) => f.path);
-    if (!paths.length) return;
-    setReading({ current: 0, total: paths.length });
-    const out = [];
-    for (let i = 0; i < paths.length; i++) {
-      setReading({ current: i + 1, total: paths.length });
-      const file = await readFolderFlightFile(paths[i]); // lectura secuencial: no carga todo a memoria a la vez
-      if (file) out.push(file);
-    }
-    setReading(null);
-    if (out.length) onFiles(out); // reusa el análisis + confirmación por vuelo
-  }
-
-  const fmtMb = (n) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : '');
-  const fmtDate = (ms) => (ms ? new Date(ms).toLocaleDateString('es-CO') : '');
+  const estado = reading
+    ? `Leyendo ${reading.current} de ${reading.total}…`
+    : scanning
+      ? 'Buscando logs…'
+      : analyzing
+        ? 'Analizando…'
+        : null;
 
   return (
     <div className="rounded-2xl border border-navy-100 p-4 bg-navy-50/20">
       <p className="text-xs font-black uppercase text-navy tracking-wide flex items-center gap-1.5">
         <span className="material-symbols-outlined text-base text-primary-600">folder_open</span>
-        Importar desde la carpeta del control
-      </p>
-      <p className="text-xs text-navy-400 mt-1.5">
-        Elige una vez la carpeta <b>FlightRecord</b> del control o celular; BitaFly lista los logs y subes
-        los que marques. Pensado para DJI Pilot 2 (Matrice) y cualquier control cuyo celular tenga los .txt accesibles.
+        Carpeta del control
+        <span className="ml-1 rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-bold text-primary-700 normal-case tracking-normal">Automático</span>
       </p>
 
       {err && <p className="text-xs text-red-600 mt-2">{err}</p>}
 
       {!connected ? (
-        <button
-          type="button"
-          onClick={connectFolder}
-          disabled={busy}
-          className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 hover:bg-primary-100 transition-colors disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-base">create_new_folder</span>
-          Elegir carpeta de vuelos
-        </button>
+        <>
+          <p className="text-xs text-navy-400 mt-1.5">
+            Elige <b>una vez</b> la carpeta <b>FlightRecord</b> del control o celular. Desde entonces BitaFly
+            la revisa <b>sola al abrir la app</b> y te deja los logs nuevos listos para confirmar.
+          </p>
+          <button
+            type="button"
+            onClick={connectFolder}
+            disabled={busy}
+            className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 hover:bg-primary-100 transition-colors disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-base">create_new_folder</span>
+            Conectar carpeta de vuelos
+          </button>
+        </>
       ) : (
-        <div className="mt-3 space-y-2">
+        <div className="mt-2.5 space-y-2">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
               <span className="material-symbols-outlined text-sm">check_circle</span>
-              Carpeta conectada
+              Carpeta conectada · se revisa al abrir
             </span>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={scan} disabled={busy} className="font-bold text-primary-700 disabled:opacity-50">
-                {scanning ? 'Buscando…' : 'Buscar logs'}
+              <button type="button" onClick={() => autoScan(true)} disabled={busy} className="font-bold text-primary-700 disabled:opacity-50">
+                {busy ? '…' : 'Buscar ahora'}
               </button>
               {perm?.folder && (
                 <button type="button" onClick={changeFolder} disabled={busy} className="font-bold text-navy-400 disabled:opacity-50">
@@ -1264,54 +1292,19 @@ function FolderImportCard({ onFiles, analyzing }) {
             </div>
           </div>
 
-          {files && files.length === 0 && (
-            <p className="text-xs text-navy-400">
-              No se encontraron logs .txt. Elige la carpeta <b>FlightRecord</b> (no una carpeta superior).
+          {estado && (
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-500">
+              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              {estado}
             </p>
           )}
 
-          {files && files.length > 0 && (
-            <>
-              <div className="flex items-center justify-between">
-                <button type="button" onClick={toggleAll} className="text-[11px] font-bold uppercase tracking-wide text-navy-400">
-                  {selected.size === files.length ? 'Quitar todos' : 'Seleccionar todos'}
-                </button>
-                <span className="text-[11px] text-navy-400">{files.length} log(s)</span>
-              </div>
-              <ul className="max-h-48 overflow-y-auto rounded-xl border border-navy-100 divide-y divide-navy-50">
-                {files.map((f) => (
-                  <li key={f.path}>
-                    <label className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-navy-50/50">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(f.path)}
-                        onChange={() => toggle(f.path)}
-                        className="size-4 accent-primary-600"
-                      />
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-semibold text-navy-600 truncate">{f.name}</span>
-                        <span className="block text-[11px] text-navy-400">
-                          {fmtDate(f.mtime)}{f.size ? ` · ${fmtMb(f.size)}` : ''}
-                        </span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={importSelected}
-                disabled={busy || selected.size === 0}
-                className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 hover:bg-primary-100 transition-colors disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-base">{reading ? 'progress_activity' : 'upload'}</span>
-                {reading
-                  ? `Leyendo ${reading.current} de ${reading.total}…`
-                  : analyzing
-                    ? 'Analizando…'
-                    : `Importar seleccionados (${selected.size})`}
-              </button>
-            </>
+          {!busy && lastScan && (
+            <p className="text-xs text-navy-400">
+              {lastScan.nuevos > 0
+                ? `${lastScan.nuevos} log(s) nuevo(s) — revísalos abajo y confírmalos.`
+                : 'Sin logs nuevos. Todo lo de la carpeta ya está en la bitácora.'}
+            </p>
           )}
         </div>
       )}

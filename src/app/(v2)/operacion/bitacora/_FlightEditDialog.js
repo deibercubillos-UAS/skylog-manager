@@ -27,6 +27,7 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
     aircraftId: flight.aircraft_id || '',
     location: flight.location || '',
     notes: flight.notes || '',
+    flightOrder: flight.flight_order || '',
     reason: '',
   });
   const [busy, setBusy] = useState(false);
@@ -65,6 +66,7 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
                 aircraftId: form.aircraftId || null,
                 location: form.location || null,
                 notes: form.notes || null,
+                flightOrder: form.flightOrder || null,
                 reason: form.reason,
               }
         ),
@@ -131,6 +133,9 @@ export default function FlightEditDialog({ flight, mode, fleet, onClose, onDone 
             </label>
             <label className={labelCls}>Tipo de misión
               <input value={form.missionType} onChange={(e) => set({ missionType: e.target.value })} className={inputCls} />
+            </label>
+            <label className={labelCls}>Orden de vuelo
+              <input value={form.flightOrder} onChange={(e) => set({ flightOrder: e.target.value })} placeholder="OV-2026-014" className={`${inputCls} font-mono`} />
             </label>
             <label className={`${labelCls} sm:col-span-2`}>Lugar
               <input value={form.location} onChange={(e) => set({ location: e.target.value })} className={inputCls} />

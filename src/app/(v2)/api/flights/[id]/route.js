@@ -90,6 +90,7 @@ export async function PATCH(request, { params }) {
   const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
   if (body.location !== undefined) next.location = text(body.location, 300);
   if (body.notes !== undefined) next.notes = text(body.notes, 2000);
+  if (body.flightOrder !== undefined) next.flight_order = text(body.flightOrder, 60);
 
   const valid = validateFlightFields(next);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
@@ -127,6 +128,7 @@ export async function PATCH(request, { params }) {
       aircraft_id: next.aircraft_id,
       location: next.location,
       notes: next.notes,
+      flight_order: next.flight_order,
       edited_at: new Date().toISOString(),
       edited_by: personId,
     })

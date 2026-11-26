@@ -76,7 +76,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, picPersonId, observerPersonId, aircraftId, name, zone, scheduledAt, notes, zoneGeo, lineOfSight, altitudeAglM, requiredAdditions } = body;
+  const { organizationId, picPersonId, observerPersonId, aircraftId, name, zone, scheduledAt, notes, zoneGeo, lineOfSight, altitudeAglM, requiredAdditions, flightOrder } = body;
 
   if (!organizationId || !picPersonId || !name || !zone || !scheduledAt) {
     return Response.json({ error: 'organizationId, picPersonId, name, zone y scheduledAt son requeridos' }, { status: 400 });
@@ -136,6 +136,7 @@ export async function POST(request) {
       line_of_sight: lineOfSight || null,
       altitude_agl_m: altitudeAglM || null,
       required_additions: normalizeRequiredAdditions(requiredAdditions, { lineOfSight }),
+      flight_order: typeof flightOrder === 'string' && flightOrder.trim() ? flightOrder.trim().slice(0, 60) : null,
     })
     .select(MISSION_SELECT)
     .single();

@@ -6,6 +6,12 @@
 export function SectionHero({ eyebrow, title, description, metric, cta }) {
   return (
     <div className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-navy via-navy to-[#0f1420] text-white p-6 md:p-7 shadow-lg shadow-navy-900/20">
+      {/* textura sutil: retícula de puntos sobre el degradado navy (marca V2) */}
+      <div
+        className="absolute inset-0 -z-10 opacity-[0.07]"
+        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }}
+        aria-hidden="true"
+      />
       <div className="absolute -right-14 -top-16 w-56 h-56 rounded-full bg-primary/30 blur-3xl -z-10" />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -51,26 +57,18 @@ export function SectionCard({ icon, tile, wash, title, description, badge, child
   );
 }
 
-export function StatCard({ icon, color, label, value, sub }) {
-  const palette = {
-    primary: { wash: 'from-primary-50 to-white', tile: 'bg-primary text-white' },
-    blue: { wash: 'from-blue-50 to-white', tile: 'bg-blue-500 text-white' },
-    violet: { wash: 'from-violet-50 to-white', tile: 'bg-violet-500 text-white' },
-    emerald: { wash: 'from-emerald-50 to-white', tile: 'bg-emerald-500 text-white' },
-    amber: { wash: 'from-amber-50 to-white', tile: 'bg-amber-500 text-white' },
-    red: { wash: 'from-red-50 to-white', tile: 'bg-red-500 text-white' },
-  }[color] || { wash: 'from-navy-50 to-white', tile: 'bg-navy text-white' };
+// Sobria y monocroma (decisión 2026-11-26): etiqueta con ícono tenue arriba, valor en navy
+// debajo — sin tiles de color. La etiqueta sube encima del valor para que no se desborde en
+// celdas angostas de celular. El prop `color` se acepta pero se ignora (compatibilidad con
+// quien aún lo pase); si en el futuro se quiere un acento por tipo, se reintroduce aquí.
+export function StatCard({ icon, label, value, sub }) {
   return (
-    <div className={`bg-gradient-to-br ${palette.wash} border border-navy-100 rounded-2xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}>
-      <div className="flex items-center gap-3">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${palette.tile}`}>
-          <span className="material-symbols-outlined text-xl">{icon}</span>
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-navy-500 font-medium leading-snug line-clamp-2">{label}</p>
-          <p className={`${typeof value === 'string' && value.length > 9 ? 'text-lg' : 'text-2xl'} font-black text-navy leading-tight tracking-tight break-words`}>{value}</p>
-        </div>
+    <div className="bg-white border border-navy-100 rounded-2xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+      <div className="flex items-start gap-1.5 text-navy-400">
+        {icon && <span className="material-symbols-outlined text-base shrink-0">{icon}</span>}
+        <p className="text-[11px] font-bold uppercase tracking-wide leading-tight line-clamp-2">{label}</p>
       </div>
+      <p className={`${typeof value === 'string' && value.length > 9 ? 'text-xl' : 'text-2xl'} font-black text-navy leading-tight tracking-tight tabular-nums break-words mt-1.5`}>{value}</p>
       {sub && <p className="text-[11px] text-navy-500 mt-2 leading-snug">{sub}</p>}
     </div>
   );

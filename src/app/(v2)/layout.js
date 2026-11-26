@@ -15,7 +15,7 @@ import OfflineSync from './_components/OfflineSync';
 import AppUpdateBanner from '@/components/AppUpdateBanner';
 import CommandPalette from './_components/CommandPalette';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { OnboardingTour } from './_components/OnboardingTour';
 import NotificationBell from './_components/NotificationBell';
@@ -130,15 +130,27 @@ const FOOTER_LINKS = [
   { name: 'Mi Perfil', icon: 'account_circle', href: '/perfil' },
 ];
 
-const BOTTOM_NAV_LINKS = [
+// Barra inferior móvil con botón de acción central (Despacho) elevado y más
+// grande — pedido del usuario. Dos enlaces a la izquierda, el FAB de Despacho
+// en el centro, dos a la derecha. `perm` oculta el enlace si el rol no lo
+// tiene (mismo `linkVisible` del sidebar); Despacho no lleva permiso, así que
+// el botón central siempre queda presente y centrado aunque falte un lateral.
+const BOTTOM_NAV_LEFT = [
   { name: 'Inicio', icon: 'dashboard', href: '/inicio' },
   { name: 'Bitácora', icon: 'menu_book', href: '/operacion/bitacora' },
-  { name: 'SMS', icon: 'health_and_safety', href: '/sms/reportes', perm: 'U2' },
-  { name: 'Ajustes', icon: 'apartment', href: '/organizacion' },
+];
+const BOTTOM_NAV_CENTER = { name: 'Despacho', icon: 'rocket_launch', href: '/operacion/despacho' };
+// Reportes no navega directo: abre un selector (MOR / VOR) y recién ahí lleva al
+// formulario correspondiente (/sms/reportes?tipo=…). `perm: U2` = puede reportar.
+const BOTTOM_NAV_RIGHT = [
+  { name: 'Reportes', icon: 'warning', action: 'report', activeHref: '/sms/reportes', perm: 'U2' },
+  { name: 'Meteorología', icon: 'partly_cloudy_day', href: '/operacion/meteorologia' },
 ];
 
 export default function V2Layout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [reportPickerOpen, setReportPickerOpen] = useState(false); // selector MOR/VOR de la barra inferior
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -222,6 +234,7 @@ export default function V2Layout({ children }) {
   useEffect(() => {
     setSidebarOpen(false);
     setAccountMenuOpen(false);
+    setReportPickerOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -563,32 +576,151 @@ export default function V2Layout({ children }) {
         </div>
       </main>
 
-      {/* ── BARRA INFERIOR — solo mobile ─────────────────────────────────── */}
-      <nav
-        aria-label="Navegación principal"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-navy-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
-      >
-        <div className="flex items-stretch h-14">
-          {BOTTOM_NAV_LINKS.filter(linkVisible).map((l) => (
-            <BottomNavItem key={l.href} href={l.href} icon={l.icon} label={l.name} active={l.href === '/inicio' ? pathname === '/inicio' : pathname.startsWith(l.href)} />
-          ))}
+      {/* ── SELECTOR MOR/VOR — hoja inferior desde el botón "Reportes" ─────── */}
+      {reportPickerOpen && (
+        <div className="lg:hidden fixed inset-0 z-[300]" role="dialog" aria-modal="true" aria-label="Elegir tipo de reporte">
+          <button
+            type="button"
+            aria-label="Cerrar"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setReportPickerOpen(false)}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-5 shadow-2xl animate-[slideUp_0.2s_ease-out]"
+            style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 8px))' }}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-navy-200" />
+            <p className="text-sm font-black text-navy uppercase tracking-wide">Nuevo reporte de seguridad</p>
+            <p className="text-xs text-navy-400 mt-0.5 mb-4">Elige qué tipo de reporte quieres diligenciar.</p>
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => { setReportPickerOpen(false); router.push('/sms/reportes?tipo=mor'); }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-red-200 bg-red-50 text-left active:scale-95 transition-all"
+              >
+                <span className="flex items-center justify-center size-11 rounded-xl bg-red-500 text-white shrink-0">
+                  <span className="material-symbols-outlined">priority_high</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-navy">MOR — Reporte obligatorio</span>
+                  <span className="block text-xs text-navy-500">Mandatory Occurrence Report. Sucesos de notificación obligatoria ante la Aerocivil.</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setReportPickerOpen(false); router.push('/sms/reportes?tipo=vor'); }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-sky-200 bg-sky-50 text-left active:scale-95 transition-all"
+              >
+                <span className="flex items-center justify-center size-11 rounded-xl bg-sky-500 text-white shrink-0">
+                  <span className="material-symbols-outlined">volunteer_activism</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-navy">VOR — Reporte voluntario</span>
+                  <span className="block text-xs text-navy-500">Voluntary Occurrence Report. Peligros y observaciones, de forma voluntaria y confidencial.</span>
+                </span>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReportPickerOpen(false)}
+              className="mt-4 w-full py-3 rounded-2xl text-sm font-black text-navy-500 bg-navy-50 active:scale-95 transition-all"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
-      </nav>
+      )}
+
+      {/* ── BARRA INFERIOR FLOTANTE — solo mobile ────────────────────────── */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] px-3 pointer-events-none"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 8px))' }}
+      >
+        <nav
+          aria-label="Navegación principal"
+          className="pointer-events-auto relative mx-auto max-w-md bg-white/95 backdrop-blur border border-navy-100 rounded-[28px] shadow-[0_8px_30px_rgba(0,0,0,0.18)]"
+        >
+          <div className="relative flex items-stretch h-16 px-1">
+            <div className="flex-1 flex">
+              {BOTTOM_NAV_LEFT.filter(linkVisible).map((l) => (
+                <BottomNavItem key={l.href} href={l.href} icon={l.icon} label={l.name} active={l.href === '/inicio' ? pathname === '/inicio' : pathname.startsWith(l.href)} />
+              ))}
+            </div>
+
+            {/* Hueco reservado para el botón central flotante */}
+            <div className="w-16 shrink-0" aria-hidden="true" />
+
+            <div className="flex-1 flex">
+              {BOTTOM_NAV_RIGHT.filter(linkVisible).map((l) =>
+                l.action === 'report' ? (
+                  <BottomNavItem
+                    key={l.name}
+                    icon={l.icon}
+                    label={l.name}
+                    active={pathname.startsWith(l.activeHref)}
+                    onClick={() => setReportPickerOpen(true)}
+                  />
+                ) : (
+                  <BottomNavItem key={l.href} href={l.href} icon={l.icon} label={l.name} active={pathname.startsWith(l.href)} />
+                )
+              )}
+            </div>
+
+            {/* FAB central — Despacho, elevado sobre la barra flotante */}
+            <Link
+              prefetch={false}
+              href={BOTTOM_NAV_CENTER.href}
+              aria-label={BOTTOM_NAV_CENTER.name}
+              className="absolute left-1/2 -translate-x-1/2 -top-7 flex flex-col items-center"
+            >
+              {(() => {
+                const active = pathname.startsWith(BOTTOM_NAV_CENTER.href);
+                return (
+                  <>
+                    <span
+                      className={`flex items-center justify-center size-16 rounded-full ring-4 ring-white transition-all active:scale-90 ${
+                        active
+                          ? 'bg-primary-600 shadow-xl shadow-primary-900/40'
+                          : 'bg-primary shadow-lg shadow-primary-900/30'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-white text-[30px] leading-none">{BOTTOM_NAV_CENTER.icon}</span>
+                    </span>
+                    <span className={`mt-0.5 text-[10px] font-black uppercase tracking-tight leading-none ${active ? 'text-primary' : 'text-navy-400'}`}>
+                      {BOTTOM_NAV_CENTER.name}
+                    </span>
+                  </>
+                );
+              })()}
+            </Link>
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }
 
-function BottomNavItem({ href, icon, label, active }) {
-  return (
-    <Link
-      prefetch={false}
-      href={href}
-      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 ${active ? 'text-primary' : 'text-navy-300'}`}
-    >
+// Ítem de la barra inferior. Con `href` navega (Link); con `onClick` actúa como
+// botón (p. ej. "Reportes", que abre el selector MOR/VOR en vez de navegar).
+function BottomNavItem({ href, icon, label, active, onClick }) {
+  const cls = `relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 ${active ? 'text-primary' : 'text-navy-300'}`;
+  const inner = (
+    <>
       <span className="material-symbols-outlined text-xl leading-none">{icon}</span>
       <span className="text-[10px] font-black uppercase tracking-tight leading-none">{label}</span>
-      {active && <span className="absolute bottom-0 h-0.5 w-8 bg-primary rounded-full" />}
+      {active && <span className="absolute top-0 h-0.5 w-8 bg-primary rounded-full" />}
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cls}>
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <Link prefetch={false} href={href} className={cls}>
+      {inner}
     </Link>
   );
 }

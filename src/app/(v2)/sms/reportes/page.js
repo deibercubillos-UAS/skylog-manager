@@ -157,12 +157,21 @@ export default function SmsReportesPage() {
   const [notice, setNotice] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [initialFlightId, setInitialFlightId] = useState(null);
+  // Tipo forzado por la URL (?tipo=mor|vor), p. ej. al llegar desde el selector de la barra inferior.
+  const [forcedType, setForcedType] = useState(null);
 
   // Llegada desde el cierre de un vuelo: /sms/reportes?flightId=…  abre el formulario prellenado.
+  // Llegada desde el selector de la barra inferior: /sms/reportes?tipo=mor|vor  abre el formulario con ese tipo.
   useEffect(() => {
-    const flightId = new URLSearchParams(window.location.search).get('flightId');
+    const params = new URLSearchParams(window.location.search);
+    const flightId = params.get('flightId');
+    const tipo = (params.get('tipo') || '').toLowerCase();
     if (flightId) {
       setInitialFlightId(flightId);
+      setShowForm(true);
+    }
+    if (tipo === 'mor' || tipo === 'vor') {
+      setForcedType(tipo);
       setShowForm(true);
     }
   }, []);
@@ -250,6 +259,7 @@ export default function SmsReportesPage() {
   function handleCreated({ warning, uploadErrors }) {
     setShowForm(false);
     setInitialFlightId(null);
+    setForcedType(null);
     if (window.location.search) window.history.replaceState({}, '', window.location.pathname);
     const parts = ['Reporte enviado.'];
     if (warning) parts.push(warning);
@@ -325,7 +335,7 @@ export default function SmsReportesPage() {
 
       {showForm && (
         <SectionCard icon="edit_note" tile="bg-blue-500 text-white" wash="from-blue-50 to-white" title="Diligenciar un reporte" description="Cualquier persona de la organización puede reportar — el análisis lo hace el Gerente SMS designado.">
-          <ReportForm organizationId={organizationId} initialFlightId={initialFlightId} reportType={isAnalyst ? 'mor' : 'vor'} onCreated={handleCreated} onCancel={() => setShowForm(false)} />
+          <ReportForm organizationId={organizationId} initialFlightId={initialFlightId} reportType={forcedType || (isAnalyst ? 'mor' : 'vor')} onCreated={handleCreated} onCancel={() => setShowForm(false)} />
         </SectionCard>
       )}
 

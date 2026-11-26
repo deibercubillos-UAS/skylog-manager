@@ -112,14 +112,14 @@ export default function DespachoPage() {
         metric={{ value: data.missions.length + data.inProgress.length, label: 'Pendientes' }}
       />
 
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-      {notice && <p className="text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">{notice}</p>}
+      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
+      {notice && <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">{notice}</p>}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon="event_available" color="blue" label="Para despachar hoy" value={data.missions.length} />
-        <StatCard icon="flight_takeoff" color="amber" label="En curso" value={data.inProgress.length} />
-        <StatCard icon="task_alt" color="emerald" label="Despachos recientes" value={data.dispatches.length} />
-        <StatCard icon="report" color="red" label="Con pasos en “No”" value={data.dispatches.filter((d) => d.items_no > 0).length} />
+        <StatCard icon="event_available" label="Para despachar hoy" value={data.missions.length} />
+        <StatCard icon="flight_takeoff" label="En curso" value={data.inProgress.length} />
+        <StatCard icon="task_alt" label="Despachos recientes" value={data.dispatches.length} />
+        <StatCard icon="report" label="Con pasos en “No”" value={data.dispatches.filter((d) => d.items_no > 0).length} />
       </div>
 
       {data.inProgress.length > 0 && (

@@ -350,9 +350,9 @@ export default function ProgramacionPage() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard icon="event_available" color="primary" label="Misiones esta semana" value={activeCount} />
-        <StatCard icon="badge" color="blue" label="PIC asignados" value={uniquePics} />
-        <StatCard icon="cancel" color={cancelledCount > 0 ? 'red' : 'emerald'} label="Canceladas" value={cancelledCount} />
+        <StatCard icon="event_available" label="Misiones esta semana" value={activeCount} />
+        <StatCard icon="badge" label="PIC asignados" value={uniquePics} />
+        <StatCard icon="cancel" label="Canceladas" value={cancelledCount} />
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
@@ -361,10 +361,12 @@ export default function ProgramacionPage() {
         <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm p-5 space-y-5">
           {/* Datos de la misión */}
           <div>
-            <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              Datos de la misión
-            </p>
+            <div className="flex items-center gap-2.5 mb-3">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                <span className="material-symbols-outlined text-lg">flight_takeoff</span>
+              </span>
+              <p className="text-sm font-bold text-navy">Datos de la misión</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
               <Field
                 label="Nombre de la misión"
@@ -378,6 +380,7 @@ export default function ProgramacionPage() {
                 value={form.flightOrder}
                 onChange={(e) => setForm((f) => ({ ...f, flightOrder: e.target.value }))}
                 placeholder="Código del cliente — ej. OV-2026-014"
+                className="border-primary-200 bg-primary-50/40 font-mono"
               />
               <Field as="select" label="Piloto asignado (PIC)" value={form.picPersonId} onChange={(e) => setForm((f) => ({ ...f, picPersonId: e.target.value }))} required>
                 <option value="">Selecciona…</option>
@@ -503,10 +506,12 @@ export default function ProgramacionPage() {
 
           {/* Zona de operación */}
           <div>
-            <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              Zona de operación
-            </p>
+            <div className="flex items-center gap-2.5 mb-3">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                <span className="material-symbols-outlined text-lg">place</span>
+              </span>
+              <p className="text-sm font-bold text-navy">Zona de operación</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
               <Field
                 label="Lugar de operación"
@@ -648,7 +653,7 @@ export default function ProgramacionPage() {
               <div
                 key={i}
                 className={`rounded-2xl border p-2 min-h-[140px] flex flex-col transition-colors ${
-                  isToday ? 'border-primary/40 bg-gradient-to-b from-primary-50/60 to-white' : 'border-navy-100'
+                  isToday ? 'border-primary/40 bg-primary-50/30' : 'border-navy-100'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -681,7 +686,7 @@ export default function ProgramacionPage() {
                         >
                           <span className="font-mono font-semibold shrink-0">{formatTime24(m.scheduled_at)}</span>
                           {m.line_of_sight && (
-                            <span className="text-[9px] font-black text-blue-600 bg-blue-50 rounded px-1 shrink-0">{m.line_of_sight}</span>
+                            <span className="text-[9px] font-black text-navy-500 bg-navy-100 rounded px-1 shrink-0">{m.line_of_sight}</span>
                           )}
                           {m.zone_geo && (
                             <span className="material-symbols-outlined text-[12px] text-primary-600 shrink-0" title="Zona con geometría marcada">

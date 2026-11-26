@@ -3,6 +3,7 @@
 // Skylog V2.0 — Onboarding Express: cargar la operación desde un Excel (aeronaves, baterías, tripulación, contactos de
 // emergencia y pólizas). Dos pasos a propósito: «Revisar» muestra el informe sin guardar nada; «Importar» lo aplica.
 import { useEffect, useRef, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero } from '../../_components/SectionHero';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
@@ -66,7 +67,7 @@ export default function ImportarPage() {
     if (input.current) input.current.value = '';
   }
 
-  if (loading) return <div className="py-24 flex justify-center"><div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <BrandLoader label="Cargando…" />;
   if (!canSee) {
     return (
       <div className="space-y-4">

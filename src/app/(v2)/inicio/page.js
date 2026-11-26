@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { fetchDutyContext, pickOrganizationId, getSelectedOrganizationId } from '@/lib/v2/dutyContextClient';
+import BrandLoader from '@/components/BrandLoader';
 import PilotoDashboard from './_roles/PilotoDashboard';
 import PilotoIndependienteDashboard from './_roles/PilotoIndependienteDashboard';
 import JefePilotosDashboard from './_roles/JefePilotosDashboard';
@@ -189,14 +190,7 @@ export default function V2Home() {
   const casesRestricted = !!summary?.casesRestricted;
 
   if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center py-32">
-        <div className="text-center space-y-3">
-          <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-black text-navy-300 uppercase tracking-widest animate-pulse">Cargando panel…</p>
-        </div>
-      </div>
-    );
+    return <BrandLoader label="Cargando panel…" />;
   }
 
   if (error || !context?.personId) {

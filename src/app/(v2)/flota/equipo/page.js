@@ -3,6 +3,7 @@
 // Skylog V2.0 — Flota & Equipo: Existencias de equipo de operación (chalecos, botiquín, extintor, conos…). Una fila por
 // TIPO de equipo con su cantidad; cualquier miembro la consulta y solo un gestor la edita.
 import { Fragment, useCallback, useEffect, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
@@ -82,7 +83,7 @@ export default function EquipoPage() {
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center py-24">
-        <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <BrandLoader bare />
       </div>
     );
   }

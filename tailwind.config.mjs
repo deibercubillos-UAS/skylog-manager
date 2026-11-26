@@ -43,6 +43,22 @@ const config = {
         // Tipografía de marca: wordmark "BitaFly" (Exo 2 italic). Ver layout.js.
         brand:  ['var(--font-brand)', 'var(--font-lexend)', 'sans-serif'],
       },
+      // Animaciones del loader de marca (BrandLoader) — el isotipo "respira" y una
+      // barra indeterminada en naranja de marca recorre bajo el wordmark.
+      keyframes: {
+        'brand-float': {
+          '0%, 100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+          '50%': { transform: 'translateY(-6px) scale(1.04)', opacity: '0.92' },
+        },
+        'brand-slide': {
+          '0%': { transform: 'translateX(-120%)' },
+          '100%': { transform: 'translateX(320%)' },
+        },
+      },
+      animation: {
+        'brand-float': 'brand-float 1.8s ease-in-out infinite',
+        'brand-slide': 'brand-slide 1.2s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

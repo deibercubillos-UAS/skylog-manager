@@ -28,6 +28,7 @@
 // tarjetas de color, ya no PageHero/KPIStrip planos de @skylog/ui.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 import dynamic from 'next/dynamic';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
@@ -378,7 +379,7 @@ export default function BitacoraPage() {
     return (
       <div className="h-full flex items-center justify-center py-24">
         <div className="text-center space-y-3">
-          <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <BrandLoader bare />
           <p className="text-xs font-black text-navy-300 uppercase tracking-widest animate-pulse">Cargando bitácora…</p>
         </div>
       </div>

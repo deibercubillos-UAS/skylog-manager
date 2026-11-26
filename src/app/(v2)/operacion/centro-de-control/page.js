@@ -9,6 +9,7 @@
 // cliente (mismo patrón ya usado en sms/page.js y dashboard/safety de v1),
 // ninguno pensado específicamente para esta vista.
 import { useCallback, useEffect, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 import { computeExpiryAlerts } from '@skylog/domain';
 import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHero';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
@@ -170,7 +171,7 @@ export default function CentroDeControlPage() {
     return (
       <div className="h-full flex items-center justify-center py-24">
         <div className="text-center space-y-3">
-          <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <BrandLoader bare />
           <p className="text-xs font-black text-navy-300 uppercase tracking-widest animate-pulse">Cargando el centro de control…</p>
         </div>
       </div>

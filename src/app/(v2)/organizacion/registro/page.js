@@ -3,6 +3,7 @@
 // Skylog V2.0 — Registro de acciones: quién creó, cambió o eliminó qué, y cuándo. Solo gestores. Es un registro de
 // solo-agregar (nadie lo edita desde la aplicación) y se puede descargar en CSV.
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
@@ -76,7 +77,7 @@ export default function RegistroPage() {
   };
 
   if (loading) {
-    return <div className="py-24 flex justify-center"><div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+    return <BrandLoader label="Cargando…" />;
   }
   if (!canSee) {
     return (

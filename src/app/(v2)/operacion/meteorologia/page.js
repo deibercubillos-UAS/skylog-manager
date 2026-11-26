@@ -14,6 +14,7 @@
 // se excluyen honestamente: no hay coordenadas reales de las que partir.
 
 import { useCallback, useEffect, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
@@ -126,7 +127,7 @@ export default function MeteorologiaPage() {
         ) : (
           <div className="h-full flex items-center justify-center py-16">
             <div className="text-center space-y-3">
-              <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+              <BrandLoader bare />
               <p className="text-xs font-black text-navy-300 uppercase tracking-widest animate-pulse">Cargando clima…</p>
             </div>
           </div>

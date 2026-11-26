@@ -19,6 +19,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { fetchDutyContext, pickOrganizationId, getSelectedOrganizationId } from '@/lib/v2/dutyContextClient';
+import PilotoDashboard from './_roles/PilotoDashboard';
+import PilotoIndependienteDashboard from './_roles/PilotoIndependienteDashboard';
+import JefePilotosDashboard from './_roles/JefePilotosDashboard';
+import GerenteSmsDashboard from './_roles/GerenteSmsDashboard';
+import GerenteGeneralDashboard from './_roles/GerenteGeneralDashboard';
 
 const MONTH_LABELS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ROLE_LABELS = { admin: 'Gerente General', superadmin: 'Superadmin', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto' };
@@ -205,6 +210,27 @@ export default function V2Home() {
   }
 
   const currentOrg = context.organizations.find((o) => o.id === organizationId);
+
+  // Dashboard por rol (plan 78-dashboards-por-rol.md). Cada rol con panel propio tiene
+  // su rama; los demás siguen con el panel genérico de abajo hasta sus fases (F1–F3).
+  // El piloto independiente (admin con independent:true) va primero: es su propia
+  // organización, con panel de operación + plan + flota.
+  if (currentOrg?.independentPilot) {
+    return <PilotoIndependienteDashboard fullName={context.fullName} orgName={currentOrg?.name} data={summary?.pilotoIndependiente} />;
+  }
+  if (currentOrg?.role === 'piloto') {
+    return <PilotoDashboard fullName={context.fullName} orgName={currentOrg?.name} data={summary?.piloto} />;
+  }
+  if (currentOrg?.role === 'jefe_pilotos') {
+    return <JefePilotosDashboard fullName={context.fullName} orgName={currentOrg?.name} data={summary?.jefePilotos} />;
+  }
+  if (currentOrg?.role === 'gerente_sms') {
+    return <GerenteSmsDashboard fullName={context.fullName} orgName={currentOrg?.name} data={summary?.gerenteSms} />;
+  }
+  // El piloto independiente (admin independiente) ya se resolvió arriba; aquí admin = Gerente General.
+  if (currentOrg?.role === 'admin') {
+    return <GerenteGeneralDashboard fullName={context.fullName} orgName={currentOrg?.name} data={summary?.gerenteGeneral} />;
+  }
 
   const chart = last6MonthsChart(flights);
   const counts = chart.map((m) => m.count);

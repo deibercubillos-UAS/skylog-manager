@@ -68,6 +68,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`45-simulador-3d-plan.md`](45-simulador-3d-plan.md) · [`45a-simulador-3d-investigacion.md`](45a-simulador-3d-investigacion.md) | **Simulador 3D de capacitación** (celular y control enterprise) — plan por fases F0–F8 con puertas de verificación + investigación y análisis (pedagogía, modelo de vuelo, plataforma, hardware). **Fase 0 en curso** (RC Plus 2 · jefe de pilotos · Mini 5 Pro y Matrice 4): prototipo de prueba de equipo en `/capacitacion/simulador/prueba`; datos externos ⚠️ VERIFICAR (decisiones 205-206) | 347 + 267 | 🔄 |
 | [`46-sincronizacion-nube-dji.md`](46-sincronizacion-nube-dji.md) | **Sincronizar vuelos desde la nube de DJI** (RC 2): plan, riesgos informados al piloto, diseño seguro y bloqueos (sin código) |
 | [`46a-sincronizacion-dji-sesion-local.md`](46a-sincronizacion-dji-sesion-local.md) | Mensaje para una sesión local, lo verificado, pruebas de factibilidad (nube DJI, video RTMP, log del RC 2) e informe a devolver |
+| [`78-dashboards-por-rol.md`](78-dashboards-por-rol.md) | **Dashboard `/inicio` role-aware** — un panel por rol (piloto, jefe de pilotos, gerente SMS, gerente general) con KPIs, alertas accionables y acciones rápidas. Plan por fases F0–F4; **empieza por Piloto; no se sube a `main` hasta aprobar todos los roles** (2026-11-25) | 🔄 |
 
 ## 5 · Ejecución
 

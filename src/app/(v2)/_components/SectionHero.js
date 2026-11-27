@@ -60,16 +60,18 @@ export function SectionCard({ icon, tile, wash, title, description, badge, child
 // Sobria y monocroma (decisión 2026-11-26): etiqueta con ícono tenue arriba, valor en navy
 // debajo — sin tiles de color. La etiqueta sube encima del valor para que no se desborde en
 // celdas angostas de celular. El prop `color` se acepta pero se ignora (compatibilidad con
-// quien aún lo pase); si en el futuro se quiere un acento por tipo, se reintroduce aquí.
-export function StatCard({ icon, label, value, sub }) {
+// quien aún lo pase). `alert` es el único acento: cuando el dato está fuera de su umbral
+// objetivo la tarjeta pasa a un rojo suave (borde, ícono, valor y sub) — marca el dato, no
+// emite un veredicto de vuelo.
+export function StatCard({ icon, label, value, sub, alert = false }) {
   return (
-    <div className="bg-white border border-navy-100 rounded-2xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="flex items-start gap-1.5 text-navy-400">
+    <div className={`border rounded-2xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${alert ? 'bg-red-50/60 border-red-200' : 'bg-white border-navy-100'}`}>
+      <div className={`flex items-start gap-1.5 ${alert ? 'text-red-500' : 'text-navy-400'}`}>
         {icon && <span className="material-symbols-outlined text-base shrink-0">{icon}</span>}
         <p className="text-[11px] font-bold uppercase tracking-wide leading-tight line-clamp-2">{label}</p>
       </div>
-      <p className={`${typeof value === 'string' && value.length > 9 ? 'text-xl' : 'text-2xl'} font-black text-navy leading-tight tracking-tight tabular-nums break-words mt-1.5`}>{value}</p>
-      {sub && <p className="text-[11px] text-navy-500 mt-2 leading-snug">{sub}</p>}
+      <p className={`${typeof value === 'string' && value.length > 9 ? 'text-xl' : 'text-2xl'} font-black leading-tight tracking-tight tabular-nums break-words mt-1.5 ${alert ? 'text-red-700' : 'text-navy'}`}>{value}</p>
+      {sub && <p className={`text-[11px] mt-2 leading-snug ${alert ? 'text-red-600' : 'text-navy-500'}`}>{sub}</p>}
     </div>
   );
 }

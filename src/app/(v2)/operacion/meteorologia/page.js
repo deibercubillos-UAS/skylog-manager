@@ -154,36 +154,36 @@ export default function MeteorologiaPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard
           icon="air"
-          color={current.windspeed <= THR.windSpeed ? 'emerald' : 'amber'}
+          alert={current.windspeed > THR.windSpeed}
           label="Viento"
           value={`${current.windspeed} km/h`}
-          sub={current.windspeed <= THR.windSpeed ? 'Dentro de umbral' : `Umbral ${THR.windSpeed}`}
+          sub={current.windspeed <= THR.windSpeed ? 'Dentro de umbral' : `Sobre el umbral de ${THR.windSpeed} km/h`}
         />
         <StatCard
           icon="storm"
-          color={hourly.gusts <= THR.windGusts ? 'emerald' : 'amber'}
+          alert={hourly.gusts > THR.windGusts}
           label="Ráfagas"
           value={`${hourly.gusts} km/h`}
-          sub={hourly.gusts <= THR.windGusts ? 'Dentro de umbral' : `Umbral ${THR.windGusts}`}
+          sub={hourly.gusts <= THR.windGusts ? 'Dentro de umbral' : `Sobre el umbral de ${THR.windGusts} km/h`}
         />
         <StatCard
           icon="visibility"
-          color={hourly.visibility >= THR.visibility ? 'emerald' : 'amber'}
+          alert={hourly.visibility < THR.visibility}
           label="Visibilidad"
           value={`${(hourly.visibility / 1000).toFixed(1)} km`}
-          sub={hourly.visibility >= THR.visibility ? 'Dentro de umbral' : 'Reducida — verifique'}
+          sub={hourly.visibility >= THR.visibility ? 'Dentro de umbral' : `Bajo el mínimo de ${(THR.visibility / 1000).toFixed(0)} km`}
         />
         <StatCard
           icon="rainy"
-          color={hourly.precipitation <= THR.precipitation ? 'emerald' : 'amber'}
+          alert={hourly.precipitation > THR.precipitation}
           label="Precipitación"
           value={`${hourly.precipitation} mm/h`}
-          sub={hourly.precipitation <= THR.precipitation ? 'Dentro de umbral' : 'Sobre umbral — verifique'}
+          sub={hourly.precipitation <= THR.precipitation ? 'Dentro de umbral' : `Sobre el umbral de ${THR.precipitation} mm/h`}
         />
-        <StatCard icon="thermostat" color="blue" label="Temperatura" value={current.temperature != null ? `${current.temperature}°C` : '—'} />
+        <StatCard icon="thermostat" label="Temperatura" value={current.temperature != null ? `${current.temperature}°C` : '—'} />
         <StatCard
           icon="bolt"
-          color={kp == null ? 'blue' : kp <= 5 ? 'emerald' : 'red'}
+          alert={kp != null && kp > 5}
           label="Índice Kp"
           value={kp != null ? kp : '—'}
           sub={kp != null ? (kp <= 5 ? 'Normal' : 'Actividad solar alta') : null}
@@ -204,7 +204,7 @@ export default function MeteorologiaPage() {
               <p className="text-xs font-black text-navy">{h.temperature != null ? `${Math.round(h.temperature)}°` : '—'}</p>
               <p
                 className={`text-[10px] font-black uppercase mt-0.5 ${
-                  h.go === 'GO' ? 'text-emerald-600' : 'text-amber-600'
+                  h.go === 'GO' ? 'text-emerald-600' : h.go === 'Precaución' ? 'text-amber-600' : 'text-red-500'
                 }`}
               >
                 {h.go === 'GO' ? 'Favorable' : h.go === 'Precaución' ? 'Precaución' : 'Revisar'}

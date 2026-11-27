@@ -639,8 +639,14 @@ export default function FlotaPage() {
                   {open && (
                     <div className="px-4 pb-4 pt-1 border-t border-navy-50">
                       {isManager && (
-                        <button type="button" onClick={() => handleDeleteModel(m)} className="text-xs font-bold text-red-600 hover:text-red-700 mb-2">
-                          Quitar este modelo (solo si no tiene aeronaves)
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteModel(m)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 border border-red-200 rounded-lg px-3 py-1.5 mb-3 hover:bg-red-50 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                          Quitar este modelo
+                          <span className="font-medium text-red-400">· solo si no tiene aeronaves</span>
                         </button>
                       )}
                       <ModelSpecSheet

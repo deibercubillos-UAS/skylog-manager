@@ -83,9 +83,12 @@ export default function ModelSpecSheet({ model, readOnly, onSaved, onCancel, onD
 
       {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
       {!readOnly && (
-        <div className="flex gap-2">
-          <Button type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Guardar ficha'}</Button>
-          <button type="button" onClick={onCancel} className="text-xs font-semibold text-navy-400 px-2">Cancelar</button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={busy}>
+            <span className="material-symbols-outlined text-base align-middle mr-1">save</span>
+            {busy ? 'Guardando…' : 'Guardar ficha'}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
         </div>
       )}
     </form>

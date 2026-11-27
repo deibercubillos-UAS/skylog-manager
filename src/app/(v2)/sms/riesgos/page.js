@@ -368,11 +368,19 @@ function BarriersPanel({ organizationId, isManager, barriers, onCreated }) {
   );
 }
 
-function HazardRow({ hazard, matrix, isManager, barriers, onEvaluated }) {
+function HazardRow({ hazard, matrix, isManager, barriers, onEvaluated, onDeleted }) {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState({ probabilityCode: '', severityCode: '', mitigation: '', residualProbabilityCode: '', residualSeverityCode: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+
+  async function handleDelete() {
+    if (!confirm(`¿Eliminar el peligro "${hazard.description.slice(0, 80)}"? También se borran su evaluación de riesgo y, en la Matriz de peligros, sus controles, avances y evidencias. No se puede deshacer.`)) return;
+    const res = await fetch(`/api/sms/hazards/${hazard.id}`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return setError(data.error || 'No se pudo eliminar el peligro');
+    onDeleted();
+  }
 
   const assessments = hazard.risk_assessments || [];
   const latest = assessments[assessments.length - 1];
@@ -425,20 +433,27 @@ function HazardRow({ hazard, matrix, isManager, barriers, onEvaluated }) {
             </p>
           </div>
         </div>
-        {latest ? (
-          <div className="flex items-center gap-1 shrink-0">
-            <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${zoneMeta(latest.initial_zone).color}`}>{zoneMeta(latest.initial_zone).label}</span>
-            {latest.residual_zone && (
-              <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${zoneMeta(latest.residual_zone).color}`}>Residual: {zoneMeta(latest.residual_zone).label}</span>
-            )}
-          </div>
-        ) : (
-          isManager && (
-            <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs text-primary-700 hover:underline shrink-0">
-              {expanded ? 'Cerrar' : 'Evaluar'}
+        <div className="flex items-center gap-1 shrink-0">
+          {latest ? (
+            <>
+              <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${zoneMeta(latest.initial_zone).color}`}>{zoneMeta(latest.initial_zone).label}</span>
+              {latest.residual_zone && (
+                <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${zoneMeta(latest.residual_zone).color}`}>Residual: {zoneMeta(latest.residual_zone).label}</span>
+              )}
+            </>
+          ) : (
+            isManager && (
+              <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs text-primary-700 hover:underline">
+                {expanded ? 'Cerrar' : 'Evaluar'}
+              </button>
+            )
+          )}
+          {isManager && (
+            <button type="button" onClick={handleDelete} className="w-7 h-7 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50" aria-label="Eliminar peligro">
+              <span className="material-symbols-outlined text-[16px]">delete</span>
             </button>
-          )
-        )}
+          )}
+        </div>
       </div>
 
       {expanded && !latest && (
@@ -646,7 +661,7 @@ export default function RiesgosPage() {
           ) : (
             <div className="mb-3">
               {hazards.map((h) => (
-                <HazardRow key={h.id} hazard={h} matrix={matrix} isManager={isManager} barriers={barriers} onEvaluated={() => loadHazards(organizationId)} />
+                <HazardRow key={h.id} hazard={h} matrix={matrix} isManager={isManager} barriers={barriers} onEvaluated={() => loadHazards(organizationId)} onDeleted={() => loadHazards(organizationId)} />
               ))}
             </div>
           )}

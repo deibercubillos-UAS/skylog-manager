@@ -4,7 +4,7 @@
 // rutas hechas con `makeRowDocumentRoute` (lib/v2/rowDocument.js). Nunca recibe la ruta del archivo, solo `has`.
 import { useRef, useState } from 'react';
 
-export default function DocumentSlot({ label, endpoint, uploadEndpoint, extraFields, has, canUpload, canView = true, onChanged }) {
+export default function DocumentSlot({ label, endpoint, uploadEndpoint, extraFields, has, canUpload, canView = true, prominent = false, onChanged }) {
   const input = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -34,6 +34,47 @@ export default function DocumentSlot({ label, endpoint, uploadEndpoint, extraFie
     setBusy(false);
     if (!res.ok) return setError(data.error || 'No se pudo quitar');
     onChanged?.();
+  }
+
+  // Variante destacada (p. ej. la foto de la aeronave): miniatura + botón con
+  // ícono bien visible, en vez de un enlace de texto discreto.
+  if (prominent) {
+    return (
+      <div className="text-xs">
+        <span className="block font-semibold text-navy-500 mb-1.5">{label}</span>
+        <div className="flex items-center gap-3 flex-wrap">
+          {has && canView ? (
+            <a href={endpoint} target="_blank" rel="noopener noreferrer" className="shrink-0" title="Ver la foto">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={endpoint} alt={label} className="size-16 rounded-xl object-cover border border-navy-100 bg-navy-50" />
+            </a>
+          ) : (
+            <span className="size-16 shrink-0 rounded-xl border border-dashed border-navy-200 bg-navy-50/50 flex items-center justify-center">
+              <span className="material-symbols-outlined text-navy-300">{has ? 'image' : 'add_a_photo'}</span>
+            </span>
+          )}
+          {canUpload && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => input.current?.click()}
+              className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2 hover:bg-primary-100 transition-colors disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-base">{has ? 'photo_library' : 'add_a_photo'}</span>
+              {busy ? 'Subiendo…' : has ? 'Reemplazar foto' : 'Subir foto'}
+            </button>
+          )}
+          {has && canUpload && (
+            <button type="button" disabled={busy} onClick={remove} className="font-semibold text-red-600 hover:underline min-h-[36px] disabled:opacity-40">
+              Quitar
+            </button>
+          )}
+          {!has && !canUpload && <span className="text-amber-700">Sin cargar</span>}
+          <input ref={input} type="file" accept=".pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
+        </div>
+        {error && <span className="text-red-600 block mt-1">{error}</span>}
+      </div>
+    );
   }
 
   return (

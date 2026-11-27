@@ -33,6 +33,8 @@ import { computeSpecCompleteness } from '@skylog/domain';
 import { DJI_MODELS_CATALOG } from '@/lib/v2/djiModelsCatalog';
 import ModelSpecSheet from './_ModelSpecSheet';
 import DocumentSlot from '../_components/DocumentSlot';
+import IconSelectField from '../_components/IconSelectField';
+import HelpHint from '../_components/HelpHint';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const CATEGORIES = [
@@ -338,24 +340,35 @@ export default function FlotaPage() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon="flight" color="primary" label="Flota activa" value={activeCount} />
-        <StatCard icon="check_circle" color="emerald" label="Disponibles" value={available} />
-        <StatCard icon="build" color={inMaintenance > 0 ? 'amber' : 'emerald'} label="En mantenimiento" value={inMaintenance} />
-        <StatCard icon="block" color={outOfService > 0 ? 'navy' : 'emerald'} label="Fuera de servicio" value={outOfService} />
+        <StatCard icon="flight" label="Flota activa" value={activeCount} />
+        <StatCard icon="check_circle" label="Disponibles" value={available} />
+        <StatCard icon="build" label="En mantenimiento" value={inMaintenance} />
+        <StatCard icon="block" label="Fuera de servicio" value={outOfService} />
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
       {showForm && isManager && (
         <form onSubmit={handleCreateAircraft} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm p-5">
-          <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-primary" />
-            Nueva aeronave
-          </p>
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+              <span className="material-symbols-outlined text-lg">add</span>
+            </span>
+            <p className="text-sm font-bold text-navy">Nueva aeronave</p>
+            <HelpHint title="Cómo agregar una aeronave">
+              <b>1.</b> Elige el <b>modelo</b> (o créalo con el «?» de al lado). <b>2.</b> Escribe el <b>número de serie</b> del dron — viene en la app DJI y en los .txt de vuelo. <b>3.</b> El N.º RUAS es opcional. <b>4.</b> Pulsa <b>Registrar aeronave</b>. Después, al <b>editarla</b>, puedes subir su foto y el documento de propiedad.
+            </HelpHint>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <div>
-              <Field as="select" label="Modelo" value={form.modelId} onChange={(e) => setForm((f) => ({ ...f, modelId: e.target.value }))} required>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-xs font-medium text-navy-400">Modelo</span>
+                <HelpHint title="Seleccionar o agregar un modelo">
+                  Elige un modelo ya registrado. Si no está en la lista: pulsa <b>Elegir modelos DJI</b> para traerlos del catálogo con su ficha técnica, o <b>Registrar un modelo nuevo</b> para capturar marca y modelo a mano. El <b>modelo</b> guarda la ficha técnica; la <b>aeronave</b> es cada unidad física con su número de serie.
+                </HelpHint>
+              </div>
+              <IconSelectField icon="category" value={form.modelId} onChange={(e) => setForm((f) => ({ ...f, modelId: e.target.value }))} required>
                 <option value="">Selecciona…</option>
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -363,7 +376,7 @@ export default function FlotaPage() {
                     {m.category ? ` — ${CATEGORY_LABEL[m.category]}` : ''}
                   </option>
                 ))}
-              </Field>
+              </IconSelectField>
               {!showNewModel ? (
                 <div className="flex flex-wrap items-center gap-3 -mt-2 mb-3">
                   <button
@@ -548,7 +561,7 @@ export default function FlotaPage() {
                             </div>
 
                             <div className="mt-1 mb-2">
-                              <DocumentSlot label="Foto de la aeronave" endpoint={`/api/flota/aircraft/${a.id}/image`} has={a.has_image} canUpload={isManager} onChanged={() => loadAircraft(organizationId)} />
+                              <DocumentSlot label="Foto de la aeronave" prominent endpoint={`/api/flota/aircraft/${a.id}/image`} has={a.has_image} canUpload={isManager} onChanged={() => loadAircraft(organizationId)} />
                             </div>
 
                             <p className="text-xs font-black uppercase text-navy-300 tracking-widest mt-2 mb-2">Documento de propiedad — 100.535(1)</p>

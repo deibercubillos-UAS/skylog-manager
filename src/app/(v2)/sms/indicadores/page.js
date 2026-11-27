@@ -373,6 +373,7 @@ export default function IndicadoresPage() {
   const [newBusy, setNewBusy] = useState(false);
   const [newError, setNewError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [tab, setTab] = useState('spi'); // 'spi' (oficiales) | 'kpi' (propios) — pestañas para no mezclarlos
 
   const [cycles, setCycles] = useState([]);
   const [cycleForm, setCycleForm] = useState({ year: CURRENT_YEAR, month: CURRENT_MONTH, cycles: '' });
@@ -381,6 +382,8 @@ export default function IndicadoresPage() {
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['R2'] === 'edit';
+  // Pestaña activa: se muestra solo una familia a la vez para no mezclar SPI y KPI.
+  const visible = indicators.filter((i) => (tab === 'spi' ? i.is_official : !i.is_official));
 
   const loadIndicators = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -562,10 +565,10 @@ export default function IndicadoresPage() {
             </span>
             <div>
               <p className="text-sm font-bold text-navy">Catálogo de indicadores</p>
-              <p className="text-xs text-navy-400">SPI oficiales (MAUT-1.0-22-005) + KPI propios (miden los objetivos)</p>
+              <p className="text-xs text-navy-400">{tab === 'spi' ? 'SPI — indicadores oficiales de la Aerocivil (MAUT-1.0-22-005)' : 'KPI — indicadores propios de la organización, miden los objetivos'}</p>
             </div>
           </div>
-          {isManager && indicators.length === 0 && (
+          {isManager && tab === 'spi' && officialCount === 0 && (
             <button
               type="button"
               onClick={handleSeed}
@@ -578,18 +581,37 @@ export default function IndicadoresPage() {
           )}
         </div>
 
+        {/* Pestañas: SPI (oficiales) · KPI (propios) — una familia a la vez */}
+        <div className="flex gap-1 px-5 pt-3 border-b border-navy-50">
+          {[
+            { key: 'spi', label: 'SPI · Oficiales', count: officialCount, active: 'border-primary text-primary-700', dot: 'bg-primary' },
+            { key: 'kpi', label: 'KPI · Propios', count: ownCount, active: 'border-blue-500 text-blue-700', dot: 'bg-blue-500' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => { setTab(t.key); setExpandedId(null); }}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors ${tab === t.key ? t.active : 'border-transparent text-navy-400 hover:text-navy-600'}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+              {t.label}
+              <span className="text-[10px] font-semibold text-navy-400 bg-navy-100 rounded-full px-1.5 py-0.5">{t.count}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="p-5 bg-white/60">
-          {indicators.length === 0 ? (
+          {visible.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 text-center rounded-2xl border border-dashed border-navy-200 bg-navy-50/50 py-10 px-6">
               <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white shadow-sm text-navy-300">
                 <span className="material-symbols-outlined text-2xl">monitoring</span>
               </span>
-              <p className="text-sm font-semibold text-navy">Sin indicadores todavía</p>
-              {isManager && <p className="text-xs text-navy-400">Siembra los SPI oficiales o agrega un KPI propio abajo.</p>}
+              <p className="text-sm font-semibold text-navy">{tab === 'spi' ? 'Sin SPI oficiales todavía' : 'Sin KPI propios todavía'}</p>
+              {isManager && <p className="text-xs text-navy-400">{tab === 'spi' ? 'Siembra el catálogo oficial (11) con el botón de arriba.' : 'Agrega un KPI propio en el formulario de abajo.'}</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              {indicators.map((ind) => {
+              {visible.map((ind) => {
                 const expanded = expandedId === ind.id;
                 return (
                   <div key={ind.id} className="bg-white rounded-xl border border-navy-100 overflow-hidden">
@@ -631,7 +653,7 @@ export default function IndicadoresPage() {
             </div>
           )}
 
-          {isManager && (
+          {isManager && tab === 'kpi' && (
             <form onSubmit={handleNewIndicator} className="flex flex-wrap items-end gap-2 mt-4 pt-4 border-t border-navy-50">
               <Field
                 label="Nuevo KPI (propio)"

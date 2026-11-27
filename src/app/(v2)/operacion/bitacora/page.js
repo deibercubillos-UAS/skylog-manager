@@ -729,21 +729,14 @@ export default function BitacoraPage() {
             <div className="px-6 py-3.5 border-b border-navy-50 flex flex-wrap items-center justify-between gap-2 bg-navy-50/30">
               <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Vuelos registrados</h3>
               {pilotOptions.length > 1 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base text-navy-300">filter_alt</span>
-                  <select
-                    value={pilotFilter}
-                    onChange={(e) => setPilotFilter(e.target.value)}
-                    className="text-xs font-semibold border border-navy-200 rounded-lg px-2 py-1 bg-white text-navy-600"
-                  >
-                    <option value="">Todos los pilotos</option>
-                    {pilotOptions.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <HeaderFilter icon="person" title="Filtrar por piloto" value={pilotFilter} onChange={(e) => setPilotFilter(e.target.value)}>
+                  <option value="">Todos los pilotos</option>
+                  {pilotOptions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </HeaderFilter>
               )}
             </div>
             {visibleFlights.length === 0 ? (
@@ -965,6 +958,29 @@ export default function BitacoraPage() {
 // POST /api/flights) es la fuente de horas totales, nunca una suma local
 // de los vuelos visibles (que podría no incluir vuelos de otros pilotos si
 // la RLS acotara la vista).
+// Filtro de cabecera compartido (piloto en la vista bitácora, aeronave en el libro):
+// una misma «pastilla» con ícono guía propio de cada dimensión, para que ambos
+// controles se lean como hermanos. Usa un <select> nativo (accesible, teclado) con
+// la apariencia sustituida por el chevron propio.
+function HeaderFilter({ icon, value, onChange, title, children }) {
+  return (
+    <label
+      title={title}
+      className="relative inline-flex items-center gap-1.5 rounded-xl border border-navy-200 bg-white pl-2.5 pr-2 py-1.5 shadow-sm hover:border-primary-300 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-colors cursor-pointer"
+    >
+      <span className="material-symbols-outlined text-base text-navy-300">{icon}</span>
+      <select
+        value={value}
+        onChange={onChange}
+        className="appearance-none bg-transparent border-0 pr-5 text-xs font-semibold text-navy-700 focus:outline-none focus:ring-0 cursor-pointer"
+      >
+        {children}
+      </select>
+      <span className="material-symbols-outlined text-base text-navy-400 absolute right-2 pointer-events-none">expand_more</span>
+    </label>
+  );
+}
+
 function LibroDeVueloPanel({ fleet, flights, aircraftId, onAircraftChange, onOpenReplay }) {
   const activeFleet = fleet.filter((a) => a.operational_status !== 'fuera_de_servicio');
   const aircraft = fleet.find((a) => a.id === aircraftId) || null;
@@ -975,18 +991,14 @@ function LibroDeVueloPanel({ fleet, flights, aircraftId, onAircraftChange, onOpe
     <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="px-6 py-3.5 border-b border-navy-50 flex flex-wrap items-center justify-between gap-2 bg-navy-50/30">
         <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Libro de vuelo</h3>
-        <select
-          value={aircraftId}
-          onChange={(e) => onAircraftChange(e.target.value)}
-          className="text-xs font-semibold border border-navy-200 rounded-lg px-2 py-1 bg-white text-navy-600"
-        >
+        <HeaderFilter icon="flight" title="Elegir aeronave" value={aircraftId} onChange={(e) => onAircraftChange(e.target.value)}>
           <option value="">Elegir aeronave…</option>
           {activeFleet.map((a) => (
             <option key={a.id} value={a.id}>
               {a.model?.brand} {a.model?.model} — {a.serial_number}
             </option>
           ))}
-        </select>
+        </HeaderFilter>
       </div>
 
       {!aircraft ? (

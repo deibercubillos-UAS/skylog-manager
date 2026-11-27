@@ -95,7 +95,7 @@ export default function SmsObjetivosPage() {
       <SectionHero
         eyebrow="SMS"
         title="Objetivos y Políticas"
-        description="Balanced Scorecard — la política declara los objetivos y los KPI (indicadores SPI) los miden; no son listas sueltas (MAUT-5.0-22-017 §7.3.5.1)."
+        description="Balanced Scorecard — la política declara los objetivos y los KPI los miden; no son listas sueltas (MAUT-5.0-22-017 §7.3.5.1)."
         cta={
           tab === 'objetivos' &&
           isManager && (
@@ -147,7 +147,7 @@ export default function SmsObjetivosPage() {
               <span className="material-symbols-outlined text-2xl">flag</span>
             </span>
             <p className="text-sm font-semibold text-navy">Sin objetivos SMS todavía</p>
-            {isManager && <p className="text-xs text-navy-400">Declara el primer objetivo y vincúlalo a uno o más KPI (indicadores SPI).</p>}
+            {isManager && <p className="text-xs text-navy-400">Declara el primer objetivo y vincúlalo a uno o más KPI.</p>}
           </div>
         ) : (
           objectives.map((o) => (

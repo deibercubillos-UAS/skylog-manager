@@ -99,7 +99,7 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
             <div className="min-w-0 flex-1 pt-0.5">
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary-300 leading-none mb-1">SMS · Objetivos</p>
               <h2 className="font-black tracking-tight leading-tight text-lg">{title}</h2>
-              <p className="text-xs text-navy-300 mt-1">Un objetivo SMART, vinculado a los KPI (indicadores SPI) que lo miden.</p>
+              <p className="text-xs text-navy-300 mt-1">Un objetivo SMART, vinculado a los KPI que lo miden.</p>
             </div>
             <button
               type="button"
@@ -164,7 +164,7 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
             {indicators.length === 0 ? (
               <p className="flex items-start gap-1.5 text-xs text-navy-500 bg-navy-50 rounded-xl px-3 py-2">
                 <span className="material-symbols-outlined text-[14px] text-navy-300 shrink-0 mt-0.5">info</span>
-                Aún no hay KPI configurados. Créalos en <b className="font-semibold">Indicadores (SPI)</b> y vuelve a vincularlos aquí.
+                Aún no hay KPI. Agrega indicadores en <b className="font-semibold">Indicadores (SPI)</b> y vincúlalos aquí como KPI.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">

@@ -23,13 +23,12 @@ const now = new Date();
 const CURRENT_YEAR = now.getFullYear();
 const CURRENT_MONTH = now.getMonth() + 1;
 
-function IndicatorDetail({ indicator, organizationId, isManager, hazards = [], onUpdated }) {
+function IndicatorDetail({ indicator, organizationId, isManager, onUpdated }) {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: indicator.name,
     expectedImprovementPct: indicator.expected_improvement_pct ?? '',
     active: indicator.active,
-    hazardId: indicator.hazard_id ?? '',
   });
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState(null);
@@ -79,7 +78,6 @@ function IndicatorDetail({ indicator, organizationId, isManager, hazards = [], o
       };
       if (!indicator.is_official) {
         payload.name = editForm.name;
-        if (editForm.hazardId) payload.hazardId = editForm.hazardId; // KPI: reasignar peligro
       }
       const res = await fetch('/api/sms/indicators', {
         method: 'PATCH',
@@ -174,7 +172,7 @@ function IndicatorDetail({ indicator, organizationId, isManager, hazards = [], o
               type="button"
               onClick={() => {
                 setEditError(null);
-                setEditForm({ name: indicator.name, expectedImprovementPct: indicator.expected_improvement_pct ?? '', active: indicator.active, hazardId: indicator.hazard_id ?? '' });
+                setEditForm({ name: indicator.name, expectedImprovementPct: indicator.expected_improvement_pct ?? '', active: indicator.active });
                 setEditOpen((v) => !v);
               }}
               className="flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800"
@@ -193,21 +191,6 @@ function IndicatorDetail({ indicator, organizationId, isManager, hazards = [], o
                 disabled={indicator.is_official}
                 required={!indicator.is_official}
               />
-              {!indicator.is_official && (
-                <Field
-                  as="select"
-                  label="Peligro que mide"
-                  value={editForm.hazardId}
-                  onChange={(e) => setEditForm((f) => ({ ...f, hazardId: e.target.value }))}
-                  className="flex-1 min-w-[220px]"
-                  required
-                >
-                  <option value="">Elige el peligro…</option>
-                  {hazards.map((h) => (
-                    <option key={h.id} value={h.id}>{h.description.length > 70 ? `${h.description.slice(0, 70)}…` : h.description}</option>
-                  ))}
-                </Field>
-              )}
               <Field
                 label="Mejora esperada % (opcional)"
                 type="number"
@@ -385,9 +368,8 @@ export default function IndicadoresPage() {
   const [error, setError] = useState(null);
 
   const [indicators, setIndicators] = useState([]);
-  const [hazards, setHazards] = useState([]);
   const [seedBusy, setSeedBusy] = useState(false);
-  const [newIndicator, setNewIndicator] = useState({ name: '', expectedImprovementPct: '', hazardId: '' });
+  const [newIndicator, setNewIndicator] = useState({ name: '', expectedImprovementPct: '' });
   const [newBusy, setNewBusy] = useState(false);
   const [newError, setNewError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -414,13 +396,6 @@ export default function IndicadoresPage() {
     if (res.ok) setCycles(data.monthlyCycles || []);
   }, []);
 
-  const loadHazards = useCallback(async (orgId) => {
-    if (!orgId) return;
-    const res = await fetch(`/api/sms/hazards?organizationId=${orgId}`);
-    const data = await res.json();
-    if (res.ok) setHazards(data.hazards || []);
-  }, []);
-
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -444,8 +419,7 @@ export default function IndicadoresPage() {
     if (!organizationId) return;
     loadIndicators(organizationId);
     loadCycles(organizationId);
-    loadHazards(organizationId);
-  }, [organizationId, loadIndicators, loadCycles, loadHazards]);
+  }, [organizationId, loadIndicators, loadCycles]);
 
   async function handleSeed() {
     setSeedBusy(true);
@@ -474,13 +448,12 @@ export default function IndicadoresPage() {
         body: JSON.stringify({
           organizationId,
           name: newIndicator.name,
-          hazardId: newIndicator.hazardId || null,
           expectedImprovementPct: newIndicator.expectedImprovementPct ? Number(newIndicator.expectedImprovementPct) : null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error creando el indicador');
-      setNewIndicator({ name: '', expectedImprovementPct: '', hazardId: '' });
+      setNewIndicator({ name: '', expectedImprovementPct: '' });
       await loadIndicators(organizationId);
     } catch (e) {
       setNewError(e.message);
@@ -515,7 +488,7 @@ export default function IndicadoresPage() {
   if (!context?.personId) {
     return (
       <div>
-        <SectionHero eyebrow="SMS" title="Indicadores (SPI/KPI)" description="SPI oficiales de la Aerocivil y KPI propios que miden peligros." />
+        <SectionHero eyebrow="SMS" title="Indicadores (SPI/KPI)" description="SPI oficiales de la Aerocivil y KPI propios que miden los objetivos." />
         <p className="text-sm text-navy-400 mt-4">Esta cuenta no tiene todavía un registro de Persona vinculado.</p>
       </div>
     );
@@ -529,7 +502,7 @@ export default function IndicadoresPage() {
       <SectionHero
         eyebrow="SMS"
         title="Indicadores (SPI/KPI)"
-        description="SPI: los indicadores oficiales de la Aerocivil. KPI: los propios de la organización, cada uno midiendo un peligro. Líneas de alerta, meta y planes de acción sobre datos mensuales reales."
+        description="SPI: los indicadores oficiales de la Aerocivil. KPI: los propios de la organización, que miden los objetivos. Líneas de alerta, meta y planes de acción sobre datos mensuales reales."
       />
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
@@ -589,7 +562,7 @@ export default function IndicadoresPage() {
             </span>
             <div>
               <p className="text-sm font-bold text-navy">Catálogo de indicadores</p>
-              <p className="text-xs text-navy-400">SPI oficiales (MAUT-1.0-22-005) + KPI propios (cada uno mide un peligro)</p>
+              <p className="text-xs text-navy-400">SPI oficiales (MAUT-1.0-22-005) + KPI propios (miden los objetivos)</p>
             </div>
           </div>
           {isManager && indicators.length === 0 && (
@@ -634,17 +607,7 @@ export default function IndicadoresPage() {
                                 {ind.taxonomy_code && <span className="text-[10px] font-mono text-primary-600">{ind.taxonomy_code}</span>}
                               </>
                             ) : (
-                              <>
-                                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">KPI</span>
-                                {ind.hazard?.description ? (
-                                  <span className="text-[10px] text-navy-400 inline-flex items-center gap-0.5">
-                                    <span className="material-symbols-outlined text-[12px] text-amber-500">report_problem</span>
-                                    {ind.hazard.description.length > 42 ? `${ind.hazard.description.slice(0, 42)}…` : ind.hazard.description}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">Sin peligro — asignar</span>
-                                )}
-                              </>
+                              <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">KPI</span>
                             )}
                             {ind.expected_improvement_pct != null && (
                               <span className="text-[10px] text-navy-400">Meta mejora: {(Number(ind.expected_improvement_pct) * 100).toFixed(0)}%</span>
@@ -659,7 +622,7 @@ export default function IndicadoresPage() {
                     </button>
                     {expanded && (
                       <div className="px-3.5 pb-3.5">
-                        <IndicatorDetail indicator={ind} organizationId={organizationId} isManager={isManager} hazards={hazards} onUpdated={() => loadIndicators(organizationId)} />
+                        <IndicatorDetail indicator={ind} organizationId={organizationId} isManager={isManager} onUpdated={() => loadIndicators(organizationId)} />
                       </div>
                     )}
                   </div>
@@ -669,45 +632,26 @@ export default function IndicadoresPage() {
           )}
 
           {isManager && (
-            hazards.length === 0 ? (
-              <p className="text-xs text-navy-400 mt-4 pt-4 border-t border-navy-50">
-                Para crear un KPI primero registra un peligro en <a className="underline" href="/sms/riesgos">Tarjeta de riesgo</a> o <a className="underline" href="/sms/matriz-peligros">Matriz de peligros</a>: cada KPI mide un peligro.
-              </p>
-            ) : (
-              <form onSubmit={handleNewIndicator} className="flex flex-wrap items-end gap-2 mt-4 pt-4 border-t border-navy-50">
-                <Field
-                  label="Nuevo KPI (propio)"
-                  value={newIndicator.name}
-                  onChange={(e) => setNewIndicator((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Ej. Excursión de pista en aterrizaje"
-                  className="flex-1 min-w-[220px]"
-                  required
-                />
-                <Field
-                  as="select"
-                  label="Peligro que mide"
-                  value={newIndicator.hazardId}
-                  onChange={(e) => setNewIndicator((f) => ({ ...f, hazardId: e.target.value }))}
-                  className="flex-1 min-w-[220px]"
-                  required
-                >
-                  <option value="">Elige el peligro…</option>
-                  {hazards.map((h) => (
-                    <option key={h.id} value={h.id}>{h.description.length > 70 ? `${h.description.slice(0, 70)}…` : h.description}</option>
-                  ))}
-                </Field>
-                <Field
-                  label="Mejora esperada % (opcional)"
-                  type="number"
-                  value={newIndicator.expectedImprovementPct}
-                  onChange={(e) => setNewIndicator((f) => ({ ...f, expectedImprovementPct: e.target.value }))}
-                  className="w-40"
-                />
-                <Button type="submit" disabled={newBusy || !newIndicator.hazardId} className="mb-3 text-xs px-3 py-1.5">
-                  {newBusy ? 'Creando…' : 'Agregar KPI'}
-                </Button>
-              </form>
-            )
+            <form onSubmit={handleNewIndicator} className="flex flex-wrap items-end gap-2 mt-4 pt-4 border-t border-navy-50">
+              <Field
+                label="Nuevo KPI (propio)"
+                value={newIndicator.name}
+                onChange={(e) => setNewIndicator((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ej. Reducir excursiones de pista en aterrizaje"
+                className="flex-1 min-w-[220px]"
+                required
+              />
+              <Field
+                label="Mejora esperada % (opcional)"
+                type="number"
+                value={newIndicator.expectedImprovementPct}
+                onChange={(e) => setNewIndicator((f) => ({ ...f, expectedImprovementPct: e.target.value }))}
+                className="w-40"
+              />
+              <Button type="submit" disabled={newBusy || !newIndicator.name.trim()} className="mb-3 text-xs px-3 py-1.5">
+                {newBusy ? 'Creando…' : 'Agregar KPI'}
+              </Button>
+            </form>
           )}
           {newError && <p className="text-xs text-red-600 mt-1">{newError}</p>}
         </div>

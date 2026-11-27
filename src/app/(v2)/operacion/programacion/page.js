@@ -82,6 +82,30 @@ function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Select con ícono guía y chevron propios (mismo lenguaje que los filtros/selectores
+// de Bitácora), con el ancho y la altura de campo del formulario. Reemplaza los
+// <Field as="select"> planos de Nueva misión para que PIC, observador y aeronave se
+// vean como controles reales y no como campos planos.
+function IconSelectField({ icon, label, value, onChange, required, children }) {
+  return (
+    <label className="block mb-3">
+      {label && <span className="block text-xs font-medium text-navy-400 mb-1">{label}</span>}
+      <div className="relative">
+        <span className="material-symbols-outlined pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-navy-300">{icon}</span>
+        <select
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="block w-full appearance-none bg-white min-h-[44px] md:min-h-0 pl-9 pr-9 py-2 rounded-lg border border-navy-200 text-base md:text-sm text-navy-700 focus:outline-none focus:ring-2 focus:ring-primary-300"
+        >
+          {children}
+        </select>
+        <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-navy-400">expand_more</span>
+      </div>
+    </label>
+  );
+}
+
 export default function ProgramacionPage() {
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
@@ -552,18 +576,18 @@ export default function ProgramacionPage() {
                 placeholder="Código del cliente — ej. OV-2026-014"
                 className="border-primary-200 bg-primary-50/40 font-mono"
               />
-              <Field as="select" label="Piloto asignado (PIC)" value={form.picPersonId} onChange={(e) => setForm((f) => ({ ...f, picPersonId: e.target.value }))} required>
+              <IconSelectField icon="person" label="Piloto asignado (PIC)" value={form.picPersonId} onChange={(e) => setForm((f) => ({ ...f, picPersonId: e.target.value }))} required>
                 <option value="">Selecciona…</option>
                 {roster.map((r) => (
                   <option key={r.personId} value={r.personId}>
                     {r.fullName}
                   </option>
                 ))}
-              </Field>
+              </IconSelectField>
               {showObserver ? (
                 <div>
-                  <Field
-                    as="select"
+                  <IconSelectField
+                    icon="visibility"
                     label="Observador"
                     value={form.observerPersonId}
                     onChange={(e) => setForm((f) => ({ ...f, observerPersonId: e.target.value }))}
@@ -576,7 +600,7 @@ export default function ProgramacionPage() {
                           {r.fullName}
                         </option>
                       ))}
-                  </Field>
+                  </IconSelectField>
                   <button
                     type="button"
                     onClick={() => {
@@ -615,8 +639,8 @@ export default function ProgramacionPage() {
                 onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
                 required
               />
-              <Field
-                as="select"
+              <IconSelectField
+                icon="flight"
                 label="Aeronave asignada (opcional)"
                 value={form.aircraftId}
                 onChange={(e) => setForm((f) => ({ ...f, aircraftId: e.target.value }))}
@@ -627,7 +651,7 @@ export default function ProgramacionPage() {
                     {a.model?.brand} {a.model?.model} — {a.serial_number}
                   </option>
                 ))}
-              </Field>
+              </IconSelectField>
             </div>
 
             <span className="block text-xs font-medium text-navy-400 mb-1.5">Tipo de visión de la operación</span>

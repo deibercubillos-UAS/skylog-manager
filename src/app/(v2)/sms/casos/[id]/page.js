@@ -212,7 +212,7 @@ export default function CasoPage() {
                 <textarea value={analysis.contributingFactors} onChange={(e) => setAnalysis((a) => ({ ...a, contributingFactors: e.target.value }))} disabled={closed} rows={3} className="mt-1 w-full text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2.5 disabled:bg-navy-50" placeholder="Humanos, técnicos, organizacionales, ambientales…" />
               </label>
               <label className="block text-xs font-semibold text-navy-500">
-                Peligro asociado (catálogo de Evaluación de Riesgo)
+                Peligro asociado (catálogo de Tarjeta de riesgo)
                 <select value={analysis.hazardId} onChange={(e) => setAnalysis((a) => ({ ...a, hazardId: e.target.value }))} disabled={closed} className="mt-1 w-full min-h-[44px] md:min-h-0 text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2.5 bg-white disabled:bg-navy-50">
                   <option value="">— Ninguno / aún no identificado —</option>
                   {hazards.map((h) => (

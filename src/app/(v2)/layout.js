@@ -68,8 +68,8 @@ const NAV_LINKS = [
   // "Capacitación" en Documentación (decisión 149, mismo tipo de duplicidad).
   // { name: 'Gobernanza', icon: 'gavel', href: '/sms/gobernanza', group: 'SMS' },
   { name: 'Objetivos SMS', icon: 'flag', href: '/sms/objetivos', group: 'SMS', perm: 'O1' },
-  { name: 'Evaluación de Riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS', perm: 'P1' },
   { name: 'Matriz de peligros', icon: 'shield', href: '/sms/matriz-peligros', group: 'SMS', perm: 'P1' },
+  { name: 'Tarjeta de riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS', perm: 'P1' },
   { name: 'Gestión del cambio', icon: 'published_with_changes', href: '/sms/cambios', group: 'SMS', perm: 'Q1' },
   { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS', perm: 'R1' },
   { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS', perm: 'S1' },

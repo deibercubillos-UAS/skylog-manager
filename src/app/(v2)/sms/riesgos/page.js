@@ -611,7 +611,7 @@ export default function RiesgosPage() {
   if (!context?.personId) {
     return (
       <div>
-        <SectionHero eyebrow="SMS · Fase 2" title="Evaluación de Riesgo" description="Matriz de riesgo, barreras y peligros." />
+        <SectionHero eyebrow="SMS" title="Tarjeta de riesgo" description="Matriz de riesgo, barreras y enlace con las listas de chequeo." />
         <p className="text-sm text-navy-400 mt-4">Esta cuenta no tiene todavía un registro de Persona vinculado.</p>
       </div>
     );
@@ -622,9 +622,9 @@ export default function RiesgosPage() {
   return (
     <div className="space-y-6">
       <SectionHero
-        eyebrow="SMS · Fase 2"
-        title="Evaluación de Riesgo"
-        description="Identificación de peligros, matriz de tolerabilidad y evaluación residual — gestión del riesgo del SMS (MAUT-5.0-22-017)."
+        eyebrow="SMS"
+        title="Tarjeta de riesgo"
+        description="Matriz de tolerabilidad, barreras y el enlace de las listas de chequeo con el nivel de riesgo para decidir el GO/NO-GO al despachar."
       />
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}

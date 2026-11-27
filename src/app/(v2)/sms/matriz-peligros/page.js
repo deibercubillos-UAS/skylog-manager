@@ -187,7 +187,7 @@ export default function MatrizPeligrosPage() {
             <span className="material-symbols-outlined text-2xl">report_problem</span>
           </span>
           <p className="text-sm font-semibold text-navy">Aún no hay peligros en el catálogo</p>
-          <p className="text-xs text-navy-400">Registra los peligros en «Evaluación de Riesgo»; luego aquí les defines controles, avances y evidencias.</p>
+          <p className="text-xs text-navy-400">Registra los peligros en «Tarjeta de riesgo»; luego aquí les defines controles, avances y evidencias.</p>
         </div>
       ) : (
         <div className="space-y-4">

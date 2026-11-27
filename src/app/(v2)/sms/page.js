@@ -29,8 +29,8 @@ const CARDS = [
     key: 'riesgos',
     href: '/sms/riesgos',
     icon: 'warning',
-    title: 'Evaluación de Riesgo',
-    description: 'Matriz de riesgo interna, barreras/controles y catálogo de peligros con su evaluación.',
+    title: 'Tarjeta de riesgo',
+    description: 'Matriz de riesgo interna, barreras/controles y el enlace de las listas de chequeo con el nivel de riesgo para el GO/NO-GO.',
     color: { wash: 'from-red-50 to-white', tile: 'bg-red-500 text-white' },
   },
   {

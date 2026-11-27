@@ -93,12 +93,12 @@ function ChangeCard({ change, hazards, members, isManager, onSave }) {
                 ))}
               </div>
               <Field as="textarea" rows={2} label="Justificación de la decisión" value={f.impact_justification} onChange={(e) => setF((x) => ({ ...x, impact_justification: e.target.value }))} />
-              <Field as="select" label="Peligro asociado (de la Evaluación de Riesgo)" value={f.hazard_id} onChange={(e) => setF((x) => ({ ...x, hazard_id: e.target.value }))}>
+              <Field as="select" label="Peligro asociado (de la Tarjeta de riesgo)" value={f.hazard_id} onChange={(e) => setF((x) => ({ ...x, hazard_id: e.target.value }))}>
                 <option value="">— Sin enlazar —</option>
                 {hazards.map((h) => <option key={h.id} value={h.id}>{h.description}</option>)}
               </Field>
               {f.safety_impact === 'si' && hazards.length === 0 && (
-                <p className="text-xs text-amber-700 -mt-1 mb-3">No hay peligros registrados: créalo en <a className="underline" href="/sms/riesgos">Evaluación de Riesgo</a> y vuelve.</p>
+                <p className="text-xs text-amber-700 -mt-1 mb-3">No hay peligros registrados: créalo en <a className="underline" href="/sms/riesgos">Tarjeta de riesgo</a> y vuelve.</p>
               )}
               <Field as="textarea" rows={2} label="Factores humanos considerados" value={f.human_factors_notes} onChange={(e) => setF((x) => ({ ...x, human_factors_notes: e.target.value }))} placeholder="Capacitación, carga de trabajo, interfaz, fatiga…" />
               <Field as="select" label="Responsable" value={f.responsible_id} onChange={(e) => setF((x) => ({ ...x, responsible_id: e.target.value }))}>

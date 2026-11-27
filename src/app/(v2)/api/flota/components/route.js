@@ -53,7 +53,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, aircraftId, componentType, serialNumber, name } = body;
+  const { organizationId, aircraftId, componentType, serialNumber, name, installedAtAircraftHours } = body;
   if (!organizationId || !aircraftId || !componentType) {
     return Response.json({ error: 'organizationId, aircraftId y componentType son requeridos' }, { status: 400 });
   }
@@ -73,6 +73,19 @@ export async function POST(request) {
   if (aircraftError) return Response.json({ error: 'Error verificando la aeronave' }, { status: 500 });
   if (!aircraft) return Response.json({ error: 'La aeronave no pertenece a esta organización' }, { status: 400 });
 
+  // El reloj de uso arranca por defecto en las horas acumuladas de la aeronave,
+  // pero el gestor puede ajustarlo (p. ej. un componente usado que ya traía
+  // horas, o al corregir una instalación retroactiva). Solo se usa el valor del
+  // cliente cuando viene explícito y es válido; si no, las horas de la aeronave.
+  let installedHours = Number(aircraft.total_hours) || 0;
+  if (installedAtAircraftHours !== undefined && installedAtAircraftHours !== null && String(installedAtAircraftHours).trim() !== '') {
+    const h = Number(installedAtAircraftHours);
+    if (!Number.isFinite(h) || h < 0) {
+      return Response.json({ error: 'Las horas de la aeronave al instalar deben ser un número de 0 o más' }, { status: 400 });
+    }
+    installedHours = h;
+  }
+
   const { data, error } = await supabase
     .from('aircraft_components')
     .insert({
@@ -81,7 +94,7 @@ export async function POST(request) {
       component_type: componentType,
       serial_number: serialNumber || null,
       name: typeof name === 'string' && name.trim() ? name.trim().slice(0, 150) : null,
-      installed_at_aircraft_hours: aircraft.total_hours,
+      installed_at_aircraft_hours: installedHours,
       created_by: personId,
     })
     .select('*, aircraft:aircraft_id(serial_number, total_hours, model:model_id(brand, model))')

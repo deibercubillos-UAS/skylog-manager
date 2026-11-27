@@ -13,6 +13,8 @@ import { useCallback, useEffect, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
+import IconSelectField from '../../_components/IconSelectField';
+import HelpHint from '../../_components/HelpHint';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const HEALTH_STATUSES = [
@@ -47,7 +49,13 @@ export default function BateriasComponentesPage() {
 
   const [aircraftFilter, setAircraftFilter] = useState('');
   const [showComponentForm, setShowComponentForm] = useState(false);
-  const [componentForm, setComponentForm] = useState({ aircraftId: '', componentType: '', serialNumber: '', name: '' });
+  const [componentForm, setComponentForm] = useState({ aircraftId: '', componentType: '', serialNumber: '', name: '', installedAtAircraftHours: '' });
+
+  // Horas acumuladas de una aeronave de la flota (para prellenar el reloj de uso de un componente nuevo).
+  const aircraftHours = (id) => {
+    const a = fleet.find((x) => x.id === id);
+    return a ? Number(a.total_hours || 0).toFixed(1) : '';
+  };
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['J2'] === 'edit';
@@ -167,7 +175,7 @@ export default function BateriasComponentesPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error agregando el componente');
-      setComponentForm({ aircraftId: componentForm.aircraftId, componentType: '', serialNumber: '', name: '' });
+      setComponentForm({ aircraftId: componentForm.aircraftId, componentType: '', serialNumber: '', name: '', installedAtAircraftHours: aircraftHours(componentForm.aircraftId) });
       setShowComponentForm(false);
       await loadComponents(organizationId, aircraftFilter);
     } catch (e) {
@@ -229,18 +237,23 @@ export default function BateriasComponentesPage() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon="battery_full" color="primary" label="Baterías" value={batteries.length} />
-        <StatCard icon="check_circle" color="emerald" label="Operativas" value={operativeBatteries} />
-        <StatCard icon="battery_alert" color={operativeBatteries < batteries.length ? 'amber' : 'emerald'} label="De baja" value={batteries.length - operativeBatteries} />
-        {canSeeComponents && <StatCard icon="settings" color="blue" label="Componentes activos" value={activeComponents} />}
+        <StatCard icon="battery_full" label="Baterías" value={batteries.length} />
+        <StatCard icon="check_circle" label="Operativas" value={operativeBatteries} />
+        <StatCard icon="battery_alert" label="De baja" value={batteries.length - operativeBatteries} />
+        {canSeeComponents && <StatCard icon="settings" label="Componentes activos" value={activeComponents} />}
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
       {/* Baterías */}
       <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-        <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex items-center justify-between">
-          <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Baterías</h3>
+        <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex items-center justify-between gap-2">
+          <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest flex items-center gap-1.5">
+            Baterías
+            <HelpHint title="Se cargan solas desde los vuelos">
+              Al importar un vuelo DJI, la batería del log se registra sola en tu organización con su <b>número de serie</b> y sus <b>ciclos</b> reales (se actualizan si el log trae un número mayor). Usa <b>Nueva batería</b> solo para registrar una que todavía no haya aparecido en ningún vuelo.
+            </HelpHint>
+          </h3>
           {isManager && (
             <button
               type="button"
@@ -258,12 +271,12 @@ export default function BateriasComponentesPage() {
             <Field label="Número de serie" value={batteryForm.serialNumber} onChange={(e) => setBatteryForm((f) => ({ ...f, serialNumber: e.target.value }))} required />
             <Field label="Marca (opcional)" value={batteryForm.brand} onChange={(e) => setBatteryForm((f) => ({ ...f, brand: e.target.value }))} placeholder="Ej. DJI" />
             <Field label="Modelo (opcional)" value={batteryForm.model} onChange={(e) => setBatteryForm((f) => ({ ...f, model: e.target.value }))} placeholder="Ej. TB65" />
-            <Field as="select" label="Salud (opcional)" value={batteryForm.healthStatus} onChange={(e) => setBatteryForm((f) => ({ ...f, healthStatus: e.target.value }))}>
+            <IconSelectField icon="favorite" label="Salud (opcional)" value={batteryForm.healthStatus} onChange={(e) => setBatteryForm((f) => ({ ...f, healthStatus: e.target.value }))}>
               <option value="">Sin especificar</option>
               {HEALTH_STATUSES.map((h) => (
                 <option key={h.key} value={h.key}>{h.label}</option>
               ))}
-            </Field>
+            </IconSelectField>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={busy || !batteryForm.serialNumber} className="w-full">
                 {busy ? 'Guardando…' : 'Registrar batería'}
@@ -329,32 +342,43 @@ export default function BateriasComponentesPage() {
       {canSeeComponents && (
       <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Componentes</h3>
+          <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest flex items-center gap-1.5">
+            Componentes
+            <HelpHint title="Reloj de uso por componente">
+              Cada componente cuenta sus horas desde las de la aeronave al instalarlo. Al agregarlo se toman <b>las horas que lleva la aeronave</b> en ese momento; solo cambian si tú editas ese dato (p. ej. una pieza usada que ya traía horas).
+            </HelpHint>
+          </h3>
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={aircraftFilter}
-              onChange={(e) => setAircraftFilter(e.target.value)}
-              className="text-xs font-semibold border border-navy-200 rounded-lg px-2 py-1 bg-white text-navy-600"
-            >
-              <option value="">Todas las aeronaves</option>
-              {fleet.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.model?.brand} {a.model?.model} — {a.serial_number}
-                </option>
-              ))}
-            </select>
+            <label className="relative inline-flex items-center gap-1.5 rounded-xl border border-navy-200 bg-white pl-2.5 pr-2 py-1.5 shadow-sm hover:border-primary-300 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-colors cursor-pointer">
+              <span className="material-symbols-outlined text-base text-navy-300">flight</span>
+              <select
+                value={aircraftFilter}
+                onChange={(e) => setAircraftFilter(e.target.value)}
+                className="appearance-none bg-transparent border-0 pr-5 text-xs font-semibold text-navy-700 focus:outline-none focus:ring-0 cursor-pointer"
+              >
+                <option value="">Todas las aeronaves</option>
+                {fleet.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.model?.brand} {a.model?.model} — {a.serial_number}
+                  </option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined text-base text-navy-400 absolute right-2 pointer-events-none">expand_more</span>
+            </label>
             {isManager && (
-              <button
+              <Button
                 type="button"
+                variant={showComponentForm ? 'ghost' : 'primary'}
                 onClick={() => {
-                  setComponentForm((f) => ({ ...f, aircraftId: aircraftFilter || f.aircraftId }));
+                  const target = aircraftFilter || componentForm.aircraftId;
+                  setComponentForm((f) => ({ ...f, aircraftId: target, installedAtAircraftHours: aircraftHours(target) }));
                   setShowComponentForm((s) => !s);
                 }}
-                className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 whitespace-nowrap"
+                className="text-xs px-3 py-1.5 whitespace-nowrap"
               >
-                <span className="material-symbols-outlined text-base">{showComponentForm ? 'close' : 'add'}</span>
+                <span className="material-symbols-outlined text-base align-middle mr-1">{showComponentForm ? 'close' : 'add'}</span>
                 {showComponentForm ? 'Cerrar' : 'Agregar componente'}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -362,14 +386,36 @@ export default function BateriasComponentesPage() {
         {showComponentForm && (
           <form onSubmit={handleCreateComponent} className="p-5 border-b border-navy-50 bg-navy-50/20">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-              <Field as="select" label="Aeronave" value={componentForm.aircraftId} onChange={(e) => setComponentForm((f) => ({ ...f, aircraftId: e.target.value }))} required>
+              <IconSelectField
+                icon="flight"
+                label="Aeronave"
+                value={componentForm.aircraftId}
+                onChange={(e) => setComponentForm((f) => ({ ...f, aircraftId: e.target.value, installedAtAircraftHours: aircraftHours(e.target.value) }))}
+                required
+              >
                 <option value="">Selecciona…</option>
                 {fleet.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.model?.brand} {a.model?.model} — {a.serial_number}
                   </option>
                 ))}
-              </Field>
+              </IconSelectField>
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-medium text-navy-400">Horas de la aeronave al instalar</span>
+                  <HelpHint title="Reloj de uso del componente">
+                    Se toma automáticamente de las horas que lleva la aeronave seleccionada. Cámbialo solo si la pieza ya traía horas o corriges una instalación anterior.
+                  </HelpHint>
+                </div>
+                <Field
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={componentForm.installedAtAircraftHours}
+                  onChange={(e) => setComponentForm((f) => ({ ...f, installedAtAircraftHours: e.target.value }))}
+                  placeholder="0.0"
+                />
+              </div>
               <Field
                 label="N.º de serie (opcional)"
                 value={componentForm.serialNumber}

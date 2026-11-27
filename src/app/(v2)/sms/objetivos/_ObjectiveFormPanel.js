@@ -1,10 +1,13 @@
 'use client';
 
 // Skylog V2.0 — SMS-F: crear/editar un objetivo SMS y vincularlo a los
-// indicadores SPI que lo miden (checklist, no un select — un objetivo
+// KPI (indicadores SPI) que lo miden (checklist, no un select — un objetivo
 // puede medirse con varios indicadores a la vez).
 import { useEffect, useState } from 'react';
 import { Panel, Button } from '@skylog/ui';
+
+const inputClass =
+  'w-full text-base md:text-sm bg-white border border-navy-200 rounded-lg px-3 py-2 min-h-[44px] md:min-h-0 placeholder:text-navy-300 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300 transition-shadow';
 
 export default function ObjectiveFormPanel({ open, onClose, organizationId, objective, indicators, onSaved }) {
   const [form, setForm] = useState({ title: '', metricDescription: '', targetValue: '', targetUnit: '', indicatorIds: [] });
@@ -54,42 +57,84 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
   }
 
   return (
-    <Panel open={open} onClose={onClose} eyebrow="SMS · Objetivos" icon="target" title={objective ? 'Editar objetivo SMS' : 'Nuevo objetivo SMS'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-xs font-medium text-navy-400 block mb-1">Objetivo (SMART)</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="Ej. Reducir los eventos de pérdida de enlace C2 en 10% anual"
-            required
-            className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
-          />
+    <Panel
+      open={open}
+      onClose={onClose}
+      eyebrow="SMS · Objetivos"
+      icon="target"
+      title={objective ? 'Editar objetivo SMS' : 'Nuevo objetivo SMS'}
+      subtitle="Un objetivo SMART, vinculado a los KPI (indicadores SPI) que lo miden."
+      footer={
+        <div className="flex gap-2">
+          <Button type="submit" form="objective-form" disabled={busy || !form.title.trim()} className="flex-1 justify-center">
+            <span className="material-symbols-outlined text-base align-middle mr-1">save</span>
+            {busy ? 'Guardando…' : objective ? 'Guardar cambios' : 'Crear objetivo'}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
         </div>
-        <div>
-          <label className="text-xs font-medium text-navy-400 block mb-1">Cómo se mide (opcional)</label>
-          <textarea
-            value={form.metricDescription}
-            onChange={(e) => setForm((f) => ({ ...f, metricDescription: e.target.value }))}
-            rows={2}
-            placeholder="Qué dato concreto se sigue y cómo se verifica"
-            className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+      }
+    >
+      <form id="objective-form" onSubmit={handleSubmit} className="space-y-4">
+        {/* El objetivo */}
+        <div className="bg-white rounded-2xl border border-navy-100 shadow-sm p-4 space-y-4">
+          <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-navy-300">
+            <span className="material-symbols-outlined text-base text-primary">flag</span>
+            El objetivo
+          </p>
           <div>
-            <label className="text-xs font-medium text-navy-400 block mb-1">Meta (opcional)</label>
-            <input type="number" step="any" value={form.targetValue} onChange={(e) => setForm((f) => ({ ...f, targetValue: e.target.value }))} className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2" />
+            <label className="text-xs font-medium text-navy-500 block mb-1">Objetivo (SMART)</label>
+            <input
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="Ej. Reducir los eventos de pérdida de enlace C2 en 10% anual"
+              required
+              className={inputClass}
+            />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-400 block mb-1">Unidad</label>
-            <input value={form.targetUnit} onChange={(e) => setForm((f) => ({ ...f, targetUnit: e.target.value }))} placeholder="%, eventos…" className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2" />
+            <label className="text-xs font-medium text-navy-500 block mb-1">
+              Cómo se mide <span className="font-normal text-navy-300">· opcional</span>
+            </label>
+            <textarea
+              value={form.metricDescription}
+              onChange={(e) => setForm((f) => ({ ...f, metricDescription: e.target.value }))}
+              rows={2}
+              placeholder="Qué dato concreto se sigue y cómo se verifica"
+              className={inputClass}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-navy-500 block mb-1">
+                Meta <span className="font-normal text-navy-300">· opcional</span>
+              </label>
+              <input type="number" step="any" value={form.targetValue} onChange={(e) => setForm((f) => ({ ...f, targetValue: e.target.value }))} placeholder="0" className={inputClass} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-navy-500 block mb-1">Unidad</label>
+              <input value={form.targetUnit} onChange={(e) => setForm((f) => ({ ...f, targetUnit: e.target.value }))} placeholder="%, eventos…" className={inputClass} />
+            </div>
           </div>
         </div>
-        <div>
-          <label className="text-xs font-medium text-navy-400 block mb-2">Indicadores (SPI) que lo miden</label>
+
+        {/* KPI que lo miden */}
+        <div className="bg-white rounded-2xl border border-navy-100 shadow-sm p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-navy-300">
+              <span className="material-symbols-outlined text-base text-blue-500">monitoring</span>
+              KPI que lo miden
+            </p>
+            {form.indicatorIds.length > 0 && (
+              <span className="text-[11px] font-bold text-primary-700 bg-primary-50 rounded-full px-2 py-0.5">{form.indicatorIds.length} vinculado{form.indicatorIds.length > 1 ? 's' : ''}</span>
+            )}
+          </div>
           {indicators.length === 0 ? (
-            <p className="text-xs text-navy-300">Sin indicadores configurados todavía en Indicadores (SPI).</p>
+            <p className="flex items-start gap-1.5 text-xs text-navy-500 bg-navy-50 rounded-lg px-3 py-2">
+              <span className="material-symbols-outlined text-[14px] text-navy-300 shrink-0 mt-0.5">info</span>
+              Aún no hay KPI configurados. Créalos en <b className="font-semibold">Indicadores (SPI)</b> y vuelve a vincularlos aquí.
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {indicators.map((ind) => {
@@ -99,10 +144,11 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
                     key={ind.id}
                     type="button"
                     onClick={() => toggleIndicator(ind.id)}
-                    className={`text-xs font-semibold rounded-full px-3 py-1.5 border transition-colors ${
+                    className={`flex items-center gap-1.5 text-xs font-semibold rounded-full pl-2.5 pr-3 py-1.5 border transition-colors ${
                       selected ? 'bg-primary text-white border-transparent' : 'bg-white border-navy-200 text-navy-500 hover:border-primary-300'
                     }`}
                   >
+                    <span className="material-symbols-outlined text-[15px]">{selected ? 'check_circle' : 'add_circle'}</span>
                     {ind.name}
                   </button>
                 );
@@ -110,10 +156,8 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
             </div>
           )}
         </div>
-        {error && <p className="text-xs text-red-600">{error}</p>}
-        <Button type="submit" disabled={busy} className="w-full justify-center">
-          {busy ? 'Guardando…' : 'Guardar'}
-        </Button>
+
+        {error && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
       </form>
     </Panel>
   );

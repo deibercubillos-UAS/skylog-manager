@@ -33,6 +33,16 @@ export async function DELETE(request, { params }) {
 
   const admin = createAdminClient();
 
+  // Un KPI que mide este peligro lo bloquea (FK on delete restrict): se avisa
+  // en claro en vez de dejar caer un error de llave foránea.
+  const { count: kpiCount } = await admin
+    .from('safety_indicators')
+    .select('id', { count: 'exact', head: true })
+    .eq('hazard_id', id);
+  if (kpiCount && kpiCount > 0) {
+    return Response.json({ error: `Este peligro tiene ${kpiCount} KPI asociado(s). Reasígnalos o elimínalos en Indicadores (SPI/KPI) antes de eliminar el peligro.` }, { status: 409 });
+  }
+
   // Evidencias en R2 de los avances de los controles de este peligro — limpieza
   // best-effort antes del borrado en cascada (que elimina las filas, no los files).
   const { data: evidences } = await admin

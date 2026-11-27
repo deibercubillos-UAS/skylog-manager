@@ -1,7 +1,7 @@
 'use client';
 
 // Skylog V2.0 — SMS-F: crear/editar un objetivo SMS y vincularlo a los
-// KPI (indicadores SPI) que lo miden (checklist, no un select — un objetivo
+// KPI (indicadores propios de la organización) que lo miden (checklist, no un select — un objetivo
 // puede medirse con varios indicadores a la vez).
 //
 // Ventana flotante centrada con el patrón de diálogo ya probado de BitaFly
@@ -164,7 +164,7 @@ export default function ObjectiveFormPanel({ open, onClose, organizationId, obje
             {indicators.length === 0 ? (
               <p className="flex items-start gap-1.5 text-xs text-navy-500 bg-navy-50 rounded-xl px-3 py-2">
                 <span className="material-symbols-outlined text-[14px] text-navy-300 shrink-0 mt-0.5">info</span>
-                Aún no hay KPI. Agrega indicadores en <b className="font-semibold">Indicadores (SPI)</b> y vincúlalos aquí como KPI.
+                Aún no hay KPI. Crea KPI propios en <b className="font-semibold">Indicadores (SPI/KPI)</b> (cada uno mide un peligro) y vincúlalos aquí.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">

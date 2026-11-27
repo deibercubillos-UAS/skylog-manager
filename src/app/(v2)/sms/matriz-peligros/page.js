@@ -39,6 +39,7 @@ export default function MatrizPeligrosPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [avance, setAvance] = useState({ note: '', pct: '' });
   const [busy, setBusy] = useState(false);
+  const [kpis, setKpis] = useState([]);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const canView = (currentOrg?.permissions?.['P1'] || 'none') !== 'none';
@@ -46,11 +47,17 @@ export default function MatrizPeligrosPage() {
 
   const loadData = useCallback(async (orgId) => {
     if (!orgId) return;
-    const [hazRes, ctrlRes] = await Promise.all([fetch(`/api/sms/hazards?organizationId=${orgId}`), fetch(`/api/sms/hazard-controls?organizationId=${orgId}`)]);
-    const [hazData, ctrlData] = await Promise.all([hazRes.json(), ctrlRes.json()]);
+    const [hazRes, ctrlRes, indRes] = await Promise.all([
+      fetch(`/api/sms/hazards?organizationId=${orgId}`),
+      fetch(`/api/sms/hazard-controls?organizationId=${orgId}`),
+      fetch(`/api/sms/indicators?organizationId=${orgId}`),
+    ]);
+    const [hazData, ctrlData, indData] = await Promise.all([hazRes.json(), ctrlRes.json(), indRes.json()]);
     if (hazRes.ok) setHazards(hazData.hazards || []);
     if (ctrlRes.ok) setControls(ctrlData.controls || []);
     else setError(ctrlData.error || 'Error cargando los controles');
+    // KPI (propios) que miden cada peligro — enlazados por hazard_id.
+    if (indRes.ok) setKpis((indData.indicators || []).filter((i) => !i.is_official && i.hazard_id));
   }, []);
 
   useEffect(() => {
@@ -193,6 +200,7 @@ export default function MatrizPeligrosPage() {
         <div className="space-y-4">
           {hazards.map((h) => {
             const list = byHazard(h.id);
+            const hazardKpis = kpis.filter((k) => k.hazard_id === h.id);
             return (
               <div key={h.id} className="bg-white rounded-2xl border border-navy-100 overflow-hidden">
                 <div className="px-4 py-3 bg-navy-50/40 border-b border-navy-50 flex items-start justify-between gap-3">
@@ -206,6 +214,14 @@ export default function MatrizPeligrosPage() {
                         {list.length} control{list.length === 1 ? '' : 'es'}
                         {h.source ? ` · origen: ${h.source}` : ''}
                       </p>
+                      {hazardKpis.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                          <span className="material-symbols-outlined text-[13px] text-blue-500">monitoring</span>
+                          {hazardKpis.map((k) => (
+                            <span key={k.id} className="text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-full px-1.5 py-0.5">KPI: {k.name}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {isManager && (

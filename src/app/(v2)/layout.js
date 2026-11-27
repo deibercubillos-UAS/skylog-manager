@@ -71,7 +71,7 @@ const NAV_LINKS = [
   { name: 'Matriz de peligros', icon: 'shield', href: '/sms/matriz-peligros', group: 'SMS', perm: 'P1' },
   { name: 'Tarjeta de riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS', perm: 'P1' },
   { name: 'Gestión del cambio', icon: 'published_with_changes', href: '/sms/cambios', group: 'SMS', perm: 'Q1' },
-  { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS', perm: 'R1' },
+  { name: 'Indicadores (SPI/KPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS', perm: 'R1' },
   { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS', perm: 'S1' },
   { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS', perm: 'T1' },
   // { name: 'MSMS', icon: 'description', href: '/sms/msms', group: 'SMS' },

@@ -41,7 +41,8 @@ export default function SmsObjetivosPage() {
     ]);
     const [objectivesData, indicatorsData] = await Promise.all([objectivesRes.json(), indicatorsRes.json()]);
     if (objectivesRes.ok) setObjectives(objectivesData.objectives || []);
-    if (indicatorsRes.ok) setIndicators((indicatorsData.indicators || []).filter((i) => i.active !== false));
+    // Los objetivos se miden SOLO con KPI (indicadores propios, is_official=false); los SPI oficiales no.
+    if (indicatorsRes.ok) setIndicators((indicatorsData.indicators || []).filter((i) => i.active !== false && !i.is_official));
   }, []);
 
   useEffect(() => {

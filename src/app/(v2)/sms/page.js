@@ -37,8 +37,8 @@ const CARDS = [
     key: 'indicadores',
     href: '/sms/indicadores',
     icon: 'monitoring',
-    title: 'Indicadores (SPI)',
-    description: 'Indicadores de Desempeño en Seguridad Operacional, ciclos de vuelo, líneas de alerta y planes de acción.',
+    title: 'Indicadores (SPI/KPI)',
+    description: 'SPI oficiales de la Aerocivil y KPI propios (cada uno mide un peligro): ciclos de vuelo, líneas de alerta y planes de acción.',
     color: { wash: 'from-blue-50 to-white', tile: 'bg-blue-500 text-white' },
   },
   {

@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef, Fragment } from 'react';
 import OfflineSync from './_components/OfflineSync';
+import PushRegistration from './_components/PushRegistration';
 import AppUpdateBanner from '@/components/AppUpdateBanner';
 import CommandPalette from './_components/CommandPalette';
 import Link from 'next/link';
@@ -604,6 +605,7 @@ export default function V2Layout({ children }) {
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <OfflineSync />
+          <PushRegistration />
           <AppUpdateBanner />
           <CommandPalette
             open={paletteOpen}

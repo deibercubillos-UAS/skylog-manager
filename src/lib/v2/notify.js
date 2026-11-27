@@ -3,6 +3,7 @@
 // autor. «Mejor esfuerzo»: un fallo se registra y nunca rompe la operación que lo dispara (igual que los correos).
 import { createAdminClient } from '@/lib/supabaseServer';
 import { resolveRecipients, safeInternalLink, NOTIFICATION_TYPES } from '@skylog/domain';
+import { sendPushToPersons } from '@/lib/v2/push';
 
 /**
  * @param {{organizationId: string, roles?: string[], personIds?: string[], type: string, title: string, body?: string,
@@ -35,7 +36,13 @@ export async function createNotifications(n, admin = null) {
       console.error('[notify] no se pudieron crear las notificaciones:', error.message);
       return { created: 0 };
     }
-    return { created: (data || []).length, personIds: (data || []).map((r) => r.person_id) };
+    const createdFor = (data || []).map((r) => r.person_id);
+    // Además de la campana, la notificación del sistema operativo (push nativo) a quienes se les
+    // creó de verdad. Mejor esfuerzo: si no hay configuración FCM o falla, no afecta a la campana.
+    if (createdFor.length) {
+      await sendPushToPersons({ personIds: createdFor, title: n.title, body: n.body || null, link: safeInternalLink(n.link) }, db);
+    }
+    return { created: createdFor.length, personIds: createdFor };
   } catch (e) {
     console.error('[notify] error creando notificaciones:', e.message);
     return { created: 0 };

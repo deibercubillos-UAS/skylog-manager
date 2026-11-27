@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "347307711752",
+    "project_id": "bitafly-app",
+    "storage_bucket": "bitafly-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347307711752:android:c58caf890fc1f1b793a0bd",
+        "android_client_info": {
+          "package_name": "com.bitafly.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCb3f574t_pcw4FjapkotNGlZPcts9DnqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

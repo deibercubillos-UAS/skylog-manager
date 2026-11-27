@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreRiskCard } from './riskCard.js';
+import { scoreRiskCard, evaluateRiskCardDispatch } from './riskCard.js';
 
 const weights = [
   { checklist_id: 'L1', position: 0, weight: 2 },
@@ -49,5 +49,35 @@ describe('scoreRiskCard', () => {
     const r = scoreRiskCard({ weights: [{ checklist_id: 'L1', position: 0, weight: 0 }, { checklist_id: 'L1', position: 1, weight: 4 }], answers: { L1: [{ value: 'no' }] }, ...thr });
     expect(r.total).toBe(0); // peso 0 ignorado; posición 1 sin respuesta
     expect(r.maxTotal).toBe(4);
+  });
+});
+
+describe('evaluateRiskCardDispatch', () => {
+  const score = (zone) => ({ configured: true, zone, total: 5, maxTotal: 10, triggered: [] });
+
+  it('aceptable: GO sin mitigación', () => {
+    const r = evaluateRiskCardDispatch({ score: score('aceptable') });
+    expect(r.ok).toBe(true);
+    expect(r.initialZone).toBe('aceptable');
+    expect(r.storedMitigation).toBe(null);
+  });
+
+  it('tolerable: GO; la mitigación es voluntaria y se guarda si se escribe', () => {
+    expect(evaluateRiskCardDispatch({ score: score('tolerable') })).toMatchObject({ ok: true, voluntaryMitigation: false, storedMitigation: null });
+    const v = evaluateRiskCardDispatch({ score: score('tolerable'), mitigation: '  Observador adicional ' });
+    expect(v).toMatchObject({ ok: true, voluntaryMitigation: true, storedMitigation: 'Observador adicional' });
+  });
+
+  it('inaceptable: NO-GO (bloquea)', () => {
+    const r = evaluateRiskCardDispatch({ score: score('inaceptable'), mitigation: 'algo' });
+    expect(r.ok).toBe(false);
+    expect(r.errors[0]).toMatch(/NO-GO/);
+    expect(r.needsMitigation).toBe(false);
+  });
+
+  it('sin configurar: no evalúa, sin zona', () => {
+    const r = evaluateRiskCardDispatch({ score: { configured: false } });
+    expect(r.ok).toBe(true);
+    expect(r.initialZone).toBe(null);
   });
 });

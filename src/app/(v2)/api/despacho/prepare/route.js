@@ -32,5 +32,6 @@ export async function GET(request) {
     blockedBy: ctx.blockedBy,
     checklists: ctx.checklists,
     riskMatrix: ctx.riskMatrix,
+    riskCard: ctx.riskCard,
   });
 }

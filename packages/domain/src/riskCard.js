@@ -50,3 +50,38 @@ export function scoreRiskCard({ weights, answers, tolerableThreshold, inaceptabl
 
   return { configured, total, zone, maxTotal, triggered };
 }
+
+/**
+ * Decisión GO/NO-GO de la tarjeta de riesgo en el despacho, a partir del puntaje.
+ * Reutiliza las zonas: aceptable → GO; tolerable → GO (mitigación opcional);
+ * inaceptable → NO-GO (hay que corregir los «no» de las listas antes de volar).
+ * Devuelve la misma forma que evaluateDispatchRisk para que el servidor guarde
+ * la constancia con las mismas columnas (zona inicial, mitigación voluntaria).
+ */
+export function evaluateRiskCardDispatch({ score, mitigation } = {}) {
+  const s = score || {};
+  const text = (mitigation || '').trim();
+  const errors = [];
+
+  if (!s.configured) {
+    // No debería llamarse sin configuración; se trata como «sin evaluar».
+    return { ok: true, errors, initialZone: null, total: s.total || 0, maxTotal: s.maxTotal || 0, triggered: [], needsMitigation: false, voluntaryMitigation: false, storedMitigation: null, residualZone: null };
+  }
+  if (s.zone === 'inaceptable') {
+    errors.push('La tarjeta de riesgo da INACEPTABLE (NO-GO): corrige en las listas los ítems respondidos «no» que suman riesgo antes de despachar.');
+  }
+  const voluntary = s.zone === 'tolerable' && text.length > 0;
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    initialZone: s.zone,
+    total: s.total,
+    maxTotal: s.maxTotal,
+    triggered: s.triggered || [],
+    needsMitigation: false,
+    voluntaryMitigation: voluntary,
+    storedMitigation: voluntary ? text : null,
+    residualZone: null,
+  };
+}

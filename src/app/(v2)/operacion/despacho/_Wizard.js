@@ -7,7 +7,7 @@
 // Pensado para usarse en campo, de pie y quizá con guantes: botones grandes, un solo tema por
 // pantalla, salto automático al siguiente paso sin responder y barra de acción fija abajo.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { evaluateDispatchRisk, buildChecklistItems, isDraftFresh } from '@skylog/domain';
+import { evaluateDispatchRisk, buildChecklistItems, isDraftFresh, scoreRiskCard, evaluateRiskCardDispatch } from '@skylog/domain';
 import { downloadChecklistPdf } from '@/lib/v2/checklistDocs';
 import { readDraft, writeDraft, clearDraft, isNetworkError } from '@/lib/v2/offlineStore';
 
@@ -72,7 +72,7 @@ export default function Wizard({ mission, orgName, nit, logoUrl, onCancel, onDon
       setAnswers(draft.answers || {});
       if (draft.risk) setRisk(draft.risk);
       // Si hoy hay una verificación que bloquea, se vuelve al inicio: el estado del servidor manda sobre el borrador.
-      setStepIndex(prep.canDispatch ? Math.min(draft.stepIndex || 0, prep.checklists.length + (prep.riskMatrix ? 2 : 1)) : 0);
+      setStepIndex(prep.canDispatch ? Math.min(draft.stepIndex || 0, prep.checklists.length + (prep.riskCard || prep.riskMatrix ? 2 : 1)) : 0);
       setRestored(Object.keys(draft.answers || {}).length > 0);
     }
     setDraftReady(true);
@@ -89,7 +89,7 @@ export default function Wizard({ mission, orgName, nit, logoUrl, onCancel, onDon
     return [
       { key: 'gates', label: 'Verificaciones', icon: 'verified' },
       ...prep.checklists.map((list) => ({ key: `list:${list.id}`, kind: 'list', list, label: list.name, icon: list.icon || 'checklist' })),
-      ...(prep.riskMatrix ? [{ key: 'risk', label: 'Riesgos', icon: 'warning' }] : []),
+      ...(prep.riskCard || prep.riskMatrix ? [{ key: 'risk', label: 'Riesgos', icon: 'warning' }] : []),
       { key: 'confirm', label: 'Confirmar', icon: 'rocket_launch' },
     ];
   }, [prep]);
@@ -102,7 +102,14 @@ export default function Wizard({ mission, orgName, nit, logoUrl, onCancel, onDon
   }, [stepIndex]);
 
   const overall = useMemo(() => (prep ? buildChecklistItems(prep.checklists, answers) : { complete: true, missing: 0, noCount: 0, items: [] }), [prep, answers]);
-  const riskState = useMemo(() => (prep?.riskMatrix ? evaluateDispatchRisk({ tolerability: prep.riskMatrix.tolerability, ...risk }) : null), [prep, risk]);
+  // FRAT (Tarjeta de riesgo) tiene prioridad: la zona se deriva de las respuestas.
+  const riskState = useMemo(() => {
+    if (prep?.riskCard) {
+      const score = scoreRiskCard({ weights: prep.riskCard.weights, answers, tolerableThreshold: prep.riskCard.tolerableThreshold, inaceptableThreshold: prep.riskCard.inaceptableThreshold });
+      return evaluateRiskCardDispatch({ score, mitigation: risk.mitigation });
+    }
+    return prep?.riskMatrix ? evaluateDispatchRisk({ tolerability: prep.riskMatrix.tolerability, ...risk }) : null;
+  }, [prep, risk, answers]);
 
   // ¿Está completo el paso actual?
   const listProgress = (list) => {
@@ -127,7 +134,7 @@ export default function Wizard({ mission, orgName, nit, logoUrl, onCancel, onDon
       const res = await fetch('/api/despacho', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ missionId: mission.id, answers, risk: prep.riskMatrix ? risk : undefined }),
+        body: JSON.stringify({ missionId: mission.id, answers, risk: prep.riskCard || prep.riskMatrix ? risk : undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -219,7 +226,9 @@ export default function Wizard({ mission, orgName, nit, logoUrl, onCancel, onDon
         />
       )}
 
-      {step.key === 'risk' && <RiskStep matrix={prep.riskMatrix} risk={risk} setRisk={setRisk} state={riskState} />}
+      {step.key === 'risk' && (prep.riskCard
+        ? <RiskCardStep state={riskState} risk={risk} setRisk={setRisk} checklists={prep.checklists} />
+        : <RiskStep matrix={prep.riskMatrix} risk={risk} setRisk={setRisk} state={riskState} />)}
 
       {step.key === 'confirm' && <ConfirmStep prep={prep} answers={answers} overall={overall} riskState={riskState} submitError={submitError} setupNeeded={setupNeeded} />}
 
@@ -484,6 +493,64 @@ function RiskStep({ matrix, risk, setRisk, state }) {
       )}
 
       {state && !state.ok && risk.probabilityCode && risk.severityCode && (
+        <ul className="text-xs text-red-600 space-y-0.5">
+          {state.errors.map((e) => (
+            <li key={e}>• {e}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// Tarjeta de riesgo (FRAT): el nivel sale de las respuestas de las listas, no de
+// un pick manual. aceptable/tolerable → GO; inaceptable → NO-GO (corregir los «no»).
+function RiskCardStep({ state, risk, setRisk, checklists }) {
+  const set = (patch) => setRisk((r) => ({ ...r, ...patch }));
+  const stepText = (s) => (typeof s === 'string' ? s : s?.text || String(s));
+  const byId = Object.fromEntries((checklists || []).map((c) => [c.id, c]));
+  const zone = state?.initialZone;
+  const triggers = (state?.triggered || []).map((t) => {
+    const cl = byId[t.checklist_id];
+    const steps = Array.isArray(cl?.steps) ? cl.steps : [];
+    return { ...t, checklistName: cl?.name || 'Lista', text: stepText(steps[t.position]) };
+  });
+
+  return (
+    <div className="bg-white rounded-2xl border border-navy-100 p-4 space-y-3">
+      <p className="text-xs text-navy-400">El nivel de riesgo se calcula con tus respuestas de las listas de chequeo. Cada paso en «No» con peso suma al puntaje; el total define la zona y si se puede volar.</p>
+
+      <div className={`rounded-xl px-4 py-3 ${ZONE_STYLE[zone] || 'bg-navy-50 text-navy-500'}`}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-bold">Riesgo {zone || '—'}</p>
+          <p className="text-xs font-semibold">Puntaje {state?.total ?? 0}{state?.maxTotal ? ` / ${state.maxTotal}` : ''}</p>
+        </div>
+        <p className="text-xs mt-1">
+          {zone === 'aceptable' && 'GO — puedes despachar.'}
+          {zone === 'tolerable' && 'GO — puedes despachar; registra barreras si quieres (opcional).'}
+          {zone === 'inaceptable' && 'NO-GO — corrige los pasos en «No» que suman riesgo antes de despachar.'}
+        </p>
+      </div>
+
+      {triggers.length > 0 && (
+        <div className={`rounded-xl border p-3 ${zone === 'inaceptable' ? 'border-red-100 bg-red-50' : 'border-navy-100 bg-navy-50/40'}`}>
+          <p className={`text-xs font-bold ${zone === 'inaceptable' ? 'text-red-700' : 'text-navy-600'}`}>Pasos que suman riesgo ({state.total})</p>
+          <ul className={`mt-1 text-xs space-y-0.5 ${zone === 'inaceptable' ? 'text-red-700' : 'text-navy-500'}`}>
+            {triggers.map((t) => (
+              <li key={`${t.checklist_id}-${t.position}`}>• {t.checklistName}: {t.text} <span className="font-semibold">(+{t.weight})</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {zone === 'tolerable' && (
+        <label className="block text-xs font-semibold text-navy-500">
+          Barreras / mitigaciones (opcional)
+          <textarea value={risk.mitigation} onChange={(e) => set({ mitigation: e.target.value })} rows={3} className="mt-1 w-full text-sm border border-navy-200 rounded-xl px-3 py-2.5" />
+        </label>
+      )}
+
+      {state && !state.ok && (
         <ul className="text-xs text-red-600 space-y-0.5">
           {state.errors.map((e) => (
             <li key={e}>• {e}</li>

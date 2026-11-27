@@ -10,7 +10,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { loadDispatchContext, bogotaDay } from '@/lib/v2/dispatchContext';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { archiveDispatchWeather } from '@/lib/v2/weatherSnapshot';
-import { buildChecklistItems, evaluateDispatchRisk } from '@skylog/domain';
+import { buildChecklistItems, evaluateDispatchRisk, scoreRiskCard, evaluateRiskCardDispatch } from '@skylog/domain';
 import { getAuthUser } from '@/lib/v2/authUser';
 
 const one = (x) => (Array.isArray(x) ? x[0] : x) || null;
@@ -93,9 +93,23 @@ export async function POST(request) {
     return Response.json({ error: `Faltan ${checklist.missing} paso(s) de las listas de chequeo por responder` }, { status: 400 });
   }
 
-  // Sin matriz configurada la evaluación se omite (es un aviso, no un bloqueo) — nunca se inventa una zona.
+  // Nivel de riesgo. Prioridad: si la organización configuró la Tarjeta de riesgo
+  // (pesos+umbrales), la zona se DERIVA de las respuestas de las listas (FRAT) y
+  // reemplaza el pick manual. Si no, se usa la matriz manual. Sin ninguna de las
+  // dos, la evaluación se omite (aviso, no bloqueo) — nunca se inventa una zona.
   let riskResult = null;
-  if (ctx.riskMatrix) {
+  let riskViaCard = false;
+  if (ctx.riskCard) {
+    const score = scoreRiskCard({
+      weights: ctx.riskCard.weights,
+      answers,
+      tolerableThreshold: ctx.riskCard.tolerableThreshold,
+      inaceptableThreshold: ctx.riskCard.inaceptableThreshold,
+    });
+    riskResult = evaluateRiskCardDispatch({ score, mitigation: risk?.mitigation });
+    riskViaCard = true;
+    if (!riskResult.ok) return Response.json({ error: riskResult.errors.join(' '), riskErrors: riskResult.errors }, { status: 400 });
+  } else if (ctx.riskMatrix) {
     riskResult = evaluateDispatchRisk({
       tolerability: ctx.riskMatrix.tolerability,
       probabilityCode: risk?.probabilityCode,
@@ -113,13 +127,14 @@ export async function POST(request) {
     pilot_person_id: ctx.personId,
     gates: ctx.gates,
     risk_evaluated: !!riskResult,
-    risk_probability_code: riskResult ? risk.probabilityCode : null,
-    risk_severity_code: riskResult ? risk.severityCode : null,
+    // En la Tarjeta de riesgo (FRAT) no hay probabilidad×gravedad: solo la zona derivada.
+    risk_probability_code: riskResult && !riskViaCard ? risk.probabilityCode : null,
+    risk_severity_code: riskResult && !riskViaCard ? risk.severityCode : null,
     risk_initial_zone: riskResult?.initialZone ?? null,
     risk_mitigation: riskResult?.storedMitigation ?? null,
     risk_mitigation_voluntary: riskResult?.voluntaryMitigation ?? false,
-    risk_residual_probability_code: riskResult?.needsMitigation ? risk.residualProbabilityCode : null,
-    risk_residual_severity_code: riskResult?.needsMitigation ? risk.residualSeverityCode : null,
+    risk_residual_probability_code: riskResult?.needsMitigation && !riskViaCard ? risk.residualProbabilityCode : null,
+    risk_residual_severity_code: riskResult?.needsMitigation && !riskViaCard ? risk.residualSeverityCode : null,
     risk_residual_zone: riskResult?.residualZone ?? null,
     items: checklist.items,
   };

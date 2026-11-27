@@ -76,6 +76,23 @@ export async function loadDispatchContext(supabase, { userId, missionId, now = n
   if (matrixError) return fail(500, 'Error consultando la matriz de riesgo');
   const riskReady = !!matrix && validateMatrixCompleteness(matrix.probability_levels, matrix.severity_levels, matrix.tolerability).complete;
 
+  // Tarjeta de riesgo (FRAT): si la organización configuró pesos por paso + umbrales,
+  // el nivel de riesgo se deriva de las respuestas de estas listas. Mejor esfuerzo:
+  // si las tablas aún no existen, no se rompe el despacho — simplemente no hay tarjeta.
+  const usableIds = usableChecklists.map((c) => c.id);
+  let riskCard = null;
+  if (usableIds.length) {
+    const [cfgRes, wRes] = await Promise.all([
+      supabase.from('risk_card_config').select('tolerable_threshold, inaceptable_threshold').eq('organization_id', organizationId).maybeSingle(),
+      supabase.from('risk_card_weights').select('checklist_id, position, weight').eq('organization_id', organizationId).in('checklist_id', usableIds),
+    ]);
+    const cfg = cfgRes.error ? null : cfgRes.data;
+    const weights = (wRes.error ? [] : wRes.data || []).filter((w) => w.weight > 0);
+    if (cfg && weights.length && Number.isInteger(cfg.tolerable_threshold) && cfg.inaceptable_threshold > cfg.tolerable_threshold) {
+      riskCard = { tolerableThreshold: cfg.tolerable_threshold, inaceptableThreshold: cfg.inaceptable_threshold, weights };
+    }
+  }
+
   const verdict = buildDispatchGates({
     mission,
     isPic: mission.pic_person_id === personId,
@@ -97,6 +114,7 @@ export async function loadDispatchContext(supabase, { userId, missionId, now = n
     mission,
     checklists: usableChecklists,
     riskMatrix: riskReady ? { probabilityLevels: matrix.probability_levels, severityLevels: matrix.severity_levels, tolerability: matrix.tolerability } : null,
+    riskCard,
     openPeriodType: openPeriod?.type || null,
     ...verdict,
   };

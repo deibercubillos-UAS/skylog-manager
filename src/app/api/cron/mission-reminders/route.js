@@ -1,4 +1,6 @@
-// GET /api/cron/mission-reminders — Vercel Cron (cada 5 min, V2).
+// GET /api/cron/mission-reminders — tarea recurrente (cada 5 min, V2).
+// Se dispara desde GitHub Actions (.github/workflows/keepalive.yml), NO desde un cron de Vercel:
+// el plan Hobby solo admite crons diarios. Mismo auth (Authorization: Bearer CRON_SECRET).
 // Recordatorio de vuelo: avisa al PIC y al observador ~15 minutos antes de la hora
 // programada de cada misión todavía en estado 'programada'. Se dispara una sola vez por
 // misión y persona gracias a la clave de deduplicación (índice único parcial

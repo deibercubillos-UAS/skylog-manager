@@ -1,5 +1,9 @@
 name: keepalive
-# Evita el arranque en frío de la función y de Supabase: un ping cada 5 minutos (gratis en GitHub Actions).
+# Tareas recurrentes cada 5 minutos (gratis en GitHub Actions). Se hacen aquí y NO como cron
+# de Vercel porque el plan Hobby solo admite crons diarios (un cron */5 revienta el deploy).
+#  - ping a /api/health: evita el arranque en frío de la función y de Supabase.
+#  - /api/cron/mission-reminders: recordatorio de vuelo al PIC ~15 min antes (necesita correr seguido).
+# Requiere el secreto de repositorio CRON_SECRET (Settings → Secrets → Actions), el mismo valor del env de Vercel.
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -8,4 +12,10 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - run: curl -fsS -m 30 --retry 2 https://bitafly.com/api/health
+      - name: Keepalive health
+        run: curl -fsS -m 30 --retry 2 https://bitafly.com/api/health || true
+      - name: Recordatorios de misión
+        if: always()
+        run: curl -fsS -m 30 --retry 2 -H "Authorization: Bearer ${CRON_SECRET}" https://bitafly.com/api/cron/mission-reminders || true
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

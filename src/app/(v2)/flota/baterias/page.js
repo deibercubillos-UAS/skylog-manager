@@ -9,7 +9,7 @@
 // (35-frontend.md §3.7): ETA, Documento de propiedad (Fase 3) ni el
 // programa/eventos de mantenimiento por modelo (Fase 4).
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
@@ -50,6 +50,8 @@ export default function BateriasComponentesPage() {
   const [aircraftFilter, setAircraftFilter] = useState('');
   const [showComponentForm, setShowComponentForm] = useState(false);
   const [componentForm, setComponentForm] = useState({ aircraftId: '', componentType: '', serialNumber: '', name: '', installedAtAircraftHours: '' });
+  const [editingComponentId, setEditingComponentId] = useState(null);
+  const [componentEditForm, setComponentEditForm] = useState({ componentType: '', serialNumber: '', name: '', installedAtAircraftHours: '' });
 
   // Horas acumuladas de una aeronave de la flota (para prellenar el reloj de uso de un componente nuevo).
   const aircraftHours = (id) => {
@@ -177,6 +179,36 @@ export default function BateriasComponentesPage() {
       if (!res.ok) throw new Error(data.error || 'Error agregando el componente');
       setComponentForm({ aircraftId: componentForm.aircraftId, componentType: '', serialNumber: '', name: '', installedAtAircraftHours: aircraftHours(componentForm.aircraftId) });
       setShowComponentForm(false);
+      await loadComponents(organizationId, aircraftFilter);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function startEditComponent(c) {
+    setEditingComponentId(c.id);
+    setComponentEditForm({
+      componentType: c.component_type || '',
+      serialNumber: c.serial_number || '',
+      name: c.name || '',
+      installedAtAircraftHours: c.installed_at_aircraft_hours != null ? String(Number(c.installed_at_aircraft_hours)) : '',
+    });
+  }
+
+  async function handleSaveComponentEdit(id) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/flota/components/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'edit', ...componentEditForm }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error editando el componente');
+      setEditingComponentId(null);
       await loadComponents(organizationId, aircraftFilter);
     } catch (e) {
       setError(e.message);
@@ -477,40 +509,72 @@ export default function BateriasComponentesPage() {
                   </td>
                 </tr>
               ) : (
-                components.map((c) => (
-                  <tr key={c.id} className="hover:bg-navy-50/40 transition-colors">
-                    <td className="px-6 py-2.5 text-xs font-bold text-navy whitespace-nowrap">
-                      {c.aircraft?.model?.brand} {c.aircraft?.model?.model} — {c.aircraft?.serial_number}
-                    </td>
-                    <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{c.component_type}</td>
-                    <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 font-mono whitespace-nowrap">{c.serial_number || '—'}{c.name && <span className="block text-[11px] font-normal text-navy-400">{c.name}</span>}</td>
-                    <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{formatDate(c.installed_at)}</td>
-                    <td className="px-6 py-2.5 text-xs font-black text-navy-700 tabular-nums whitespace-nowrap">{usedHours(c).toFixed(1)}h</td>
-                    <td className="px-6 py-2.5 whitespace-nowrap">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase border ${
-                          c.status === 'activo' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-navy-50 text-navy-400 border-navy-100'
-                        }`}
-                      >
-                        {c.status === 'activo' ? 'Activo' : 'Retirado'}
-                      </span>
-                    </td>
-                    {isManager && (
-                      <td className="px-6 py-2.5 text-right whitespace-nowrap space-x-2">
-                        {c.status === 'activo' && (
-                          <>
-                            <button type="button" disabled={busy} onClick={() => handleRetireComponent(c, 'replace')} className="text-xs font-bold text-primary-600 hover:text-primary-700">
-                              Reemplazar
+                components.map((c) => {
+                  const isEditingComp = editingComponentId === c.id;
+                  return (
+                    <Fragment key={c.id}>
+                      <tr className="hover:bg-navy-50/40 transition-colors">
+                        <td className="px-6 py-2.5 text-xs font-bold text-navy whitespace-nowrap">
+                          {c.aircraft?.model?.brand} {c.aircraft?.model?.model} — {c.aircraft?.serial_number}
+                        </td>
+                        <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{c.component_type}</td>
+                        <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 font-mono whitespace-nowrap">{c.serial_number || '—'}{c.name && <span className="block text-[11px] font-normal text-navy-400">{c.name}</span>}</td>
+                        <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{formatDate(c.installed_at)}</td>
+                        <td className="px-6 py-2.5 text-xs font-black text-navy-700 tabular-nums whitespace-nowrap">{usedHours(c).toFixed(1)}h</td>
+                        <td className="px-6 py-2.5 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase border ${
+                              c.status === 'activo' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-navy-50 text-navy-400 border-navy-100'
+                            }`}
+                          >
+                            {c.status === 'activo' ? 'Activo' : 'Retirado'}
+                          </span>
+                        </td>
+                        {isManager && (
+                          <td className="px-6 py-2.5 text-right whitespace-nowrap space-x-2">
+                            <button type="button" disabled={busy} onClick={() => (isEditingComp ? setEditingComponentId(null) : startEditComponent(c))} className="text-xs font-bold text-primary-600 hover:text-primary-700">
+                              {isEditingComp ? 'Cancelar' : 'Editar'}
                             </button>
-                            <button type="button" disabled={busy} onClick={() => handleRetireComponent(c, 'retire')} className="text-xs font-bold text-navy-400 hover:text-navy-600">
-                              Retirar
-                            </button>
-                          </>
+                            {c.status === 'activo' && (
+                              <>
+                                <button type="button" disabled={busy} onClick={() => handleRetireComponent(c, 'replace')} className="text-xs font-bold text-navy-400 hover:text-navy-600">
+                                  Reemplazar
+                                </button>
+                                <button type="button" disabled={busy} onClick={() => handleRetireComponent(c, 'retire')} className="text-xs font-bold text-navy-400 hover:text-red-600">
+                                  Retirar
+                                </button>
+                              </>
+                            )}
+                          </td>
                         )}
-                      </td>
-                    )}
-                  </tr>
-                ))
+                      </tr>
+                      {isManager && isEditingComp && (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-4 bg-navy-50/30">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-x-4">
+                              <Field label="Tipo" value={componentEditForm.componentType} onChange={(e) => setComponentEditForm((f) => ({ ...f, componentType: e.target.value }))} />
+                              <Field label="N.º de serie" value={componentEditForm.serialNumber} onChange={(e) => setComponentEditForm((f) => ({ ...f, serialNumber: e.target.value }))} />
+                              <Field label="Nombre" value={componentEditForm.name} onChange={(e) => setComponentEditForm((f) => ({ ...f, name: e.target.value }))} />
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="text-xs font-medium text-navy-400">Horas al instalar</span>
+                                  <HelpHint title="Reloj de uso del componente">
+                                    Horas que llevaba la aeronave cuando se instaló. Las horas de uso se cuentan desde aquí; cámbialo solo para corregir.
+                                  </HelpHint>
+                                </div>
+                                <Field type="number" step="0.1" min="0" value={componentEditForm.installedAtAircraftHours} onChange={(e) => setComponentEditForm((f) => ({ ...f, installedAtAircraftHours: e.target.value }))} />
+                              </div>
+                            </div>
+                            <Button type="button" onClick={() => handleSaveComponentEdit(c.id)} disabled={busy || !componentEditForm.componentType.trim()} className="mt-1">
+                              <span className="material-symbols-outlined text-base align-middle mr-1">save</span>
+                              {busy ? 'Guardando…' : 'Guardar cambios'}
+                            </Button>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -20,15 +20,42 @@ export async function PATCH(request, { params }) {
     .maybeSingle();
   if (fetchError) return Response.json({ error: 'Error consultando el componente' }, { status: 500 });
   if (!existing) return Response.json({ error: 'Componente no encontrado' }, { status: 404 });
-  if (existing.status === 'retirado') return Response.json({ error: 'Este componente ya está retirado' }, { status: 400 });
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!membershipsCanEdit(memberships, existing.organization_id, 'J4')) {
-    return Response.json({ error: 'Solo un gestor puede retirar o reemplazar componentes' }, { status: 403 });
+    return Response.json({ error: 'Solo un gestor puede editar, retirar o reemplazar componentes' }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));
+
+  // Editar los datos del componente (tipo, serie, nombre y el reloj de uso
+  // `installed_at_aircraft_hours`). Solo cambia los campos enviados. A
+  // diferencia de retirar/reemplazar, se permite también sobre uno retirado
+  // (corregir una serie o un nombre no revive su reloj).
+  if (body.action === 'edit') {
+    const patch = {};
+    if (typeof body.componentType === 'string' && body.componentType.trim()) patch.component_type = body.componentType.trim().slice(0, 120);
+    if (body.serialNumber !== undefined) patch.serial_number = typeof body.serialNumber === 'string' && body.serialNumber.trim() ? body.serialNumber.trim().slice(0, 120) : null;
+    if (body.name !== undefined) patch.name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 150) : null;
+    if (body.installedAtAircraftHours !== undefined && String(body.installedAtAircraftHours).trim() !== '') {
+      const h = Number(body.installedAtAircraftHours);
+      if (!Number.isFinite(h) || h < 0) return Response.json({ error: 'Las horas de la aeronave al instalar deben ser un número de 0 o más' }, { status: 400 });
+      patch.installed_at_aircraft_hours = h;
+    }
+    if (Object.keys(patch).length === 0) return Response.json({ error: 'No hay cambios para guardar' }, { status: 400 });
+    const { data: updated, error: updateError } = await supabase
+      .from('aircraft_components')
+      .update(patch)
+      .eq('id', id)
+      .select('*, aircraft:aircraft_id(serial_number, total_hours, model:model_id(brand, model))')
+      .single();
+    if (updateError) return Response.json({ error: updateError.message }, { status: 500 });
+    return Response.json({ component: updated });
+  }
+
+  if (existing.status === 'retirado') return Response.json({ error: 'Este componente ya está retirado' }, { status: 400 });
+
   const action = body.action === 'replace' ? 'replace' : 'retire';
 
   const { data: aircraft, error: aircraftError } = await supabase.from('aircraft').select('total_hours').eq('id', existing.aircraft_id).single();

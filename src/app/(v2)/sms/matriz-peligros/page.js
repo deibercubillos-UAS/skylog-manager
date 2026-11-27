@@ -85,6 +85,17 @@ export default function MatrizPeligrosPage() {
     }
   }
 
+  async function handleDeleteHazard(h) {
+    const n = byHazard(h.id).length;
+    const extra = n > 0 ? ` y sus ${n} control${n === 1 ? '' : 'es'} (con avances y evidencias)` : '';
+    if (!confirm(`¿Eliminar el peligro "${h.description.slice(0, 80)}"${extra}? También se borra su evaluación de riesgo. No se puede deshacer.`)) return;
+    const res = await fetch(`/api/sms/hazards/${h.id}`, { method: 'DELETE' });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) return setError(d.error || 'No se pudo eliminar el peligro');
+    if (expandedId && byHazard(h.id).some((c) => c.id === expandedId)) setExpandedId(null);
+    loadData(organizationId);
+  }
+
   async function handleDeleteControl(control) {
     if (!confirm('¿Eliminar este control y todos sus avances?')) return;
     const res = await fetch(`/api/sms/hazard-controls/${control.id}`, { method: 'DELETE' });
@@ -198,17 +209,22 @@ export default function MatrizPeligrosPage() {
                     </div>
                   </div>
                   {isManager && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPresetHazardId(h.id);
-                        setShowControlForm(true);
-                      }}
-                      className="shrink-0 text-xs font-bold text-primary-700 hover:text-primary-800 flex items-center gap-1 whitespace-nowrap"
-                    >
-                      <span className="material-symbols-outlined text-base">add</span>
-                      Control
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPresetHazardId(h.id);
+                          setShowControlForm(true);
+                        }}
+                        className="text-xs font-bold text-primary-700 hover:text-primary-800 flex items-center gap-1 whitespace-nowrap"
+                      >
+                        <span className="material-symbols-outlined text-base">add</span>
+                        Control
+                      </button>
+                      <button type="button" onClick={() => handleDeleteHazard(h)} className="w-7 h-7 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50" aria-label="Eliminar peligro">
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    </div>
                   )}
                 </div>
 

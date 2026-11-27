@@ -548,16 +548,16 @@ export default function FlotaPage() {
                       {isEditing && (
                         <tr>
                           <td colSpan={6} className="px-6 py-4 bg-navy-50/30">
-                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-x-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
                               <Field label="Número de serie" value={editForm.serialNumber} onChange={(e) => setEditForm((f) => ({ ...f, serialNumber: e.target.value }))} />
                               <Field label="N.º RUAS" value={editForm.ruasNumber} onChange={(e) => setEditForm((f) => ({ ...f, ruasNumber: e.target.value }))} />
                               <Field label="Firmware" value={editForm.firmwareVersion} onChange={(e) => setEditForm((f) => ({ ...f, firmwareVersion: e.target.value }))} />
                               <Field type="number" step="any" min="0" label="Peso real (kg)" value={editForm.actualWeightKg} onChange={(e) => setEditForm((f) => ({ ...f, actualWeightKg: e.target.value }))} />
-                              <Field as="select" label="Estado" value={editForm.operationalStatus} onChange={(e) => setEditForm((f) => ({ ...f, operationalStatus: e.target.value }))}>
+                              <IconSelectField icon="flag" label="Estado" value={editForm.operationalStatus} onChange={(e) => setEditForm((f) => ({ ...f, operationalStatus: e.target.value }))}>
                                 {STATUSES.map((s) => (
                                   <option key={s.key} value={s.key}>{s.label}</option>
                                 ))}
-                              </Field>
+                              </IconSelectField>
                             </div>
 
                             <div className="mt-1 mb-2">
@@ -566,12 +566,12 @@ export default function FlotaPage() {
 
                             <p className="text-xs font-black uppercase text-navy-300 tracking-widest mt-2 mb-2">Documento de propiedad — 100.535(1)</p>
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-x-4 items-end">
-                              <Field as="select" label="Tipo de tenencia" value={editForm.ownershipType} onChange={(e) => setEditForm((f) => ({ ...f, ownershipType: e.target.value }))}>
+                              <IconSelectField icon="assignment" label="Tipo de tenencia" value={editForm.ownershipType} onChange={(e) => setEditForm((f) => ({ ...f, ownershipType: e.target.value }))}>
                                 <option value="">Sin especificar</option>
                                 {OWNERSHIP_TYPES.map((t) => (
                                   <option key={t.key} value={t.key}>{t.label}</option>
                                 ))}
-                              </Field>
+                              </IconSelectField>
                               <Field
                                 label="Referencia (contrato, factura…)"
                                 value={editForm.ownershipReference}

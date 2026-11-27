@@ -9,9 +9,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ObjectiveFormPanel from './_ObjectiveFormPanel';
+import PolicyPanel from './_PolicyPanel';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const TABS = [
+  { key: 'objetivos', label: 'Objetivos', icon: 'flag' },
+  { key: 'politicas', label: 'Políticas', icon: 'gavel' },
+];
 
 export default function SmsObjetivosPage() {
   const [context, setContext] = useState(null);
@@ -22,9 +27,11 @@ export default function SmsObjetivosPage() {
   const [indicators, setIndicators] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [tab, setTab] = useState('objetivos');
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['O2'] === 'edit';
+  const isPolicyManager = currentOrg?.permissions?.['V3'] === 'edit';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -87,9 +94,10 @@ export default function SmsObjetivosPage() {
     <div className="space-y-6">
       <SectionHero
         eyebrow="SMS"
-        title="Objetivos SMS"
-        description="Balanced Scorecard — política, objetivos e indicadores vinculados, no listas sueltas (MAUT-5.0-22-017 §7.3.5.1)."
+        title="Objetivos y Políticas"
+        description="Balanced Scorecard — la política declara los objetivos y los KPI (indicadores SPI) los miden; no son listas sueltas (MAUT-5.0-22-017 §7.3.5.1)."
         cta={
+          tab === 'objetivos' &&
           isManager && (
             <Button
               onClick={() => {
@@ -106,10 +114,30 @@ export default function SmsObjetivosPage() {
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
+      <div className="flex gap-1 p-1 bg-navy-50 rounded-xl w-fit">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              tab === t.key ? 'bg-white text-primary-700 shadow-sm' : 'text-navy-400 hover:text-navy-600'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'politicas' ? (
+        <PolicyPanel organizationId={organizationId} isManager={isPolicyManager} fullName={context.fullName} />
+      ) : (
+      <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard icon="flag" color="primary" label="Objetivos activos" value={objectives.filter((o) => o.status === 'activo').length} />
-        <StatCard icon="link" color="blue" label="Con indicador vinculado" value={withIndicators} />
-        <StatCard icon="monitoring" color="violet" label="Indicadores disponibles" value={indicators.length} />
+        <StatCard icon="flag" label="Objetivos activos" value={objectives.filter((o) => o.status === 'activo').length} />
+        <StatCard icon="link" label="Con KPI vinculado" value={withIndicators} />
+        <StatCard icon="monitoring" label="KPI disponibles" value={indicators.length} />
       </div>
 
       <div className="space-y-3">
@@ -119,7 +147,7 @@ export default function SmsObjetivosPage() {
               <span className="material-symbols-outlined text-2xl">flag</span>
             </span>
             <p className="text-sm font-semibold text-navy">Sin objetivos SMS todavía</p>
-            {isManager && <p className="text-xs text-navy-400">Declara el primer objetivo y vincúlalo a uno o más indicadores SPI.</p>}
+            {isManager && <p className="text-xs text-navy-400">Declara el primer objetivo y vincúlalo a uno o más KPI (indicadores SPI).</p>}
           </div>
         ) : (
           objectives.map((o) => (
@@ -160,7 +188,7 @@ export default function SmsObjetivosPage() {
 
               <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-navy-50">
                 {o.indicators.length === 0 ? (
-                  <p className="text-xs text-navy-300">Sin indicador vinculado todavía.</p>
+                  <p className="text-xs text-navy-300">Sin KPI vinculado todavía.</p>
                 ) : (
                   o.indicators.map((ind) => (
                     <span key={ind.id} className="flex items-center gap-1.5 text-xs font-medium text-navy-600 bg-navy-50 rounded-full px-2.5 py-1.5">
@@ -183,6 +211,8 @@ export default function SmsObjetivosPage() {
       </div>
 
       <ObjectiveFormPanel open={showForm} onClose={() => setShowForm(false)} organizationId={organizationId} objective={editTarget} indicators={indicators} onSaved={() => loadAll(organizationId)} />
+      </>
+      )}
     </div>
   );
 }

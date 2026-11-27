@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/mission-reminders",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/free-grants",
       "schedule": "30 13 * * *"
     },

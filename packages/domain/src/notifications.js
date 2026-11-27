@@ -3,6 +3,7 @@
 
 export const NOTIFICATION_TYPES = {
   mision_programada: { label: 'Misión programada', icon: 'event_available' },
+  mision_recordatorio: { label: 'Recordatorio de vuelo', icon: 'alarm_on' },
   manual_publicado: { label: 'Manual publicado', icon: 'library_books' },
   miembro_nuevo: { label: 'Nuevo miembro', icon: 'person_add' },
   sms_reporte: { label: 'Reporte SMS', icon: 'report' },

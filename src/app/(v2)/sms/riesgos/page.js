@@ -368,6 +368,177 @@ function BarriersPanel({ organizationId, isManager, barriers, onCreated }) {
   );
 }
 
+// Enlace de las listas de chequeo con el nivel de riesgo (FRAT): peso por paso
+// + dos umbrales total→zona. La ejecución (puntaje por vuelo) ocurre en Despacho.
+function ChecklistRiskPanel({ organizationId, isManager }) {
+  const [checklists, setChecklists] = useState([]);
+  const [weights, setWeights] = useState({}); // `${checklistId}:${position}` -> weight
+  const [config, setConfig] = useState(null);
+  const [tol, setTol] = useState('1');
+  const [ina, setIna] = useState('3');
+  const [open, setOpen] = useState(false);
+  const [savingThr, setSavingThr] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    const [cardRes, listsRes] = await Promise.all([
+      fetch(`/api/sms/risk-card?organizationId=${organizationId}`),
+      fetch(`/api/checklists?organizationId=${organizationId}`),
+    ]);
+    const card = await cardRes.json();
+    const lists = await listsRes.json();
+    if (cardRes.ok) {
+      setConfig(card.config);
+      if (card.config) {
+        setTol(String(card.config.tolerable_threshold));
+        setIna(String(card.config.inaceptable_threshold));
+      }
+      const m = {};
+      (card.weights || []).forEach((w) => { m[`${w.checklist_id}:${w.position}`] = w.weight; });
+      setWeights(m);
+    } else setError(card.error);
+    if (listsRes.ok) setChecklists(lists.checklists || []);
+  }, [organizationId]);
+
+  useEffect(() => { load().catch((e) => setError(e.message)); }, [load]);
+
+  const stepText = (s) => (typeof s === 'string' ? s : s?.text || String(s));
+  const maxTotal = Object.values(weights).reduce((a, b) => a + (b > 0 ? b : 0), 0);
+  const weightedCount = Object.keys(weights).length;
+  const tolN = Number(tol);
+  const inaN = Number(ina);
+
+  async function saveThresholds() {
+    setSavingThr(true); setError(null);
+    try {
+      const res = await fetch('/api/sms/risk-card', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId, tolerableThreshold: tolN, inaceptableThreshold: inaN }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Error guardando los umbrales');
+      setConfig(d.config);
+    } catch (e) { setError(e.message); } finally { setSavingThr(false); }
+  }
+
+  async function saveWeight(checklistId, position, value) {
+    const w = String(value).trim() === '' ? 0 : Number(value);
+    if (!Number.isInteger(w) || w < 0) return;
+    const key = `${checklistId}:${position}`;
+    if ((weights[key] || 0) === w) return;
+    setWeights((m) => { const n = { ...m }; if (w > 0) n[key] = w; else delete n[key]; return n; }); // optimista
+    const res = await fetch('/api/sms/risk-card/weights', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organizationId, checklistId, position, weight: w }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'No se pudo guardar el peso'); load(); }
+  }
+
+  const thresholdsValid = Number.isInteger(tolN) && tolN >= 0 && Number.isInteger(inaN) && inaN > tolN;
+
+  return (
+    <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-sky-50 to-white overflow-hidden">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3 px-5 py-4 border-b border-navy-50 text-left">
+        <span className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-sm bg-sky-500 text-white">
+          <span className="material-symbols-outlined text-xl">rule</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-navy">Enlace con listas de chequeo</p>
+          <p className="text-xs text-navy-400">Asigna un peso a cada paso; al despachar, las respuestas «no» suman y el total define la zona y el GO/NO-GO.</p>
+        </div>
+        <span className="material-symbols-outlined text-navy-300">{open ? 'expand_less' : 'expand_more'}</span>
+      </button>
+
+      {open && (
+        <div className="p-5 bg-white/60 space-y-5">
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+
+          {/* Umbrales + mapa de zonas */}
+          <div className="rounded-xl border border-navy-100 bg-white p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-navy-400 mb-2">Umbrales del puntaje</p>
+            {isManager ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="text-xs text-navy-500">
+                  Tolerable desde
+                  <input type="number" min="0" value={tol} onChange={(e) => setTol(e.target.value)} className="mt-1 block w-24 text-sm border border-navy-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </label>
+                <label className="text-xs text-navy-500">
+                  Inaceptable desde
+                  <input type="number" min="1" value={ina} onChange={(e) => setIna(e.target.value)} className="mt-1 block w-24 text-sm border border-navy-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </label>
+                <Button onClick={saveThresholds} disabled={savingThr || !thresholdsValid} className="text-sm">
+                  {savingThr ? 'Guardando…' : 'Guardar umbrales'}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-navy-600">Tolerable desde <b>{config?.tolerable_threshold ?? '—'}</b> · Inaceptable desde <b>{config?.inaceptable_threshold ?? '—'}</b></p>
+            )}
+            {thresholdsValid && (
+              <div className="flex flex-wrap gap-1.5 mt-3 text-[11px] font-semibold">
+                <span className={`rounded-full px-2 py-0.5 ${zoneMeta('aceptable').color}`}>Aceptable: 0–{tolN - 1}</span>
+                <span className={`rounded-full px-2 py-0.5 ${zoneMeta('tolerable').color}`}>Tolerable: {tolN}–{inaN - 1}</span>
+                <span className={`rounded-full px-2 py-0.5 ${zoneMeta('inaceptable').color}`}>Inaceptable: ≥ {inaN}</span>
+                <span className="rounded-full px-2 py-0.5 bg-navy-100 text-navy-500">Puntaje máximo posible: {maxTotal}</span>
+              </div>
+            )}
+            {thresholdsValid && maxTotal > 0 && maxTotal < inaN && (
+              <p className="text-[11px] text-amber-600 mt-2">El puntaje máximo posible ({maxTotal}) no alcanza el umbral inaceptable ({inaN}): ninguna combinación llegaría a NO-GO.</p>
+            )}
+          </div>
+
+          {/* Pesos por lista */}
+          {checklists.length === 0 ? (
+            <p className="text-xs text-navy-400">No hay listas de chequeo. Créalas en <a className="underline" href="/listas-de-chequeo">Listas de chequeo</a> y vuelve para asignarles peso.</p>
+          ) : (
+            <div className="space-y-3">
+              {!isManager && <p className="text-[11px] text-navy-400">Solo un gestor puede editar los pesos.</p>}
+              {checklists.map((cl) => {
+                const steps = Array.isArray(cl.steps) ? cl.steps : [];
+                return (
+                  <div key={cl.id} className="rounded-xl border border-navy-100 bg-white overflow-hidden">
+                    <div className="px-4 py-2.5 bg-navy-50/40 border-b border-navy-50 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-navy-400">{cl.icon || 'checklist'}</span>
+                      <p className="text-sm font-semibold text-navy">{cl.name}</p>
+                      <span className="text-[11px] text-navy-400">· {cl.category}</span>
+                    </div>
+                    {steps.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-navy-300">Esta lista no tiene pasos.</p>
+                    ) : (
+                      <ul className="divide-y divide-navy-50">
+                        {steps.map((s, i) => {
+                          const key = `${cl.id}:${i}`;
+                          const wv = weights[key] || 0;
+                          return (
+                            <li key={i} className="px-4 py-2 flex items-center gap-3">
+                              <span className="text-sm text-navy-700 min-w-0 flex-1">{i + 1}. {stepText(s)}</span>
+                              {isManager ? (
+                                <input
+                                  type="number" min="0" defaultValue={wv || ''} placeholder="0"
+                                  onBlur={(e) => saveWeight(cl.id, i, e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                  className="w-16 shrink-0 text-sm text-center border border-navy-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                                  aria-label={`Peso del paso ${i + 1}`}
+                                />
+                              ) : (
+                                <span className={`shrink-0 text-[11px] font-bold rounded-full px-2 py-0.5 ${wv > 0 ? 'bg-primary-50 text-primary-700' : 'text-navy-300'}`}>{wv > 0 ? `+${wv}` : '—'}</span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+              <p className="text-[11px] text-navy-400">{weightedCount} paso(s) con peso · el peso suma al puntaje cuando el piloto responde «no» en el despacho.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HazardRow({ hazard, matrix, isManager, barriers, onEvaluated, onDeleted }) {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState({ probabilityCode: '', severityCode: '', mitigation: '', residualProbabilityCode: '', residualSeverityCode: '' });
@@ -637,6 +808,7 @@ export default function RiesgosPage() {
 
       <RiskMatrixPanel organizationId={organizationId} isManager={isManager} />
       <BarriersPanel organizationId={organizationId} isManager={isManager} barriers={barriers} onCreated={() => loadBarriers(organizationId)} />
+      <ChecklistRiskPanel organizationId={organizationId} isManager={isManager} />
 
       <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-violet-50 to-white overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-navy-50">

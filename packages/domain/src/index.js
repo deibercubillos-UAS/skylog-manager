@@ -27,6 +27,7 @@ export * from './workspaces.js';
 export * from './insuranceCoverage.js';
 export * from './retentionPolicy.js';
 export * from './dispatchRules.js';
+export * from './riskCard.js';
 export * from './flightLimits.js';
 export * from './colombianCalendar.js';
 export * from './smsTracking.js';

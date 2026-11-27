@@ -40,32 +40,32 @@ function hoursState(m) {
   return { fill: 'bg-emerald-400', text: 'text-navy-700' };
 }
 
-// Gráfica sobria de horas de vuelo del mes por piloto contra el límite mensual
-// (§100.540(c)(1)). Barras horizontales en HTML/CSS (sin dependencia de librería,
-// igual que el resto de gráficas del proyecto, hechas a mano). La marca del límite
-// solo aparece si alguien lo supera, para no duplicar el fin de la pista.
-function MonthlyHoursChart({ summary }) {
-  const rows = (summary || [])
-    .map((s) => ({ name: s.fullName, role: s.role, m: s.compliance?.checks?.monthlyFlight }))
-    .filter((r) => r.m && r.m.hours != null)
-    .sort((a, b) => b.m.hours - a.m.hours);
-  if (rows.length === 0) return null;
-  const limit = rows[0].m.limit || 90;
-  const maxHours = Math.max(limit, ...rows.map((r) => r.m.hours));
-  const exceeded = maxHours > limit;
-  const scaleMax = exceeded ? maxHours * 1.02 : limit;
-  const limitPct = (limit / scaleMax) * 100;
+// Gráfica sobria de horas de vuelo por piloto contra su límite de §100.540.
+// Barras horizontales en HTML/CSS (sin dependencia de librería, igual que el
+// resto de gráficas del proyecto, hechas a mano). Sirve para el límite mensual
+// (uno solo para todos: la marca del límite solo aparece si alguien lo supera,
+// para no duplicar el fin de la pista) y para el diario (cada piloto trae su
+// propio límite según el tipo de visión — 6 h BVLOS / 8 h VLOS-EVLOS —, así que
+// la marca se dibuja por barra). `rows`: [{ name, role, hours, limit, compliant, warning? }].
+function HoursBarChart({ title, limitLabel, legend, rows, perBarLimit = false }) {
+  if (!rows || rows.length === 0) return null;
+  const maxLimit = Math.max(...rows.map((r) => r.limit || 0));
+  const maxHours = Math.max(...rows.map((r) => r.hours));
+  const exceeded = rows.some((r) => r.hours > r.limit);
+  const scaleMax = (exceeded ? Math.max(maxLimit, maxHours) * 1.02 : maxLimit) || 1;
 
   return (
     <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Horas de vuelo del mes por piloto</h3>
-        <span className="text-[11px] font-semibold text-navy-400">Límite §100.540(c)(1): {limit} h/mes</span>
+        <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">{title}</h3>
+        <span className="text-[11px] font-semibold text-navy-400">{limitLabel}</span>
       </div>
       <div className="p-5 space-y-3.5">
         {rows.map((r) => {
-          const st = hoursState(r.m);
-          const pct = Math.max((r.m.hours / scaleMax) * 100, r.m.hours > 0 ? 1.5 : 0);
+          const st = hoursState(r);
+          const pct = Math.max((r.hours / scaleMax) * 100, r.hours > 0 ? 1.5 : 0);
+          const showMarker = perBarLimit || exceeded;
+          const limitPct = Math.min((r.limit / scaleMax) * 100, 100);
           return (
             <div key={r.name}>
               <div className="flex items-baseline justify-between gap-2 mb-1">
@@ -73,24 +73,47 @@ function MonthlyHoursChart({ summary }) {
                   {r.name} <span className="text-navy-300 font-medium">({r.role})</span>
                 </span>
                 <span className={`text-[11px] font-black tabular-nums shrink-0 ${st.text}`}>
-                  {r.m.hours.toFixed(1)}h<span className="text-navy-300 font-semibold"> / {limit}h</span>
+                  {r.hours.toFixed(1)}h<span className="text-navy-300 font-semibold"> / {r.limit}h</span>
                 </span>
               </div>
               <div className="relative h-2.5 rounded-full bg-navy-100">
                 <div className={`absolute inset-y-0 left-0 rounded-full ${st.fill}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                {exceeded && <div className="absolute inset-y-[-2px] w-px bg-navy-400/70" style={{ left: `${limitPct}%` }} aria-hidden="true" />}
+                {showMarker && <div className="absolute inset-y-[-2px] w-px bg-navy-400/70" style={{ left: `${limitPct}%` }} aria-hidden="true" />}
               </div>
             </div>
           );
         })}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[10px] font-semibold text-navy-400">
-          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-400" />Con holgura</span>
-          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-400" />Cerca del límite (≥80%)</span>
-          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-red-400" />Excede el límite</span>
+          {legend.map((l) => (
+            <span key={l.label} className="flex items-center gap-1.5">
+              <span className={`size-2 rounded-full ${l.dot}`} />
+              {l.label}
+            </span>
+          ))}
         </div>
       </div>
     </div>
   );
+}
+
+const MONTHLY_LEGEND = [
+  { dot: 'bg-emerald-400', label: 'Con holgura' },
+  { dot: 'bg-amber-400', label: 'Cerca del límite (≥80%)' },
+  { dot: 'bg-red-400', label: 'Excede el límite' },
+];
+const DAILY_LEGEND = [
+  { dot: 'bg-emerald-400', label: 'Dentro del límite' },
+  { dot: 'bg-red-400', label: 'Excede el límite' },
+];
+
+// Filas de una gráfica a partir del resumen de la empresa. `key` es el chequeo
+// (monthlyFlight / dailyFlight); el diario solo incluye a quien ya voló hoy
+// (horas > 0), para no llenar la gráfica de barras en cero.
+function chartRows(summary, key) {
+  return (summary || [])
+    .map((s) => ({ name: s.fullName, role: s.role, ...(s.compliance?.checks?.[key] || {}) }))
+    .filter((r) => r.hours != null && (key === 'dailyFlight' ? r.hours > 0 : true))
+    .sort((a, b) => b.hours - a.hours);
 }
 
 export default function DutyOverviewPage() {
@@ -291,7 +314,20 @@ export default function DutyOverviewPage() {
             <StatCard icon="warning" alert={alertCount > 0} label="Con alerta" value={alertCount} />
           </div>
 
-          <MonthlyHoursChart summary={summary} />
+          <HoursBarChart
+            title="Horas de vuelo del mes por piloto"
+            limitLabel="Límite §100.540(c)(1): 90 h/mes"
+            legend={MONTHLY_LEGEND}
+            rows={chartRows(summary, 'monthlyFlight')}
+          />
+
+          <HoursBarChart
+            title="Horas de vuelo de hoy por piloto"
+            limitLabel="Límite §100.540(d)(1): 6 h BVLOS · 8 h VLOS/EVLOS"
+            legend={DAILY_LEGEND}
+            rows={chartRows(summary, 'dailyFlight')}
+            perBarLimit
+          />
 
           <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
             <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30">

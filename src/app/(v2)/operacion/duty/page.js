@@ -14,6 +14,7 @@ import { useEffect, useState, useCallback } from 'react';
 import BrandLoader from '@/components/BrandLoader';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
+import IconSelectField from '../../_components/IconSelectField';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const TYPE_LABELS = {
@@ -29,6 +30,68 @@ const CHECK_LABELS = {
   continuousOperation: '§100.540(e) — operación continua',
   rest: '§100.540(f) — descanso post-servicio',
 };
+
+// Estado de una barra según el cumplimiento que ya calculó el dominio: excede el
+// límite (rojo), cerca del límite ≥80% (ámbar, el mismo `warning` de dutyCompliance)
+// o con holgura (verde). No recalcula nada, solo traduce a color.
+function hoursState(m) {
+  if (m?.compliant === false) return { fill: 'bg-red-400', text: 'text-red-600' };
+  if (m?.warning) return { fill: 'bg-amber-400', text: 'text-amber-600' };
+  return { fill: 'bg-emerald-400', text: 'text-navy-700' };
+}
+
+// Gráfica sobria de horas de vuelo del mes por piloto contra el límite mensual
+// (§100.540(c)(1)). Barras horizontales en HTML/CSS (sin dependencia de librería,
+// igual que el resto de gráficas del proyecto, hechas a mano). La marca del límite
+// solo aparece si alguien lo supera, para no duplicar el fin de la pista.
+function MonthlyHoursChart({ summary }) {
+  const rows = (summary || [])
+    .map((s) => ({ name: s.fullName, role: s.role, m: s.compliance?.checks?.monthlyFlight }))
+    .filter((r) => r.m && r.m.hours != null)
+    .sort((a, b) => b.m.hours - a.m.hours);
+  if (rows.length === 0) return null;
+  const limit = rows[0].m.limit || 90;
+  const maxHours = Math.max(limit, ...rows.map((r) => r.m.hours));
+  const exceeded = maxHours > limit;
+  const scaleMax = exceeded ? maxHours * 1.02 : limit;
+  const limitPct = (limit / scaleMax) * 100;
+
+  return (
+    <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+      <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Horas de vuelo del mes por piloto</h3>
+        <span className="text-[11px] font-semibold text-navy-400">Límite §100.540(c)(1): {limit} h/mes</span>
+      </div>
+      <div className="p-5 space-y-3.5">
+        {rows.map((r) => {
+          const st = hoursState(r.m);
+          const pct = Math.max((r.m.hours / scaleMax) * 100, r.m.hours > 0 ? 1.5 : 0);
+          return (
+            <div key={r.name}>
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <span className="text-xs font-bold text-navy truncate">
+                  {r.name} <span className="text-navy-300 font-medium">({r.role})</span>
+                </span>
+                <span className={`text-[11px] font-black tabular-nums shrink-0 ${st.text}`}>
+                  {r.m.hours.toFixed(1)}h<span className="text-navy-300 font-semibold"> / {limit}h</span>
+                </span>
+              </div>
+              <div className="relative h-2.5 rounded-full bg-navy-100">
+                <div className={`absolute inset-y-0 left-0 rounded-full ${st.fill}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                {exceeded && <div className="absolute inset-y-[-2px] w-px bg-navy-400/70" style={{ left: `${limitPct}%` }} aria-hidden="true" />}
+              </div>
+            </div>
+          );
+        })}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[10px] font-semibold text-navy-400">
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-400" />Con holgura</span>
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-400" />Cerca del límite (≥80%)</span>
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-red-400" />Excede el límite</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DutyOverviewPage() {
   const [context, setContext] = useState(null);
@@ -207,16 +270,14 @@ export default function DutyOverviewPage() {
 
       {canSee && (
         <div className="bg-white rounded-2xl border border-navy-100 p-4 flex flex-wrap gap-4">
-          {canSee && (
-            <Field as="select" label="Piloto" value={pilotFilter} onChange={(e) => setPilotFilter(e.target.value)} className="mb-0">
-              <option value="">Toda la empresa</option>
-              {(summary || []).map((s) => (
-                <option key={s.personId} value={s.personId}>
-                  {s.fullName}
-                </option>
-              ))}
-            </Field>
-          )}
+          <IconSelectField icon="person" label="Piloto" value={pilotFilter} onChange={(e) => setPilotFilter(e.target.value)} className="mb-0">
+            <option value="">Toda la empresa</option>
+            {(summary || []).map((s) => (
+              <option key={s.personId} value={s.personId}>
+                {s.fullName}
+              </option>
+            ))}
+          </IconSelectField>
         </div>
       )}
 
@@ -225,10 +286,12 @@ export default function DutyOverviewPage() {
       {canSee && !pilotFilter ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <StatCard icon="groups" color="primary" label="Pilotos monitoreados" value={summary?.length ?? '—'} />
-            <StatCard icon="verified" color="emerald" label="En cumplimiento" value={summary ? summary.filter((s) => !s.compliance?.blocksDispatch).length : '—'} />
-            <StatCard icon="warning" color={alertCount > 0 ? 'red' : 'emerald'} label="Con alerta" value={alertCount} />
+            <StatCard icon="groups" label="Pilotos monitoreados" value={summary?.length ?? '—'} />
+            <StatCard icon="verified" label="En cumplimiento" value={summary ? summary.filter((s) => !s.compliance?.blocksDispatch).length : '—'} />
+            <StatCard icon="warning" alert={alertCount > 0} label="Con alerta" value={alertCount} />
           </div>
+
+          <MonthlyHoursChart summary={summary} />
 
           <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
             <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30">
@@ -309,27 +372,27 @@ export default function DutyOverviewPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <StatCard
                 icon="event_repeat"
-                color={checks.monthlyFlight?.compliant ? 'emerald' : 'red'}
+                alert={checks.monthlyFlight?.compliant === false}
                 label={CHECK_LABELS.monthlyFlight}
                 value={checks.monthlyFlight?.hours != null ? `${checks.monthlyFlight.hours.toFixed(1)}h / ${checks.monthlyFlight.limit}h` : '—'}
                 sub={checks.monthlyFlight?.compliant ? 'Cumple' : 'Excede'}
               />
               <StatCard
                 icon="today"
-                color={checks.dailyFlight?.compliant ? 'emerald' : 'red'}
+                alert={checks.dailyFlight?.compliant === false}
                 label={CHECK_LABELS.dailyFlight}
                 value={checks.dailyFlight?.hours != null ? `${checks.dailyFlight.hours.toFixed(1)}h / ${checks.dailyFlight.limit}h` : '—'}
                 sub={checks.dailyFlight?.compliant ? 'Cumple' : 'Excede'}
               />
               <StatCard
                 icon="hourglass_top"
-                color={checks.continuousOperation?.compliant ? 'emerald' : 'red'}
+                alert={checks.continuousOperation?.compliant === false}
                 label={CHECK_LABELS.continuousOperation}
                 value={checks.continuousOperation?.compliant ? 'Sin novedad' : 'Revisar'}
               />
               <StatCard
                 icon="bedtime"
-                color={checks.rest?.compliant ? 'emerald' : 'red'}
+                alert={checks.rest?.compliant === false}
                 label={CHECK_LABELS.rest}
                 value={checks.rest?.compliant ? 'Sin novedad' : 'Revisar'}
               />
@@ -399,14 +462,14 @@ export default function DutyOverviewPage() {
           </p>
           <p className="text-xs text-navy-400 mb-4">§100.535(12) — las horas se calculan del sistema, no se capturan a mano.</p>
           <form onSubmit={certifyPilot} className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 items-end">
-            <Field as="select" label="Persona a certificar" value={certForm.targetPersonId} onChange={(e) => setCertForm((f) => ({ ...f, targetPersonId: e.target.value }))} required>
+            <IconSelectField icon="person" label="Persona a certificar" value={certForm.targetPersonId} onChange={(e) => setCertForm((f) => ({ ...f, targetPersonId: e.target.value }))} required>
               <option value="">Selecciona…</option>
               {(roster || summary || []).map((r) => (
                 <option key={r.personId} value={r.personId}>
                   {r.fullName}
                 </option>
               ))}
-            </Field>
+            </IconSelectField>
             <Field
               label="Año"
               type="number"

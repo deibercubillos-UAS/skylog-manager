@@ -16,6 +16,7 @@ import PersonAdditions from '../../_components/PersonAdditions';
 import dynamic from 'next/dynamic';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
+import IconSelectField from '../../_components/IconSelectField';
 import { GEO_TYPES, getZoneSummary } from '@/lib/flightPlanDocs';
 import { parseKmzOrKml } from '@/lib/v2/kmzImport';
 import { downloadMissionPdf, downloadMissionKmz } from '@/lib/v2/missionDocs';
@@ -80,30 +81,6 @@ function addDays(date, n) {
 
 function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// Select con ícono guía y chevron propios (mismo lenguaje que los filtros/selectores
-// de Bitácora), con el ancho y la altura de campo del formulario. Reemplaza los
-// <Field as="select"> planos de Nueva misión para que PIC, observador y aeronave se
-// vean como controles reales y no como campos planos.
-function IconSelectField({ icon, label, value, onChange, required, children }) {
-  return (
-    <label className="block mb-3">
-      {label && <span className="block text-xs font-medium text-navy-400 mb-1">{label}</span>}
-      <div className="relative">
-        <span className="material-symbols-outlined pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-navy-300">{icon}</span>
-        <select
-          value={value}
-          onChange={onChange}
-          required={required}
-          className="block w-full appearance-none bg-white min-h-[44px] md:min-h-0 pl-9 pr-9 py-2 rounded-lg border border-navy-200 text-base md:text-sm text-navy-700 focus:outline-none focus:ring-2 focus:ring-primary-300"
-        >
-          {children}
-        </select>
-        <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-navy-400">expand_more</span>
-      </div>
-    </label>
-  );
 }
 
 export default function ProgramacionPage() {

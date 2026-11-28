@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import IconSelectField from '../../_components/IconSelectField';
 import DocumentSlot from '../../_components/DocumentSlot';
+import AvanceEvidence from './_AvanceEvidence';
 import { Button } from '@skylog/ui';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
@@ -45,9 +46,13 @@ export default function MatrizPeligrosPage() {
   const [hazardBusy, setHazardBusy] = useState(false);
   const [hazardError, setHazardError] = useState(null);
 
+  const [roster, setRoster] = useState([]);
+
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const canView = (currentOrg?.permissions?.['P1'] || 'none') !== 'none';
   const isManager = currentOrg?.permissions?.['P2'] === 'edit';
+  // K1: sin permiso de ver la tripulación no se pide el roster (la asistencia admite invitados por nombre igual).
+  const canViewRoster = (currentOrg?.permissions?.['K1'] || 'none') !== 'none';
 
   const loadData = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -79,6 +84,14 @@ export default function MatrizPeligrosPage() {
   useEffect(() => {
     if (organizationId && canView) loadData(organizationId).catch((e) => setError(e.message));
   }, [organizationId, canView, loadData]);
+
+  useEffect(() => {
+    if (!organizationId || !canViewRoster) return;
+    fetch(`/api/flota/roster?organizationId=${organizationId}`)
+      .then((r) => (r.ok ? r.json() : { roster: [] }))
+      .then((d) => setRoster(d.roster || []))
+      .catch(() => {});
+  }, [organizationId, canViewRoster]);
 
   function startNewHazard() {
     setEditHazardId(null);
@@ -410,16 +423,26 @@ export default function MatrizPeligrosPage() {
                                     </div>
                                   </div>
                                   <p className="text-[11px] text-navy-400 mt-1">{new Date(u.created_at).toLocaleDateString('es-CO')}</p>
-                                  <div className="mt-2">
-                                    <DocumentSlot
-                                      label="Evidencia"
-                                      endpoint={`/api/sms/control-updates/${u.id}/evidence`}
-                                      has={u.has_evidence}
-                                      canUpload={isManager}
-                                      canView
-                                      onChanged={() => loadData(organizationId)}
-                                    />
-                                  </div>
+                                  {u.has_evidence && (
+                                    <div className="mt-2">
+                                      <DocumentSlot
+                                        label="Evidencia (anterior)"
+                                        endpoint={`/api/sms/control-updates/${u.id}/evidence`}
+                                        has={u.has_evidence}
+                                        canUpload={false}
+                                        canView
+                                        onChanged={() => loadData(organizationId)}
+                                      />
+                                    </div>
+                                  )}
+                                  <AvanceEvidence
+                                    update={u}
+                                    isManager={isManager}
+                                    roster={roster}
+                                    orgName={currentOrg?.name}
+                                    nit={currentOrg?.nit}
+                                    logoUrl={currentOrg?.logoUrl}
+                                  />
                                 </div>
                               ))}
 
@@ -451,7 +474,7 @@ export default function MatrizPeligrosPage() {
                                       {busy ? 'Guardando…' : 'Agregar avance'}
                                     </Button>
                                   </div>
-                                  <p className="text-[11px] text-navy-400">Tras agregar el avance podrás adjuntar la evidencia (PDF o imagen) en su tarjeta.</p>
+                                  <p className="text-[11px] text-navy-400">Tras agregar el avance podrás adjuntar fotos, documentos/presentaciones y la lista de asistencia (archivo o en línea) en su tarjeta.</p>
                                 </div>
                               )}
                             </div>

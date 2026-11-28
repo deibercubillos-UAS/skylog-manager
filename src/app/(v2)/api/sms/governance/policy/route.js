@@ -46,6 +46,54 @@ export async function POST(request) {
   return Response.json({ policy: data });
 }
 
+export async function PATCH(request) {
+  const supabase = await createClientSSR();
+  const user = await getAuthUser(supabase);
+  if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
+  const { policyId, organizationId } = body;
+  if (!policyId || !organizationId) return Response.json({ error: 'policyId y organizationId son requeridos' }, { status: 400 });
+
+  const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
+  if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+  if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
+  if (!membershipsCanEdit(memberships, organizationId, 'V3')) {
+    return Response.json({ error: 'Solo un gestor puede editar la política SMS' }, { status: 403 });
+  }
+
+  const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+  const updates = {};
+  if (has('policyText')) {
+    const t = String(body.policyText || '').trim();
+    if (!t) return Response.json({ error: 'El texto de la política no puede quedar vacío' }, { status: 400 });
+    updates.policy_text = t;
+  }
+  if (has('scope')) {
+    const s = String(body.scope || '').trim();
+    if (!s) return Response.json({ error: 'El alcance no puede quedar vacío' }, { status: 400 });
+    updates.scope = s;
+  }
+  if (has('effectiveDate') && body.effectiveDate) updates.effective_date = body.effectiveDate;
+  if (has('commitments')) {
+    updates.commitments = Array.isArray(body.commitments)
+      ? body.commitments.map((c) => String(c || '').trim()).filter(Boolean).slice(0, 20).map((c) => c.slice(0, 300))
+      : [];
+  }
+  if (Object.keys(updates).length === 0) return Response.json({ error: 'No hay cambios para guardar' }, { status: 400 });
+
+  const { data, error } = await supabase
+    .from('sms_policies')
+    .update(updates)
+    .eq('id', policyId)
+    .eq('organization_id', organizationId)
+    .select()
+    .single();
+  if (error) return dbError(error, 'sms/governance/policy');
+  if (!data) return Response.json({ error: 'Política no encontrada' }, { status: 404 });
+  return Response.json({ policy: data });
+}
+
 export async function GET(request) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);

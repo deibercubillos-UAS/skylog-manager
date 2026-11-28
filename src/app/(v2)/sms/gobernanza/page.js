@@ -32,6 +32,7 @@ export default function SmsGobernanzaPage() {
   const [showHistory, setShowHistory] = useState(false);
 
   const [policyForm, setPolicyForm] = useState({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true, commitments: [''] });
+  const [editingId, setEditingId] = useState(null); // id de la política que se está editando (null = publicar nueva versión)
   const [policyBusy, setPolicyBusy] = useState(false);
   const [policyError, setPolicyError] = useState(null);
 
@@ -87,19 +88,38 @@ export default function SmsGobernanzaPage() {
     if (organizationId) loadAll(organizationId);
   }, [organizationId, loadAll]);
 
+  function startEdit(policy) {
+    setEditingId(policy.id);
+    setPolicyError(null);
+    setPolicyForm({
+      policyText: policy.policy_text || '',
+      scope: policy.scope || '',
+      effectiveDate: (policy.effective_date || new Date().toISOString().slice(0, 10)).slice(0, 10),
+      sign: !!policy.signed_at,
+      commitments: policy.commitments?.length ? [...policy.commitments] : [''],
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setPolicyError(null);
+    setPolicyForm({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true, commitments: [''] });
+  }
+
   async function handlePolicySubmit(e) {
     e.preventDefault();
     setPolicyBusy(true);
     setPolicyError(null);
     try {
       const res = await fetch('/api/sms/governance/policy', {
-        method: 'POST',
+        method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId, ...policyForm }),
+        body: JSON.stringify(editingId ? { organizationId, policyId: editingId, ...policyForm } : { organizationId, ...policyForm }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error publicando la política');
-      setPolicyForm((f) => ({ ...f, policyText: '', commitments: [''] }));
+      if (!res.ok) throw new Error(data.error || (editingId ? 'Error guardando los cambios' : 'Error publicando la política'));
+      setEditingId(null);
+      setPolicyForm({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true, commitments: [''] });
       await loadAll(organizationId);
     } catch (e) {
       setPolicyError(e.message);
@@ -184,6 +204,12 @@ export default function SmsGobernanzaPage() {
         >
           {currentPolicy && (
             <div className="mb-4 space-y-2">
+              {isManager && editingId !== currentPolicy.id && (
+                <button type="button" onClick={() => startEdit(currentPolicy)} className="float-right inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline">
+                  <span className="material-symbols-outlined text-[15px]">edit</span>
+                  Editar
+                </button>
+              )}
               <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide">Alcance</p>
               <p className="text-sm text-navy">{currentPolicy.scope}</p>
               <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide mt-3">Texto vigente</p>
@@ -220,7 +246,7 @@ export default function SmsGobernanzaPage() {
 
           {isManager ? (
             <form onSubmit={handlePolicySubmit} className="space-y-3 border-t border-navy-50 pt-4">
-              <p className="text-xs font-semibold text-navy-500">{currentPolicy ? 'Publicar nueva versión' : 'Publicar la primera versión'}</p>
+              <p className="text-xs font-semibold text-navy-500">{editingId ? 'Editar la política vigente' : currentPolicy ? 'Publicar nueva versión' : 'Publicar la primera versión'}</p>
               <div>
                 <label className="text-xs font-medium text-navy-400 block mb-1">Alcance</label>
                 <input
@@ -287,14 +313,24 @@ export default function SmsGobernanzaPage() {
                   className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
                 />
               </div>
-              <label className="flex items-center gap-2 text-xs text-navy-500">
-                <input type="checkbox" checked={policyForm.sign} onChange={(e) => setPolicyForm((f) => ({ ...f, sign: e.target.checked }))} />
-                Firmar y publicar ahora (como {context.fullName || 'yo'})
-              </label>
+              {!editingId && (
+                <label className="flex items-center gap-2 text-xs text-navy-500">
+                  <input type="checkbox" checked={policyForm.sign} onChange={(e) => setPolicyForm((f) => ({ ...f, sign: e.target.checked }))} />
+                  Firmar y publicar ahora (como {context.fullName || 'yo'})
+                </label>
+              )}
+              {editingId && <p className="text-[11px] text-navy-400">Editas la versión vigente en sitio (no se crea una versión nueva ni cambia la firma).</p>}
               {policyError && <p className="text-xs text-red-600">{policyError}</p>}
-              <Button type="submit" disabled={policyBusy} className="w-full justify-center">
-                {policyBusy ? 'Guardando…' : currentPolicy ? 'Publicar nueva versión' : 'Publicar política'}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={policyBusy} className="flex-1 justify-center">
+                  {policyBusy ? 'Guardando…' : editingId ? 'Guardar cambios' : currentPolicy ? 'Publicar nueva versión' : 'Publicar política'}
+                </Button>
+                {editingId && (
+                  <Button type="button" variant="secondary" onClick={cancelEdit} disabled={policyBusy} className="justify-center">
+                    Cancelar
+                  </Button>
+                )}
+              </div>
             </form>
           ) : (
             !currentPolicy && <p className="text-xs text-navy-300">Solo un gestor puede publicar la política.</p>

@@ -39,6 +39,10 @@ export default function MatrizPeligrosPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [avance, setAvance] = useState({ note: '', pct: '' });
   const [busy, setBusy] = useState(false);
+  const [showHazardForm, setShowHazardForm] = useState(false);
+  const [hazardForm, setHazardForm] = useState({ description: '', source: '', missionType: '' });
+  const [hazardBusy, setHazardBusy] = useState(false);
+  const [hazardError, setHazardError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const canView = (currentOrg?.permissions?.['P1'] || 'none') !== 'none';
@@ -74,6 +78,33 @@ export default function MatrizPeligrosPage() {
   useEffect(() => {
     if (organizationId && canView) loadData(organizationId).catch((e) => setError(e.message));
   }, [organizationId, canView, loadData]);
+
+  async function handleCreateHazard(e) {
+    e.preventDefault();
+    setHazardBusy(true);
+    setHazardError(null);
+    try {
+      const res = await fetch('/api/sms/hazards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId,
+          description: hazardForm.description,
+          source: hazardForm.source || null,
+          missionType: hazardForm.missionType || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error registrando el peligro');
+      setHazardForm({ description: '', source: '', missionType: '' });
+      setShowHazardForm(false);
+      await loadData(organizationId);
+    } catch (err) {
+      setHazardError(err.message);
+    } finally {
+      setHazardBusy(false);
+    }
+  }
 
   async function changeStatus(control, status) {
     setControls((cs) => cs.map((c) => (c.id === control.id ? { ...c, status } : c))); // optimista
@@ -157,17 +188,24 @@ export default function MatrizPeligrosPage() {
         title="Matriz de peligros"
         description="Cada peligro del catálogo lleva sus controles, y de cada control se registran los avances y la evidencia que los respalda."
         cta={
-          isManager &&
-          hazards.length > 0 && (
-            <Button
-              onClick={() => {
-                setPresetHazardId('');
-                setShowControlForm(true);
-              }}
-            >
-              <span className="material-symbols-outlined text-base align-middle mr-1">add</span>
-              Nuevo control
-            </Button>
+          isManager && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => { setHazardError(null); setShowHazardForm((v) => !v); }}>
+                <span className="material-symbols-outlined text-base align-middle mr-1">report_problem</span>
+                Nuevo peligro
+              </Button>
+              {hazards.length > 0 && (
+                <Button
+                  onClick={() => {
+                    setPresetHazardId('');
+                    setShowControlForm(true);
+                  }}
+                >
+                  <span className="material-symbols-outlined text-base align-middle mr-1">add</span>
+                  Nuevo control
+                </Button>
+              )}
+            </div>
           )
         }
       />
@@ -181,13 +219,57 @@ export default function MatrizPeligrosPage() {
         <StatCard icon="verified" label="Implementados" value={closedCount} />
       </div>
 
+      {isManager && showHazardForm && (
+        <form onSubmit={handleCreateHazard} className="rounded-2xl border border-navy-100 bg-white p-4 space-y-3">
+          <p className="text-sm font-bold text-navy">Nuevo peligro</p>
+          <div>
+            <label className="text-xs font-medium text-navy-400 block mb-1">Descripción del peligro</label>
+            <input
+              value={hazardForm.description}
+              onChange={(e) => setHazardForm((f) => ({ ...f, description: e.target.value }))}
+              required
+              className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
+              placeholder="Ej. Pérdida de enlace de control en zona urbana"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-navy-400 block mb-1">Origen (opcional)</label>
+              <input
+                value={hazardForm.source}
+                onChange={(e) => setHazardForm((f) => ({ ...f, source: e.target.value }))}
+                className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
+                placeholder="Ej. observación, reporte SMS, auditoría"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-navy-400 block mb-1">Tipo de misión (opcional)</label>
+              <input
+                value={hazardForm.missionType}
+                onChange={(e) => setHazardForm((f) => ({ ...f, missionType: e.target.value }))}
+                className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+          {hazardError && <p className="text-xs text-red-600">{hazardError}</p>}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={hazardBusy} className="text-xs px-3 py-1.5">
+              {hazardBusy ? 'Guardando…' : 'Registrar peligro'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setShowHazardForm(false)} className="text-xs px-3 py-1.5">
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      )}
+
       {hazards.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 text-center rounded-2xl border border-dashed border-navy-200 bg-navy-50/50 py-12 px-6">
           <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white shadow-sm text-navy-300">
             <span className="material-symbols-outlined text-2xl">report_problem</span>
           </span>
           <p className="text-sm font-semibold text-navy">Aún no hay peligros en el catálogo</p>
-          <p className="text-xs text-navy-400">Registra los peligros en «Tarjeta de riesgo»; luego aquí les defines controles, avances y evidencias.</p>
+          <p className="text-xs text-navy-400">{isManager ? 'Usa «Nuevo peligro» arriba para registrar el primero; luego le defines controles, avances y evidencias.' : 'Todavía no se han registrado peligros.'}</p>
         </div>
       ) : (
         <div className="space-y-4">

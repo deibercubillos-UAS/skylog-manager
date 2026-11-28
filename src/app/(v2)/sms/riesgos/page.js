@@ -696,9 +696,6 @@ export default function RiesgosPage() {
   const [matrix, setMatrix] = useState(null);
   const [barriers, setBarriers] = useState([]);
   const [hazards, setHazards] = useState([]);
-  const [hazardForm, setHazardForm] = useState({ description: '', source: '', missionType: '', relatedBarrierId: '' });
-  const [hazardBusy, setHazardBusy] = useState(false);
-  const [hazardError, setHazardError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['P2'] === 'edit';
@@ -750,33 +747,6 @@ export default function RiesgosPage() {
     loadHazards(organizationId);
   }, [organizationId, loadMatrix, loadBarriers, loadHazards]);
 
-  async function handleHazardSubmit(e) {
-    e.preventDefault();
-    setHazardBusy(true);
-    setHazardError(null);
-    try {
-      const res = await fetch('/api/sms/hazards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          description: hazardForm.description,
-          source: hazardForm.source || null,
-          missionType: hazardForm.missionType || null,
-          relatedBarrierId: hazardForm.relatedBarrierId || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error registrando el peligro');
-      setHazardForm({ description: '', source: '', missionType: '', relatedBarrierId: '' });
-      await loadHazards(organizationId);
-    } catch (e) {
-      setHazardError(e.message);
-    } finally {
-      setHazardBusy(false);
-    }
-  }
-
   if (loading) return <p className="text-sm text-navy-400">Cargando…</p>;
 
   if (!context?.personId) {
@@ -817,68 +787,25 @@ export default function RiesgosPage() {
           </span>
           <div>
             <p className="text-sm font-bold text-navy">Peligros</p>
-            <p className="text-xs text-navy-400">Catálogo de peligros identificados por la organización — evalúalos contra la matriz de riesgo</p>
+            <p className="text-xs text-navy-400">Evalúa contra la matriz de riesgo los peligros del catálogo. Los peligros se registran en <a className="underline" href="/sms/matriz-peligros">Matriz de peligros</a>.</p>
           </div>
         </div>
 
         <div className="p-5 bg-white/60">
           {hazards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 text-center rounded-2xl border border-dashed border-navy-200 bg-navy-50/50 py-10 px-6 mb-3">
+            <div className="flex flex-col items-center justify-center gap-2 text-center rounded-2xl border border-dashed border-navy-200 bg-navy-50/50 py-10 px-6">
               <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white shadow-sm text-navy-300">
                 <span className="material-symbols-outlined text-2xl">warning</span>
               </span>
               <p className="text-sm font-semibold text-navy">Sin peligros registrados todavía</p>
-              {isManager && <p className="text-xs text-navy-400">Registra el primero abajo y evalúalo contra la matriz de riesgo.</p>}
+              <p className="text-xs text-navy-400">Regístralos en <a className="underline" href="/sms/matriz-peligros">Matriz de peligros</a> y aquí los evalúas contra la matriz de riesgo.</p>
             </div>
           ) : (
-            <div className="mb-3">
+            <div>
               {hazards.map((h) => (
                 <HazardRow key={h.id} hazard={h} matrix={matrix} isManager={isManager} barriers={barriers} onEvaluated={() => loadHazards(organizationId)} onDeleted={() => loadHazards(organizationId)} />
               ))}
             </div>
-          )}
-
-          {isManager && (
-            <form onSubmit={handleHazardSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 pt-3 border-t border-navy-50">
-              <Field
-                label="Descripción del peligro"
-                value={hazardForm.description}
-                onChange={(e) => setHazardForm((f) => ({ ...f, description: e.target.value }))}
-                className="sm:col-span-2"
-                required
-              />
-              <Field
-                label="Origen (opcional)"
-                value={hazardForm.source}
-                onChange={(e) => setHazardForm((f) => ({ ...f, source: e.target.value }))}
-                placeholder="Ej. observación, reporte SMS, auditoría"
-              />
-              <Field
-                label="Tipo de misión (opcional)"
-                value={hazardForm.missionType}
-                onChange={(e) => setHazardForm((f) => ({ ...f, missionType: e.target.value }))}
-              />
-              <Field
-                as="select"
-                label="Barrera relacionada (opcional)"
-                value={hazardForm.relatedBarrierId}
-                onChange={(e) => setHazardForm((f) => ({ ...f, relatedBarrierId: e.target.value }))}
-                className="sm:col-span-2"
-              >
-                <option value="">Sin relacionar</option>
-                {barriers.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.description}
-                  </option>
-                ))}
-              </Field>
-              {hazardError && <p className="text-xs text-red-600 sm:col-span-2">{hazardError}</p>}
-              <div className="sm:col-span-2">
-                <Button type="submit" disabled={hazardBusy} className="text-xs px-3 py-1.5">
-                  {hazardBusy ? 'Guardando…' : 'Registrar peligro'}
-                </Button>
-              </div>
-            </form>
           )}
         </div>
       </div>

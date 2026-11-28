@@ -16,6 +16,11 @@ export async function POST(request) {
     return Response.json({ error: 'organizationId, policyText, scope y effectiveDate son requeridos' }, { status: 400 });
   }
 
+  // Compromisos: lista de frases cortas, se limpian (sin vacíos), se recortan y se limita el número.
+  const commitments = Array.isArray(body.commitments)
+    ? body.commitments.map((c) => String(c || '').trim()).filter(Boolean).slice(0, 20).map((c) => c.slice(0, 300))
+    : [];
+
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
@@ -29,6 +34,7 @@ export async function POST(request) {
       organization_id: organizationId,
       policy_text: policyText,
       scope,
+      commitments,
       effective_date: effectiveDate,
       signed_by: sign ? personId : null,
       signed_at: sign ? new Date().toISOString() : null,

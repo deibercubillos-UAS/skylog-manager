@@ -31,7 +31,7 @@ export default function SmsGobernanzaPage() {
   const [roster, setRoster] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  const [policyForm, setPolicyForm] = useState({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true });
+  const [policyForm, setPolicyForm] = useState({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true, commitments: [''] });
   const [policyBusy, setPolicyBusy] = useState(false);
   const [policyError, setPolicyError] = useState(null);
 
@@ -99,7 +99,7 @@ export default function SmsGobernanzaPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error publicando la política');
-      setPolicyForm((f) => ({ ...f, policyText: '' }));
+      setPolicyForm((f) => ({ ...f, policyText: '', commitments: [''] }));
       await loadAll(organizationId);
     } catch (e) {
       setPolicyError(e.message);
@@ -188,6 +188,19 @@ export default function SmsGobernanzaPage() {
               <p className="text-sm text-navy">{currentPolicy.scope}</p>
               <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide mt-3">Texto vigente</p>
               <p className="text-sm text-navy-500 whitespace-pre-wrap">{currentPolicy.policy_text}</p>
+              {currentPolicy.commitments?.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide mt-3">Compromisos</p>
+                  <ul className="space-y-1.5 mt-1">
+                    {currentPolicy.commitments.map((c, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-navy-600">
+                        <span className="material-symbols-outlined text-[16px] text-primary-500 shrink-0 mt-0.5">check_circle</span>
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
               {historyPolicies.length > 0 && (
                 <button type="button" onClick={() => setShowHistory((s) => !s)} className="text-xs font-semibold text-primary-700 hover:underline">
                   {showHistory ? 'Ocultar historial' : `Ver historial (${historyPolicies.length})`}
@@ -228,6 +241,41 @@ export default function SmsGobernanzaPage() {
                   className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
                   placeholder="Compromiso de la dirección, importancia de la notificación, Cultura Justa y confidencialidad…"
                 />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-400 block mb-1">Compromisos (opcional)</label>
+                <p className="text-[11px] text-navy-400 mb-2">Frases concretas que la dirección asume, p. ej. «Proveer los recursos necesarios» o «Cultura Justa: no se sanciona el reporte voluntario».</p>
+                <div className="space-y-2">
+                  {policyForm.commitments.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-primary-600 w-5 shrink-0">{i + 1}.</span>
+                      <input
+                        value={c}
+                        onChange={(e) => setPolicyForm((f) => ({ ...f, commitments: f.commitments.map((x, j) => (j === i ? e.target.value : x)) }))}
+                        placeholder="Escribe un compromiso…"
+                        className="flex-1 text-sm border border-navy-200 rounded-lg px-3 py-2"
+                      />
+                      {policyForm.commitments.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setPolicyForm((f) => ({ ...f, commitments: f.commitments.filter((_, j) => j !== i) }))}
+                          className="text-navy-300 hover:text-red-500 shrink-0"
+                          aria-label="Quitar compromiso"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPolicyForm((f) => ({ ...f, commitments: [...f.commitments, ''] }))}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  Agregar compromiso
+                </button>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-400 block mb-1">Fecha de vigencia</label>

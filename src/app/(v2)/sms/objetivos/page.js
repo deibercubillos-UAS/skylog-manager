@@ -10,7 +10,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ObjectiveFormPanel from './_ObjectiveFormPanel';
 import PolicyPanel from './_PolicyPanel';
-import { downloadObjetivosPoliticasPdf } from '@/lib/v2/smsObjetivosDoc';
+import { downloadPoliticaPdf, downloadObjetivosPdf } from '@/lib/v2/smsObjetivosDoc';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -84,17 +84,15 @@ export default function SmsObjetivosPage() {
     setPdfBusy(true);
     setError(null);
     try {
-      // La política vigente no está en este estado (la maneja PolicyPanel), se consulta al vuelo.
-      const res = await fetch(`/api/sms/governance/policy?organizationId=${organizationId}`);
-      const data = await res.json();
-      const policy = res.ok ? data.current : null;
-      await downloadObjetivosPoliticasPdf({
-        orgName: currentOrg?.name,
-        nit: currentOrg?.nit,
-        logoUrl: currentOrg?.logoUrl,
-        policy,
-        objectives,
-      });
+      const org = { orgName: currentOrg?.name, nit: currentOrg?.nit, logoUrl: currentOrg?.logoUrl };
+      if (tab === 'politicas') {
+        // La política vigente no está en este estado (la maneja PolicyPanel), se consulta al vuelo.
+        const res = await fetch(`/api/sms/governance/policy?organizationId=${organizationId}`);
+        const data = await res.json();
+        await downloadPoliticaPdf({ ...org, policy: res.ok ? data.current : null });
+      } else {
+        await downloadObjetivosPdf({ ...org, objectives });
+      }
     } catch (e) {
       setError(e.message || 'No se pudo generar el PDF');
     } finally {
@@ -125,7 +123,7 @@ export default function SmsObjetivosPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={handleDownloadPdf} disabled={pdfBusy}>
               <span className="material-symbols-outlined text-base align-middle mr-1">picture_as_pdf</span>
-              {pdfBusy ? 'Generando…' : 'Descargar PDF'}
+              {pdfBusy ? 'Generando…' : tab === 'politicas' ? 'Descargar política PDF' : 'Descargar objetivos PDF'}
             </Button>
             {tab === 'objetivos' && isManager && (
               <Button

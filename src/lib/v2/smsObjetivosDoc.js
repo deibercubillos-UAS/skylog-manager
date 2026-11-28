@@ -1,8 +1,8 @@
-// Skylog V2.0 — SMS: PDF de «Objetivos y Política» (sección Objetivos SMS).
-// 100% client-side al descargar (mismo criterio que Reportes, nunca se
-// persiste) y usa el encabezado/logo/nota compartidos de `pdfCommon.js`.
-// Imprime la política vigente (alcance, texto, compromisos) y la tabla de
-// objetivos con sus KPI vinculados.
+// Skylog V2.0 — SMS: PDFs de la sección Objetivos SMS, por separado:
+// `downloadPoliticaPdf` (política vigente) y `downloadObjetivosPdf` (tabla de
+// objetivos con sus KPI). Ambos 100% client-side al descargar (mismo criterio
+// que Reportes, nunca se persiste) y usan el encabezado/logo/nota compartidos
+// de `pdfCommon.js`.
 import autoTable from 'jspdf-autotable';
 import { HEAD_STYLES, resolveLogo, fetchBitaflyLogo, drawReportHeader, drawFooterNote, slugify } from './pdfCommon';
 
@@ -18,15 +18,19 @@ function fmtDate(d) {
   return new Date(`${String(d).slice(0, 10)}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/** Descarga el PDF de objetivos y política de la organización. */
-export async function downloadObjetivosPoliticasPdf({ orgName, nit, logoUrl, policy, objectives } = {}) {
+async function startDoc({ orgName, nit, logoUrl, title, subtitle }) {
   const { jsPDF } = await import('jspdf');
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const headerName = nit ? `${orgName || ''} · NIT ${nit}`.trim() : orgName;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const startY = drawReportHeader(doc, { logo, orgName: headerName, title, subtitle });
+  return { doc, startY };
+}
 
-  let y = drawReportHeader(doc, { logo, orgName: headerName, title: 'Objetivos y Política SMS', subtitle: 'Sistema de Gestión de Seguridad Operacional' });
-  y += 6;
+/** Descarga solo la política de seguridad operacional vigente. */
+export async function downloadPoliticaPdf({ orgName, nit, logoUrl, policy } = {}) {
+  const { doc, startY } = await startDoc({ orgName, nit, logoUrl, title: 'Política de Seguridad Operacional', subtitle: 'Sistema de Gestión de Seguridad Operacional' });
+  let y = startY + 6;
 
   const ensure = (needed) => {
     if (y + needed > BOTTOM) {
@@ -34,27 +38,12 @@ export async function downloadObjetivosPoliticasPdf({ orgName, nit, logoUrl, pol
       y = 20;
     }
   };
-  const sectionTitle = (text) => {
-    ensure(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(26, 32, 44);
-    doc.text(text, LEFT, y);
-    y += 2;
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.3);
-    doc.line(LEFT, y, RIGHT, y);
-    y += 5;
-  };
 
-  // ── Política ───────────────────────────────────────────────
-  sectionTitle('POLÍTICA DE SEGURIDAD OPERACIONAL');
   if (!policy) {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
     doc.text('La organización no ha publicado todavía una política de seguridad operacional.', LEFT, y);
-    y += 8;
   } else {
     const estado = policy.signed_at ? `Firmada · vigente desde ${fmtDate(policy.effective_date)}` : `Sin firmar · ${fmtDate(policy.effective_date)}`;
     doc.setFont('helvetica', 'normal');
@@ -68,13 +57,13 @@ export async function downloadObjetivosPoliticasPdf({ orgName, nit, logoUrl, pol
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(100, 116, 139);
+      ensure(6);
       doc.text(label.toUpperCase(), LEFT, y);
       y += 4;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9.5);
       doc.setTextColor(30, 41, 59);
-      const lines = doc.splitTextToSize(String(value), WIDTH);
-      lines.forEach((ln) => {
+      doc.splitTextToSize(String(value), WIDTH).forEach((ln) => {
         ensure(5);
         doc.text(ln, LEFT, y);
         y += 5;
@@ -96,31 +85,32 @@ export async function downloadObjetivosPoliticasPdf({ orgName, nit, logoUrl, pol
       doc.setFontSize(9.5);
       doc.setTextColor(30, 41, 59);
       commitments.forEach((c) => {
-        const lines = doc.splitTextToSize(`•  ${c}`, WIDTH - 4);
-        lines.forEach((ln, i) => {
+        doc.splitTextToSize(`•  ${c}`, WIDTH - 4).forEach((ln, i) => {
           ensure(5);
           doc.text(ln, LEFT + (i === 0 ? 0 : 4), y);
           y += 5;
         });
       });
-      y += 2;
     }
   }
 
-  y += 4;
+  drawFooterNote(doc, 'Instantánea (sin rango de fechas)');
+  doc.save(`politica-sms-${slugify(orgName)}.pdf`);
+}
 
-  // ── Objetivos ──────────────────────────────────────────────
-  sectionTitle('OBJETIVOS DE SEGURIDAD OPERACIONAL');
+/** Descarga solo los objetivos de seguridad operacional con sus KPI. */
+export async function downloadObjetivosPdf({ orgName, nit, logoUrl, objectives } = {}) {
+  const { doc, startY } = await startDoc({ orgName, nit, logoUrl, title: 'Objetivos de Seguridad Operacional', subtitle: 'Balanced Scorecard — objetivos y KPI que los miden' });
   const list = objectives || [];
+
   if (!list.length) {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
-    doc.text('No hay objetivos SMS declarados todavía.', LEFT, y);
-    y += 6;
+    doc.text('No hay objetivos SMS declarados todavía.', LEFT, startY + 6);
   } else {
     autoTable(doc, {
-      startY: y,
+      startY: startY + 4,
       head: [['OBJETIVO', 'MÉTRICA', 'META', 'KPI QUE LO MIDEN']],
       body: list.map((o) => [
         o.title || '—',
@@ -135,9 +125,8 @@ export async function downloadObjetivosPoliticasPdf({ orgName, nit, logoUrl, pol
       columnStyles: { 0: { cellWidth: 55 }, 2: { cellWidth: 28 } },
       margin: { left: LEFT, right: 10 },
     });
-    y = doc.lastAutoTable.finalY + 6;
   }
 
   drawFooterNote(doc, 'Instantánea (sin rango de fechas)');
-  doc.save(`objetivos-y-politica-sms-${slugify(orgName)}.pdf`);
+  doc.save(`objetivos-sms-${slugify(orgName)}.pdf`);
 }

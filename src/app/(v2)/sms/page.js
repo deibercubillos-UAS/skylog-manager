@@ -10,20 +10,12 @@ import { SectionHero } from '../_components/SectionHero';
 
 const CARDS = [
   {
-    key: 'gobernanza',
-    href: '/sms/gobernanza',
-    icon: 'gavel',
-    title: 'Gobernanza',
-    description: 'Política y objetivos de seguridad operacional + designación del Gerente de Seguridad Operacional (Fase 1, MAUT-5.0-22-017).',
-    color: { wash: 'from-primary-50 to-white', tile: 'bg-primary text-white' },
-  },
-  {
     key: 'objetivos',
     href: '/sms/objetivos',
     icon: 'flag',
     title: 'Objetivos SMS',
-    description: 'Balanced Scorecard — objetivos declarados en la política, vinculados a los indicadores SPI que los miden.',
-    color: { wash: 'from-sky-50 to-white', tile: 'bg-sky-500 text-white' },
+    description: 'Política de seguridad operacional, designación del Gerente SMS y objetivos (Balanced Scorecard) vinculados a los KPI que los miden.',
+    color: { wash: 'from-primary-50 to-white', tile: 'bg-primary text-white' },
   },
   {
     key: 'riesgos',

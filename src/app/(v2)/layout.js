@@ -61,13 +61,13 @@ const NAV_LINKS = [
   // resuelve la navegación, una franja de pestañas interna duplicaría el
   // mismo camino. /sms sigue existiendo (como /operacion), solo deja de
   // estar en el sidebar.
-  // Gobernanza, MSMS y Capacitación SMS ocultas del sidebar a pedido del
-  // usuario (2026-10-01) — mismo criterio que Expediente Aerocivil abajo:
-  // la página sigue intacta, solo se quita el enlace. Gobernanza: sin
-  // reemplazo directo en el sidebar (política SMS/GSO). MSMS: ya existe
-  // "Manuales" (publica ahí, decisión 135/146). Capacitación SMS: ya existe
+  // MSMS y Capacitación SMS ocultas del sidebar a pedido del usuario
+  // (2026-10-01) — mismo criterio que Expediente Aerocivil abajo: la página
+  // sigue intacta, solo se quita el enlace. MSMS: ya existe "Manuales"
+  // (publica ahí, decisión 135/146). Capacitación SMS: ya existe
   // "Capacitación" en Documentación (decisión 149, mismo tipo de duplicidad).
-  // { name: 'Gobernanza', icon: 'gavel', href: '/sms/gobernanza', group: 'SMS' },
+  // Gobernanza se eliminó (2026-11-27): la política y la designación del GSO
+  // viven ahora en «Objetivos SMS» (pestañas Políticas y Gerente SMS).
   { name: 'Objetivos SMS', icon: 'flag', href: '/sms/objetivos', group: 'SMS', perm: 'O1' },
   { name: 'Matriz de peligros', icon: 'shield', href: '/sms/matriz-peligros', group: 'SMS', perm: 'P1' },
   { name: 'Tarjeta de riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS', perm: 'P1' },
@@ -119,7 +119,6 @@ const GROUP_COLORS = {
 // Pantallas que existen pero no tienen enlace en el menú: igual se protegen con su permiso de la matriz, para que
 // escribir la dirección a mano no abra algo que el rol no puede ver (hallazgo H-6 del plan de pruebas 75).
 const HIDDEN_SCREEN_GATES = [
-  { href: '/sms/gobernanza', perm: 'V1' },
   { href: '/sms/msms', perm: 'V1' },
   { href: '/sms/capacitacion', perm: 'V4' },
   { href: '/sms/casos', perm: 'U2' },

@@ -3,9 +3,10 @@
 // Skylog V2.0 — SMS-F: pestaña «Políticas» dentro de Objetivos SMS. Reúne la
 // cadena del Balanced Scorecard en un solo lugar: la política declara los
 // objetivos y los KPI los miden (MAUT-5.0-22-017 §7.3.5.1). Habla con la misma
-// API ya validada contra la norma (`sms_policies`, `/api/sms/governance/policy`)
-// que usa Gobernanza — sin tabla nueva. Publicar una versión se hace en una
-// ventana flotante con el patrón de diálogo de BitaFly (igual que el objetivo).
+// API ya validada contra la norma (`sms_policies`, `/api/sms/governance/policy`).
+// Esta es la ubicación vigente de la política; la antigua sección «Gobernanza»
+// quedó eliminada. Publicar o editar una versión se hace en una ventana flotante
+// con el patrón de diálogo de BitaFly (igual que el objetivo).
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SectionCard } from '../../_components/SectionHero';
@@ -26,6 +27,7 @@ export default function PolicyPanel({ organizationId, isManager, fullName }) {
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editPolicy, setEditPolicy] = useState(null); // política que se edita (null = publicar nueva versión)
   const [error, setError] = useState(null);
 
   const load = useCallback(async (orgId) => {
@@ -49,6 +51,15 @@ export default function PolicyPanel({ organizationId, isManager, fullName }) {
   if (loading) return <p className="text-sm text-navy-400">Cargando políticas…</p>;
 
   const historyPolicies = policies.filter((p) => p.id !== currentPolicy?.id);
+
+  function openNew() {
+    setEditPolicy(null);
+    setShowForm(true);
+  }
+  function openEdit() {
+    setEditPolicy(currentPolicy);
+    setShowForm(true);
+  }
 
   return (
     <div className="space-y-4">
@@ -76,10 +87,29 @@ export default function PolicyPanel({ organizationId, isManager, fullName }) {
 
         {currentPolicy ? (
           <div className="space-y-2">
+            {isManager && (
+              <button type="button" onClick={openEdit} className="float-right inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline">
+                <span className="material-symbols-outlined text-[15px]">edit</span>
+                Editar
+              </button>
+            )}
             <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide">Alcance</p>
             <p className="text-sm text-navy">{currentPolicy.scope}</p>
             <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide mt-3">Texto vigente</p>
             <p className="text-sm text-navy-500 whitespace-pre-wrap">{currentPolicy.policy_text}</p>
+            {currentPolicy.commitments?.length > 0 && (
+              <>
+                <p className="text-xs font-semibold text-navy-400 uppercase tracking-wide mt-3">Compromisos</p>
+                <ul className="space-y-1.5 mt-1">
+                  {currentPolicy.commitments.map((c, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-navy-600">
+                      <span className="material-symbols-outlined text-[16px] text-primary-500 shrink-0 mt-0.5">check_circle</span>
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             {historyPolicies.length > 0 && (
               <button type="button" onClick={() => setShowHistory((s) => !s)} className="text-xs font-semibold text-primary-700 hover:underline">
                 {showHistory ? 'Ocultar historial' : `Ver historial (${historyPolicies.length})`}
@@ -104,7 +134,7 @@ export default function PolicyPanel({ organizationId, isManager, fullName }) {
 
         {isManager ? (
           <div className="border-t border-navy-50 pt-4 mt-4">
-            <Button variant="ghost" onClick={() => setShowForm(true)} className="text-sm">
+            <Button variant="ghost" onClick={openNew} className="text-sm">
               <span className="material-symbols-outlined text-base align-middle mr-1">{currentPolicy ? 'history_edu' : 'add'}</span>
               {currentPolicy ? 'Publicar nueva versión' : 'Publicar la primera política'}
             </Button>
@@ -119,6 +149,7 @@ export default function PolicyPanel({ organizationId, isManager, fullName }) {
         onClose={() => setShowForm(false)}
         organizationId={organizationId}
         hasCurrent={Boolean(currentPolicy)}
+        editPolicy={editPolicy}
         fullName={fullName}
         onSaved={() => load(organizationId)}
       />
@@ -126,18 +157,33 @@ export default function PolicyPanel({ organizationId, isManager, fullName }) {
   );
 }
 
-// Ventana flotante para publicar una versión de la política — mismo patrón de
-// diálogo de BitaFly que el objetivo (portal, velo navy, tarjeta centrada).
-function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, fullName, onSaved }) {
-  const [form, setForm] = useState({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true });
+// Ventana flotante para publicar o editar una versión de la política — mismo
+// patrón de diálogo de BitaFly que el objetivo (portal, velo navy, tarjeta
+// centrada). Con `editPolicy` edita esa versión en sitio (PATCH); sin ella
+// publica una versión nueva (POST).
+function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, editPolicy, fullName, onSaved }) {
+  const blank = { policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true, commitments: [''] };
+  const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const editing = Boolean(editPolicy);
 
   useEffect(() => {
     if (!open) return;
-    setForm({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true });
+    if (editPolicy) {
+      setForm({
+        policyText: editPolicy.policy_text || '',
+        scope: editPolicy.scope || '',
+        effectiveDate: (editPolicy.effective_date || new Date().toISOString().slice(0, 10)).slice(0, 10),
+        sign: !!editPolicy.signed_at,
+        commitments: editPolicy.commitments?.length ? [...editPolicy.commitments] : [''],
+      });
+    } else {
+      setForm({ policyText: '', scope: '', effectiveDate: new Date().toISOString().slice(0, 10), sign: true, commitments: [''] });
+    }
     setError(null);
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editPolicy]);
 
   useEffect(() => {
     if (!open) return;
@@ -156,12 +202,12 @@ function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, fullName,
     setError(null);
     try {
       const res = await fetch('/api/sms/governance/policy', {
-        method: 'POST',
+        method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId, ...form }),
+        body: JSON.stringify(editing ? { organizationId, policyId: editPolicy.id, ...form } : { organizationId, ...form }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error publicando la política');
+      if (!res.ok) throw new Error(data.error || (editing ? 'Error guardando los cambios' : 'Error publicando la política'));
       onSaved();
       onClose();
     } catch (e) {
@@ -173,7 +219,7 @@ function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, fullName,
 
   if (!open) return null;
 
-  const title = hasCurrent ? 'Nueva versión de la política' : 'Publicar la política';
+  const title = editing ? 'Editar la política vigente' : hasCurrent ? 'Nueva versión de la política' : 'Publicar la política';
   const dialog = (
     <div
       className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center bg-navy/50 backdrop-blur-sm p-0 sm:p-4"
@@ -214,7 +260,7 @@ function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, fullName,
           </label>
 
           <label className={labelCls}>
-            Texto de la política
+            Texto de la política (párrafo principal)
             <textarea
               value={form.policyText}
               onChange={(e) => setForm((f) => ({ ...f, policyText: e.target.value }))}
@@ -225,15 +271,59 @@ function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, fullName,
             />
           </label>
 
+          <div>
+            <p className={labelCls}>Compromisos (opcional)</p>
+            <p className="text-[11px] text-navy-400 mt-1 normal-case font-normal tracking-normal">
+              Frases concretas que la dirección asume, p. ej. «Proveer los recursos necesarios» o «Cultura Justa: no se sanciona el reporte voluntario».
+            </p>
+            <div className="space-y-2 mt-2">
+              {form.commitments.map((c, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-primary-600 w-5 shrink-0">{i + 1}.</span>
+                  <input
+                    value={c}
+                    onChange={(e) => setForm((f) => ({ ...f, commitments: f.commitments.map((x, j) => (j === i ? e.target.value : x)) }))}
+                    placeholder="Escribe un compromiso…"
+                    className={`${inputCls} mt-0 normal-case font-normal text-navy`}
+                  />
+                  {form.commitments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, commitments: f.commitments.filter((_, j) => j !== i) }))}
+                      className="text-navy-300 hover:text-red-500 shrink-0"
+                      aria-label="Quitar compromiso"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, commitments: [...f.commitments, ''] }))}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              Agregar compromiso
+            </button>
+          </div>
+
           <label className={labelCls}>
             Fecha de vigencia
             <input type="date" value={form.effectiveDate} onChange={(e) => setForm((f) => ({ ...f, effectiveDate: e.target.value }))} required className={`${inputCls} normal-case font-normal text-navy`} />
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-navy-600 bg-navy-50/70 rounded-xl px-3 py-2.5">
-            <input type="checkbox" checked={form.sign} onChange={(e) => setForm((f) => ({ ...f, sign: e.target.checked }))} className="accent-primary-600 size-4" />
-            Firmar y publicar ahora (como {fullName || 'yo'})
-          </label>
+          {editing ? (
+            <p className="text-xs text-navy-500 bg-navy-50/70 rounded-xl px-3 py-2.5">
+              Editas la versión vigente en sitio: no se crea una versión nueva ni cambia la firma.
+            </p>
+          ) : (
+            <label className="flex items-center gap-2 text-sm text-navy-600 bg-navy-50/70 rounded-xl px-3 py-2.5">
+              <input type="checkbox" checked={form.sign} onChange={(e) => setForm((f) => ({ ...f, sign: e.target.checked }))} className="accent-primary-600 size-4" />
+              Firmar y publicar ahora (como {fullName || 'yo'})
+            </label>
+          )}
 
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
@@ -246,8 +336,8 @@ function PolicyFormDialog({ open, onClose, organizationId, hasCurrent, fullName,
               disabled={busy || !form.scope.trim() || !form.policyText.trim()}
               className="min-h-[44px] px-4 rounded-xl text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
             >
-              <span className="material-symbols-outlined text-base">{form.sign ? 'verified' : 'save'}</span>
-              {busy ? 'Guardando…' : form.sign ? 'Firmar y publicar' : 'Guardar sin firmar'}
+              <span className="material-symbols-outlined text-base">{editing ? 'save' : form.sign ? 'verified' : 'save'}</span>
+              {busy ? 'Guardando…' : editing ? 'Guardar cambios' : form.sign ? 'Firmar y publicar' : 'Guardar sin firmar'}
             </button>
           </div>
         </div>

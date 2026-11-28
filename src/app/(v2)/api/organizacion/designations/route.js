@@ -1,6 +1,6 @@
 // Skylog V2.0 — Designaciones por acta (RAC 100 §100.535(14)(15)(16)): Jefe de Pilotos y Ejecutivo
 // Responsable. Designar a alguien nuevo cierra la designación vigente del mismo cargo (cargo único) y deja el
-// historial. El Gerente SMS se designa en /sms/gobernanza (validación de perfil propia), aquí solo se lista.
+// historial. El Gerente SMS se designa en /sms/objetivos (pestaña «Gerente SMS», validación de perfil propia), aquí solo se lista.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';

@@ -41,6 +41,7 @@ export default function MatrizPeligrosPage() {
   const [busy, setBusy] = useState(false);
   const [showHazardForm, setShowHazardForm] = useState(false);
   const [hazardForm, setHazardForm] = useState({ description: '', source: '', missionType: '' });
+  const [editHazardId, setEditHazardId] = useState(null); // id del peligro que se edita (null = nuevo)
   const [hazardBusy, setHazardBusy] = useState(false);
   const [hazardError, setHazardError] = useState(null);
 
@@ -79,25 +80,44 @@ export default function MatrizPeligrosPage() {
     if (organizationId && canView) loadData(organizationId).catch((e) => setError(e.message));
   }, [organizationId, canView, loadData]);
 
-  async function handleCreateHazard(e) {
+  function startNewHazard() {
+    setEditHazardId(null);
+    setHazardForm({ description: '', source: '', missionType: '' });
+    setHazardError(null);
+    setShowHazardForm(true);
+  }
+
+  function startEditHazard(h) {
+    setEditHazardId(h.id);
+    setHazardForm({ description: h.description || '', source: h.source || '', missionType: h.mission_type || '' });
+    setHazardError(null);
+    setShowHazardForm(true);
+  }
+
+  function closeHazardForm() {
+    setShowHazardForm(false);
+    setEditHazardId(null);
+    setHazardForm({ description: '', source: '', missionType: '' });
+    setHazardError(null);
+  }
+
+  async function handleSaveHazard(e) {
     e.preventDefault();
     setHazardBusy(true);
     setHazardError(null);
     try {
-      const res = await fetch('/api/sms/hazards', {
-        method: 'POST',
+      const res = await fetch(editHazardId ? `/api/sms/hazards/${editHazardId}` : '/api/sms/hazards', {
+        method: editHazardId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          description: hazardForm.description,
-          source: hazardForm.source || null,
-          missionType: hazardForm.missionType || null,
-        }),
+        body: JSON.stringify(
+          editHazardId
+            ? { description: hazardForm.description, source: hazardForm.source || null, missionType: hazardForm.missionType || null }
+            : { organizationId, description: hazardForm.description, source: hazardForm.source || null, missionType: hazardForm.missionType || null },
+        ),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error registrando el peligro');
-      setHazardForm({ description: '', source: '', missionType: '' });
-      setShowHazardForm(false);
+      if (!res.ok) throw new Error(data.error || (editHazardId ? 'Error guardando el peligro' : 'Error registrando el peligro'));
+      closeHazardForm();
       await loadData(organizationId);
     } catch (err) {
       setHazardError(err.message);
@@ -190,7 +210,7 @@ export default function MatrizPeligrosPage() {
         cta={
           isManager && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => { setHazardError(null); setShowHazardForm((v) => !v); }}>
+              <Button variant="secondary" onClick={() => (showHazardForm && !editHazardId ? closeHazardForm() : startNewHazard())}>
                 <span className="material-symbols-outlined text-base align-middle mr-1">report_problem</span>
                 Nuevo peligro
               </Button>
@@ -220,10 +240,10 @@ export default function MatrizPeligrosPage() {
       </div>
 
       {isManager && showHazardForm && (
-        <form onSubmit={handleCreateHazard} className="rounded-2xl border border-navy-100 bg-white p-4 space-y-3">
-          <p className="text-sm font-bold text-navy">Nuevo peligro</p>
+        <form onSubmit={handleSaveHazard} className="rounded-2xl border border-navy-100 bg-white p-4 space-y-3">
+          <p className="text-sm font-bold text-navy">{editHazardId ? 'Editar peligro' : 'Nuevo peligro'}</p>
           <div>
-            <label className="text-xs font-medium text-navy-400 block mb-1">Descripción del peligro</label>
+            <label className="text-xs font-medium text-navy-400 block mb-1">Peligro</label>
             <input
               value={hazardForm.description}
               onChange={(e) => setHazardForm((f) => ({ ...f, description: e.target.value }))}
@@ -243,20 +263,21 @@ export default function MatrizPeligrosPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-400 block mb-1">Tipo de misión (opcional)</label>
+              <label className="text-xs font-medium text-navy-400 block mb-1">Descripción (opcional)</label>
               <input
                 value={hazardForm.missionType}
                 onChange={(e) => setHazardForm((f) => ({ ...f, missionType: e.target.value }))}
                 className="w-full text-sm border border-navy-200 rounded-lg px-3 py-2"
+                placeholder="Detalle o contexto del peligro"
               />
             </div>
           </div>
           {hazardError && <p className="text-xs text-red-600">{hazardError}</p>}
           <div className="flex gap-2">
             <Button type="submit" disabled={hazardBusy} className="text-xs px-3 py-1.5">
-              {hazardBusy ? 'Guardando…' : 'Registrar peligro'}
+              {hazardBusy ? 'Guardando…' : editHazardId ? 'Guardar cambios' : 'Registrar peligro'}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowHazardForm(false)} className="text-xs px-3 py-1.5">
+            <Button type="button" variant="secondary" onClick={closeHazardForm} className="text-xs px-3 py-1.5">
               Cancelar
             </Button>
           </div>
@@ -284,6 +305,7 @@ export default function MatrizPeligrosPage() {
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-navy leading-snug">{h.description}</p>
+                      {h.mission_type && <p className="text-xs text-navy-500 mt-0.5">{h.mission_type}</p>}
                       <p className="text-[11px] text-navy-400 mt-0.5">
                         {list.length} control{list.length === 1 ? '' : 'es'}
                         {h.source ? ` · origen: ${h.source}` : ''}
@@ -302,6 +324,9 @@ export default function MatrizPeligrosPage() {
                       >
                         <span className="material-symbols-outlined text-base">add</span>
                         Control
+                      </button>
+                      <button type="button" onClick={() => startEditHazard(h)} className="w-7 h-7 flex items-center justify-center rounded-full text-navy-400 hover:bg-navy-50" aria-label="Editar peligro">
+                        <span className="material-symbols-outlined text-base">edit</span>
                       </button>
                       <button type="button" onClick={() => handleDeleteHazard(h)} className="w-7 h-7 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50" aria-label="Eliminar peligro">
                         <span className="material-symbols-outlined text-base">delete</span>

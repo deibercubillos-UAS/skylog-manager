@@ -15,6 +15,44 @@ import { getAuthUser } from '@/lib/v2/authUser';
 import { storageRemove } from '@/lib/storage';
 import { dbError } from '@/lib/v2/apiErrors';
 
+// Editar un peligro del catálogo. Campos internos y configurables (regla C):
+// descripción, origen y descripción adicional (columna mission_type). Igual que
+// el DELETE, `hazards` no tiene RLS de update: se valida sesión/org/rol (P2) con
+// el cliente del usuario y se escribe con la llave de servicio.
+export async function PATCH(request, { params }) {
+  const supabase = await createClientSSR();
+  const user = await getAuthUser(supabase);
+  if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
+
+  const { id } = await params;
+  const { data: hazard, error: fetchError } = await supabase.from('hazards').select('id, organization_id').eq('id', id).maybeSingle();
+  if (fetchError) return Response.json({ error: 'Error consultando el peligro' }, { status: 500 });
+  if (!hazard) return Response.json({ error: 'Peligro no encontrado' }, { status: 404 });
+
+  const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
+  if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+  if (!membershipsCanEdit(memberships, hazard.organization_id, 'P2')) {
+    return Response.json({ error: 'Solo un gestor puede editar peligros' }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+  const updates = {};
+  if (has('description')) {
+    const d = String(body.description || '').trim();
+    if (!d) return Response.json({ error: 'La descripción del peligro no puede quedar vacía' }, { status: 400 });
+    updates.description = d;
+  }
+  if (has('source')) updates.source = String(body.source || '').trim() || 'observacion';
+  if (has('missionType')) updates.mission_type = String(body.missionType || '').trim() || null;
+  if (Object.keys(updates).length === 0) return Response.json({ error: 'No hay cambios para guardar' }, { status: 400 });
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.from('hazards').update(updates).eq('id', id).eq('organization_id', hazard.organization_id).select().single();
+  if (error) return dbError(error, 'sms/hazards');
+  return Response.json({ hazard: data });
+}
+
 export async function DELETE(request, { params }) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);

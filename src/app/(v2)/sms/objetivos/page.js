@@ -10,6 +10,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ObjectiveFormPanel from './_ObjectiveFormPanel';
 import PolicyPanel from './_PolicyPanel';
+import { downloadObjetivosPoliticasPdf } from '@/lib/v2/smsObjetivosDoc';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -28,6 +29,7 @@ export default function SmsObjetivosPage() {
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [tab, setTab] = useState('objetivos');
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['O2'] === 'edit';
@@ -78,6 +80,28 @@ export default function SmsObjetivosPage() {
     await loadAll(organizationId);
   }
 
+  async function handleDownloadPdf() {
+    setPdfBusy(true);
+    setError(null);
+    try {
+      // La política vigente no está en este estado (la maneja PolicyPanel), se consulta al vuelo.
+      const res = await fetch(`/api/sms/governance/policy?organizationId=${organizationId}`);
+      const data = await res.json();
+      const policy = res.ok ? data.current : null;
+      await downloadObjetivosPoliticasPdf({
+        orgName: currentOrg?.name,
+        nit: currentOrg?.nit,
+        logoUrl: currentOrg?.logoUrl,
+        policy,
+        objectives,
+      });
+    } catch (e) {
+      setError(e.message || 'No se pudo generar el PDF');
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   if (loading) return <p className="text-sm text-navy-400">Cargando…</p>;
 
   if (!context?.personId) {
@@ -98,18 +122,23 @@ export default function SmsObjetivosPage() {
         title="Objetivos y Políticas"
         description="Balanced Scorecard — la política declara los objetivos y los KPI los miden; no son listas sueltas (MAUT-5.0-22-017 §7.3.5.1)."
         cta={
-          tab === 'objetivos' &&
-          isManager && (
-            <Button
-              onClick={() => {
-                setEditTarget(null);
-                setShowForm(true);
-              }}
-            >
-              <span className="material-symbols-outlined text-base align-middle mr-1">add</span>
-              Nuevo objetivo
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={handleDownloadPdf} disabled={pdfBusy}>
+              <span className="material-symbols-outlined text-base align-middle mr-1">picture_as_pdf</span>
+              {pdfBusy ? 'Generando…' : 'Descargar PDF'}
             </Button>
-          )
+            {tab === 'objetivos' && isManager && (
+              <Button
+                onClick={() => {
+                  setEditTarget(null);
+                  setShowForm(true);
+                }}
+              >
+                <span className="material-symbols-outlined text-base align-middle mr-1">add</span>
+                Nuevo objetivo
+              </Button>
+            )}
+          </div>
         }
       />
 

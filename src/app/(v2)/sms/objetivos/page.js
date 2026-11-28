@@ -10,14 +10,12 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ObjectiveFormPanel from './_ObjectiveFormPanel';
 import PolicyPanel from './_PolicyPanel';
-import GsoPanel from './_GsoPanel';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const TABS = [
   { key: 'objetivos', label: 'Objetivos', icon: 'flag' },
   { key: 'politicas', label: 'Políticas', icon: 'gavel' },
-  { key: 'gso', label: 'Gerente SMS', icon: 'shield_person' },
 ];
 
 export default function SmsObjetivosPage() {
@@ -34,8 +32,6 @@ export default function SmsObjetivosPage() {
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['O2'] === 'edit';
   const isPolicyManager = currentOrg?.permissions?.['V3'] === 'edit';
-  // GSO: lo designa el mismo gestor de política (V3); el roster de candidatos requiere ver la tripulación (K1).
-  const canViewRoster = (currentOrg?.permissions?.['K1'] || 'none') !== 'none';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -137,8 +133,6 @@ export default function SmsObjetivosPage() {
 
       {tab === 'politicas' ? (
         <PolicyPanel organizationId={organizationId} isManager={isPolicyManager} fullName={context.fullName} />
-      ) : tab === 'gso' ? (
-        <GsoPanel organizationId={organizationId} isManager={isPolicyManager} canViewRoster={canViewRoster} />
       ) : (
       <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
